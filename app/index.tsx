@@ -1,6 +1,5 @@
 import { Redirect } from 'expo-router';
 
-// Placeholder — home screen built in Sprint 2
-export default function HomeTab() {
+export default function Root() {
   return <Redirect href="/(auth)/splash" />;
 }
