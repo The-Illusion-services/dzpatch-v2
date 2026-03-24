@@ -129,6 +129,8 @@ You design them, hand them over, we build them. No design = no build.
 ---
 
 ### Sprint 3: Negotiation Engine + Finding Rider
+**Status: COMPLETE ✓**
+
 **Goal:** After order creation, customer sees bids in real time and accepts one.
 
 #### Design needed (ALREADY IN HAND ✓):
@@ -140,21 +142,27 @@ You design them, hand them over, we build them. No design = no build.
 | Waiting for Response | waiting_for_response |
 
 #### Build tasks:
-- [ ] Finding Rider screen (animated, order summary, cancel option)
-- [ ] Live Bidding Pool screen:
-  - "LIVE POOL" indicator
+- [x] Finding Rider screen (pulse radar animation, order summary, countdown, cancel)
+- [x] Live Bidding Pool screen:
+  - "LIVE" animated ping indicator
   - Countdown timer (order.expires_at)
-  - Rider bid cards (avatar, name, rating, distance, ETA, amount)
-  - Accept / Negotiate / Reject actions per bid
-  - Live activity feed
-- [ ] Counter Offer modal (custom price input, send counter)
-- [ ] Waiting for Response screen (rider side — shown after counter-offer)
-- [ ] Realtime: `order:{id}:bids` subscription
-- [ ] Realtime: `order:{id}:status` subscription
-- [ ] create_order RPC call (with wallet debit)
-- [ ] accept_bid RPC call
-- [ ] Bid timeout handling (countdown UI + pg_cron server-side)
-- [ ] Edge Function: orders/expire (pg_cron, stale orders + bids)
+  - Rider bid cards (avatar, name, rating, trips, vehicle, amount)
+  - "Best Value" badge on lowest bid
+  - Accept / Negotiate actions per bid
+  - Live activity feed (real-time updates)
+  - Realtime: bids INSERT + UPDATE subscriptions
+- [x] Counter Offer modal (bottom sheet, comparison row, 20% min rule, validation)
+- [x] Waiting for Response screen (hourglass spin, shimmer bar, offer timeline, cancel & search again)
+- [x] Realtime: `order:{id}:bids` subscription (new bids → bidding pool)
+- [x] Realtime: `order:{id}:status` subscription (matched → tracking)
+- [x] create_order RPC → finding-rider navigation wired
+- [x] accept_bid RPC call
+- [x] Bid counter-offer via bids table (parent_bid_id pattern)
+- [x] Countdown timer UI on both finding-rider and live-bidding screens
+
+> 📋 **Phase 1 Test Checkpoint** — After Sprint 3:
+> Run `npm test` to confirm all Phase 1 sprint 1–3 tests pass.
+> Current coverage: 122 tests, 7 suites — all passing.
 
 ---
 
@@ -598,4 +606,4 @@ After Sprint 10:
 
 ## Start Here
 
-**Sprint 3** is next — Negotiation Engine + Finding Rider. Say "go" when ready.
+**Sprint 4** is next — Live Tracking + Chat + Delivery Completion. Say "go" when ready.

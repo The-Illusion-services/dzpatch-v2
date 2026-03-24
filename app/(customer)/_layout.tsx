@@ -63,6 +63,10 @@ export default function CustomerLayout() {
       <Tabs.Screen name="order-tracking" options={{ href: null }} />
       <Tabs.Screen name="saved-addresses" options={{ href: null }} />
       <Tabs.Screen name="add-address" options={{ href: null }} />
+      <Tabs.Screen name="finding-rider" options={{ href: null }} />
+      <Tabs.Screen name="live-bidding" options={{ href: null }} />
+      <Tabs.Screen name="counter-offer" options={{ href: null }} />
+      <Tabs.Screen name="waiting-response" options={{ href: null }} />
       <Tabs.Screen name="chat" options={{ href: null }} />
     </Tabs>
   );

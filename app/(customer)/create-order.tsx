@@ -206,9 +206,11 @@ export default function CreateOrderScreen() {
       const { data, error: rpcErr } = await supabase.rpc('create_order', params as any);
       if (rpcErr) throw rpcErr;
 
+      const orderId = (data as any)?.order_id ?? data;
+      // Go to finding-rider which transitions to live-bidding when first bid arrives
       router.replace({
-        pathname: '/(customer)/order-tracking',
-        params: { orderId: (data as any)?.order_id ?? data },
+        pathname: '/(customer)/finding-rider',
+        params: { orderId },
       } as any);
     } catch (err: any) {
       setError(err.message ?? 'Failed to create order. Try again.');
