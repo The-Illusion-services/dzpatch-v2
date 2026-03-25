@@ -8,9 +8,6 @@
     "scheme": "dzpatchv2",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -19,7 +16,18 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws"
+        }
+      }
+    },
+    "ios": {
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws"
+      }
     },
     "web": {
       "output": "static",
@@ -27,6 +35,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Dzpatch to use your location to suggest nearby addresses."
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,22 +8,26 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 
+const GOOGLE_API_KEY = 'AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws';
+const BIAS_RADIUS = 20000;
+
 type Label = 'home' | 'work' | 'school' | 'other';
 
-const LABELS: { value: Label; icon: string; text: string }[] = [
-  { value: 'home', icon: '🏠', text: 'Home' },
-  { value: 'work', icon: '🏢', text: 'Work' },
-  { value: 'school', icon: '🎓', text: 'School' },
-  { value: 'other', icon: '📍', text: 'Other' },
+const LABELS: { value: Label; icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap; text: string }[] = [
+  { value: 'home',   icon: 'home-outline',    text: 'Home'   },
+  { value: 'work',   icon: 'business-outline', text: 'Work'   },
+  { value: 'school', icon: 'school-outline',   text: 'School' },
+  { value: 'other',  icon: 'location-outline', text: 'Other'  },
 ];
 
 export default function AddAddressScreen() {
@@ -32,10 +37,24 @@ export default function AddAddressScreen() {
   const isEditing = Boolean(addressId);
 
   const [address, setAddress] = useState('');
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [label, setLabel] = useState<Label>('home');
   const [isDefault, setIsDefault] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
+
+  // Get user location for bias
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    })();
+  }, []);
 
   // Load existing data when editing
   useEffect(() => {
@@ -47,9 +66,14 @@ export default function AddAddressScreen() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setAddress(data.address ?? '');
-          setLabel((data.label as Label) ?? 'home');
-          setIsDefault(data.is_default ?? false);
+          const d = data as any;
+          setAddress(d.address ?? '');
+          setLabel((d.label as Label) ?? 'home');
+          setIsDefault(d.is_default ?? false);
+          if (d.latitude && d.longitude) {
+            setSelectedCoords({ lat: d.latitude, lng: d.longitude });
+            placesRef.current?.setAddressText(d.address ?? '');
+          }
         }
       });
   }, [addressId]);
@@ -59,20 +83,24 @@ export default function AddAddressScreen() {
     setError('');
     setLoading(true);
 
+    const lat = selectedCoords?.lat ?? userLocation?.lat ?? 6.4551;
+    const lng = selectedCoords?.lng ?? userLocation?.lng ?? 3.3841;
+    const wkt = `SRID=4326;POINT(${lng} ${lat})`;
+
     try {
-      // If setting as default, clear existing defaults first
       if (isDefault) {
+        // Clear existing default first
         await supabase
           .from('saved_addresses')
-          .update({ is_default: false })
+          .update({ is_default: false } as any)
           .eq('user_id', profile?.id ?? '');
       }
 
       if (isEditing) {
         const { error: e } = await supabase
           .from('saved_addresses')
-          .update({ address: address.trim(), label, is_default: isDefault })
-          .eq('id', addressId);
+          .update({ address: address.trim(), label, is_default: isDefault, latitude: lat, longitude: lng } as any)
+          .eq('id', addressId!);
         if (e) throw e;
       } else {
         const { error: e } = await supabase
@@ -81,11 +109,11 @@ export default function AddAddressScreen() {
             user_id: profile?.id ?? '',
             address: address.trim(),
             label,
-            // lat/lng will be 0 until Places autocomplete is wired
-            lat: 0,
-            lng: 0,
             is_default: isDefault,
-          });
+            latitude: lat,
+            longitude: lng,
+            location: wkt,
+          } as any);
         if (e) throw e;
       }
 
@@ -104,8 +132,8 @@ export default function AddAddressScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(customer)/saved-addresses' as any)} style={styles.backBtn} hitSlop={8}>
+          <Ionicons name="arrow-back" size={20} color="#0040e0" />
         </Pressable>
         <Text style={styles.title}>{isEditing ? 'Edit Address' : 'Add Address'}</Text>
         <View style={{ width: 36 }} />
@@ -116,21 +144,52 @@ export default function AddAddressScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Address input */}
+        {/* Address autocomplete */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>ADDRESS</Text>
-          <TextInput
-            style={styles.addressInput}
-            placeholder="Type or search address..."
-            placeholderTextColor="#74777e"
-            value={address}
-            onChangeText={setAddress}
-            multiline
-            numberOfLines={2}
-          />
-          <Text style={styles.hint}>
-            💡 Google Maps autocomplete will be enabled once the Places API key is configured.
-          </Text>
+          <View style={styles.autocompleteWrap}>
+            <GooglePlacesAutocomplete
+              ref={placesRef}
+              placeholder="Search for an address..."
+              minLength={2}
+              fetchDetails
+              onPress={(data, details) => {
+                setAddress(data.description);
+                if (details?.geometry?.location) {
+                  setSelectedCoords({
+                    lat: details.geometry.location.lat,
+                    lng: details.geometry.location.lng,
+                  });
+                }
+              }}
+              query={{
+                key: GOOGLE_API_KEY,
+                language: 'en',
+                components: 'country:ng',
+                ...(userLocation ? {
+                  location: `${userLocation.lat},${userLocation.lng}`,
+                  radius: BIAS_RADIUS,
+                } : {}),
+              }}
+              textInputProps={{
+                placeholderTextColor: '#74777e',
+                style: styles.placesInput,
+              }}
+              styles={{
+                container: { flex: 0 },
+                listView: styles.placesList,
+                row: styles.placesRow,
+                description: styles.placesDesc,
+                poweredContainer: { display: 'none' },
+              }}
+              enablePoweredByContainer={false}
+              renderLeftButton={() => (
+                <View style={styles.placesIcon}>
+                  <Ionicons name="search-outline" size={16} color="#74777e" />
+                </View>
+              )}
+            />
+          </View>
         </View>
 
         {/* Label selector */}
@@ -143,24 +202,27 @@ export default function AddAddressScreen() {
                 style={[styles.labelBtn, label === l.value && styles.labelBtnActive]}
                 onPress={() => setLabel(l.value)}
               >
-                <Text style={styles.labelIcon}>{l.icon}</Text>
-                <Text style={[styles.labelText, label === l.value && styles.labelTextActive]}>{l.text}</Text>
+                <Ionicons
+                  name={l.icon}
+                  size={20}
+                  color={label === l.value ? '#FFFFFF' : '#44474e'}
+                />
+                <Text style={[styles.labelText, label === l.value && styles.labelTextActive]}>
+                  {l.text}
+                </Text>
               </Pressable>
             ))}
           </View>
         </View>
 
         {/* Default toggle */}
-        <Pressable
-          style={styles.defaultRow}
-          onPress={() => setIsDefault((v) => !v)}
-        >
+        <Pressable style={styles.defaultRow} onPress={() => setIsDefault((v) => !v)}>
           <View>
             <Text style={styles.defaultTitle}>Set as Default</Text>
             <Text style={styles.defaultSubtitle}>Auto-fill this address when ordering</Text>
           </View>
           <View style={[styles.checkbox, isDefault && styles.checkboxActive]}>
-            {isDefault && <Text style={styles.checkmark}>✓</Text>}
+            {isDefault && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
           </View>
         </Pressable>
 
@@ -180,21 +242,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing[5],
     paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(196,198,207,0.2)',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 20,
-    color: '#0040e0',
-    fontWeight: '600',
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
   },
   title: {
     fontSize: Typography.lg,
@@ -207,9 +261,7 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingBottom: 40,
   },
-  fieldGroup: {
-    gap: 8,
-  },
+  fieldGroup: { gap: 8 },
   fieldLabel: {
     fontSize: 10,
     fontWeight: Typography.bold,
@@ -217,26 +269,49 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 2,
   },
-  addressInput: {
+
+  // Autocomplete
+  autocompleteWrap: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: '#000D22',
-    minHeight: 72,
-    textAlignVertical: 'top',
+    overflow: 'hidden',
     shadowColor: '#000D22',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  hint: {
-    fontSize: Typography.xs,
-    color: '#74777e',
-    lineHeight: 16,
+  placesInput: {
+    fontSize: Typography.sm,
+    color: '#000D22',
+    paddingVertical: 14,
+    paddingRight: 14,
+    flex: 1,
   },
+  placesIcon: {
+    paddingLeft: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placesList: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F4F6',
+  },
+  placesRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F7FAFC',
+  },
+  placesDesc: {
+    fontSize: Typography.sm,
+    color: '#000D22',
+  },
+
+  // Label
   labelGrid: {
     flexDirection: 'row',
     gap: 10,
@@ -249,10 +324,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 6,
   },
-  labelBtnActive: {
-    backgroundColor: '#0A2342',
-  },
-  labelIcon: { fontSize: 22 },
+  labelBtnActive: { backgroundColor: '#0A2342' },
   labelText: {
     fontSize: 10,
     fontWeight: Typography.bold,
@@ -260,9 +332,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  labelTextActive: {
-    color: '#FFFFFF',
-  },
+  labelTextActive: { color: '#FFFFFF' },
+
+  // Default toggle
   defaultRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -283,26 +355,17 @@ const styles = StyleSheet.create({
   },
   defaultSubtitle: {
     fontSize: Typography.xs,
-    color: '#44474e',
+    color: '#44477e',
     marginTop: 2,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#c4c6cf',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 24, height: 24, borderRadius: 6,
+    borderWidth: 2, borderColor: '#c4c6cf',
+    alignItems: 'center', justifyContent: 'center',
   },
   checkboxActive: {
     backgroundColor: '#0040e0',
     borderColor: '#0040e0',
-  },
-  checkmark: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: Typography.bold,
   },
   error: {
     fontSize: Typography.sm,

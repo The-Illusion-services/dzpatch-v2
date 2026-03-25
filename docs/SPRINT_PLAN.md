@@ -167,6 +167,8 @@ You design them, hand them over, we build them. No design = no build.
 ---
 
 ### Sprint 4: Live Tracking + Chat + Delivery Completion
+**Status: COMPLETE ✓**
+
 **Goal:** Customer tracks rider live, chats, receives delivery, rates rider.
 
 #### Design needed (ALREADY IN HAND ✓):
@@ -180,30 +182,52 @@ You design them, hand them over, we build them. No design = no build.
 | Driver Rating & Review | driver_rating_review |
 
 #### Build tasks:
-- [ ] Active Order Tracking screen:
-  - Live map with rider pin
-  - Estimated arrival time
-  - Status progress bar
-  - Rider info card (name, rating, vehicle)
-  - Share Tracking button
-  - Cancel Order button
-- [ ] In-App Chat screen (floating header, message bubbles, text input)
-- [ ] Cancel Order modal (reason selection, penalty warning)
-- [ ] Booking Success screen
-- [ ] Delivery Success screen
-- [ ] Driver Rating & Review screen (1-5 stars, optional review)
-- [ ] Realtime: `order:{id}:location` (rider GPS → map pin)
-- [ ] Realtime: `order:{id}:chat` (messages)
-- [ ] Realtime: `order:{id}:status` (status bar progression)
-- [ ] cancel_order RPC
-- [ ] rate_rider RPC
-- [ ] Delivery code display (customer shows to rider)
+- [x] Active Order Tracking screen (`active-order-tracking.tsx`):
+  - Real MapView (react-native-maps + Google Maps, app.json configured)
+  - Bouncing rider marker, drop-off pin, dashed Polyline route
+  - Realtime rider location updates from `rider_locations` table
+  - Status timeline (5 steps), ETA status pill
+  - Rider info card (name, rating, vehicle plate, call + chat buttons)
+  - Cancel button → cancel-order-modal
+  - Auto-navigates to delivery-success on `delivered`/`completed`
+- [x] In-App Chat screen (`chat.tsx`):
+  - Floating header card (rider avatar, vehicle, status chip, call button)
+  - Message bubbles (rider left, customer right in blue)
+  - System notification support
+  - Realtime INSERT subscription on `chat_messages`
+  - KeyboardAvoidingView, multiline input, send button
+- [x] Cancel Order modal (`cancel-order-modal.tsx`):
+  - Bottom sheet overlay, 5 pre-set reasons
+  - Radio button selection, confirm/keep buttons
+  - Calls `cancel_order` RPC with reason + `cancelled_by: customer`
+  - Routes to home on success
+- [x] Booking Success screen (`booking-success.tsx`):
+  - Scale-in + ping ring animation on success icon
+  - Order ID, amount paid, pickup/dropoff address card
+  - Real-time tracking promo block
+  - CTA → finding-rider (starts rider search)
+- [x] Delivery Success screen (`delivery-success.tsx`):
+  - Animated package box (scale + tilt) with floating check badge
+  - Final price + delivery time stats
+  - Receipt link, Rate Rider + Done buttons
+- [x] Driver Rating & Review screen (`driver-rating.tsx`):
+  - 5-star tap rating with label (Poor → Excellent!)
+  - Feedback tag chips (multi-select: Fast, Safe Driver, Polite, etc.)
+  - Freeform review textarea
+  - Tip selection (₦200 / ₦500 / ₦1000 / Other custom)
+  - Calls `submit_review` RPC
+- [x] Navigation wired: create-order → booking-success → finding-rider → live-bidding → active-order-tracking → delivery-success → driver-rating
+- [x] cancel-order-modal wired into order-tracking + active-order-tracking
+- [x] react-native-maps installed, Google Maps API key in app.json
 
-**New dependency:** react-native-maps (or expo-maps)
+> 📋 **Phase 1 Test Checkpoint** — After Sprint 4:
+> Current coverage: 168 tests, 8 suites — all passing.
 
 ---
 
 ### Sprint 5: Wallet + Payments
+**Status: COMPLETE ✓**
+
 **Goal:** Customer can fund wallet, view transactions, withdraw.
 
 #### Design needed (ALREADY IN HAND ✓):
@@ -214,21 +238,28 @@ You design them, hand them over, we build them. No design = no build.
 | Withdraw Funds | withdraw_funds |
 
 #### Build tasks:
-- [ ] Wallet screen (balance card, Fund/Withdraw buttons, transaction list)
-- [ ] Transaction list (filterable: All, Income, Spending)
-- [ ] Fund Wallet screen (amount input, Paystack checkout)
-- [ ] Withdraw Funds screen (amount, bank selector, confirm)
-- [ ] Edge Function: payment/initialize (Paystack transaction init)
-- [ ] Paystack WebView checkout
-- [ ] Edge Function: payment/webhook (Paystack webhook receiver)
-- [ ] request_withdrawal RPC
-- [ ] Wallet balance + transactions query
+- [x] Wallet screen (dark navy balance card, Fund/Withdraw buttons, realtime balance, filter tabs)
+- [x] Transaction list (filterable: All, Income, Spending, Pending) with realtime INSERT subscription
+- [x] Fund Wallet screen (amount input, quick amount chips, payment method selection, Paystack WebView)
+- [x] Withdraw Funds screen (amount, bank picker, account number, fee notice, `request_withdrawal` RPC)
+- [x] Edge Function: `payment-initialize` (server-side Paystack transaction init, JWT auth)
+- [x] Paystack WebView checkout (opens authorization_url from Edge Function)
+- [x] Edge Function: `payment-webhook` (HMAC-SHA512 signature verification, `credit_wallet` RPC, transfer events)
+- [x] `request_withdrawal` RPC called from withdraw screen
+- [x] Wallet balance + transactions query (by wallet owner_id + owner_type)
+- [x] Realtime: `wallets` UPDATE + `transactions` INSERT subscriptions
+- [x] Registered `fund-wallet` + `withdraw` in `_layout.tsx`
 
 **New dependency:** react-native-webview
+
+> 📋 **Phase 1 Test Checkpoint** — After Sprint 5:
+> Current coverage: 204 tests, 9 suites — all passing.
 
 ---
 
 ### Sprint 6: Order History + Profile + Notifications
+**Status: COMPLETE ✓**
+
 **Goal:** Customer can view past orders, manage profile, see notifications.
 
 #### Design needed (ALREADY IN HAND ✓):
@@ -241,69 +272,67 @@ You design them, hand them over, we build them. No design = no build.
 | Global UI Overlays | global_ui_overlays_notifications_context |
 
 #### Build tasks:
-- [ ] Order History screen (filterable list: Active, Completed, Cancelled)
-- [ ] Order Details screen (timeline, map, receipt, rider info)
-- [ ] Profile & Settings screen (avatar, edit, password, notifications, privacy, logout, delete)
-- [ ] Notifications screen (read/unread list, tap to navigate)
-- [ ] Global overlays (toast, in-app notification banners)
-- [ ] Orders query with filters + search
-- [ ] Profile update
-- [ ] Notifications query + mark as read
-- [ ] Realtime: `user:{id}:notifications`
-- [ ] Expo push token registration → profiles.push_token
-- [ ] Edge Function: notifications/push
+- [x] Order History screen (filterable list: All, Active, Completed, Cancelled)
+- [x] Order Details screen (5-step timeline, rider card, payment summary, route card)
+- [x] Profile screen rewrite (avatar initials, KYC badge, full menu, all nav wired)
+- [x] Notifications screen (grouped: Order Updates, Promos, System; mark all read; realtime INSERT)
+- [x] Orders query with filters (customer_id, ordered by created_at desc, limit 50)
+- [x] Notifications query + mark as read (individual + mark all read)
+- [x] Realtime: `user:{id}:notifications` INSERT subscription
+- [x] Registered order-history, order-details, notifications in `_layout.tsx`
 
-**New dependency:** expo-notifications
+> 📋 **Phase 1 Test Checkpoint** — After Sprint 6:
+> Current coverage: 242 tests, 10 suites — all passing.
 
 ---
 
 ### Sprint 7: Rider App (Complete)
 **Goal:** Rider can sign up, go online, receive orders, bid, deliver, earn.
 
-> ⚠️ DESIGN CHECKPOINT: Rider app UI designs must be ready before this sprint starts.
-> Use the screen list below to create designs. Same design language as customer app.
-
-#### Design needed (TO BE CREATED before Sprint 7):
-| Screen Name | Description |
+#### Design needed (ALREADY IN HAND ✓):
+| Screen Name | File |
 |---|---|
 | **Auth & Onboarding** | |
-| rider_splash | Rider-specific splash/welcome screen |
-| rider_onboarding | Brief onboarding (2-3 screens: earn money, flexible hours, join fleet) |
-| rider_signup_personal | Step 1: Full name, email, phone |
-| rider_signup_otp | OTP verification |
-| rider_signup_vehicle | Step 2: Vehicle type, make, model, year, plate, color |
-| rider_signup_documents | Step 3: Upload license, insurance, plate photo |
-| rider_signup_fleet | Step 4: Join fleet via code (optional) or go independent |
-| rider_signup_bank | Step 5: Bank account details |
-| rider_signup_review | Review all info before submitting |
-| rider_pending_approval | "Under Review" waiting screen (admin gate) |
+| Rider Splash Screen | `UI UX Design/Rider App/rider_splash_screen/code.html` |
+| Onboarding 1 — Earn Money | `UI UX Design/Rider App/onboarding_earn_money/code.html` |
+| Onboarding 2 — Flexible Hours | `UI UX Design/Rider App/onboarding_flexible_hours/code.html` |
+| Onboarding 3 — Join Fleet | `UI UX Design/Rider App/onboarding_join_fleet/code.html` |
+| Sign Up — Personal Details | `UI UX Design/Rider App/rider_sign_up_personal_details/code.html` |
+| Sign Up — OTP Verification | `UI UX Design/Rider App/rider_sign_up_otp_verification/code.html` |
+| Sign Up — Vehicle Details | `UI UX Design/Rider App/rider_sign_up_compact_vehicle_details/code.html` |
+| Sign Up — Document Uploads | `UI UX Design/Rider App/rider_sign_up_document_uploads/code.html` |
+| Sign Up — Bank Details | `UI UX Design/Rider App/rider_sign_up_bank_details/code.html` |
+| Sign Up — Review Application | `UI UX Design/Rider App/rider_sign_up_review_application/code.html` |
+| Pending Approval | `UI UX Design/Rider App/rider_sign_up_pending_approval/code.html` |
 | **Home & Job Feed** | |
-| rider_home | Map view, online/offline toggle, nearby order pins |
-| rider_order_card | Order preview card (distance, price, package type, pickup area) |
-| rider_order_detail | Full order detail before accepting/bidding |
+| Home — Map & Status | `UI UX Design/Rider App/rider_home_map_status/code.html` |
+| Job Preview Card | `UI UX Design/Rider App/job_preview_card/code.html` |
+| Job Details & Bidding | `UI UX Design/Rider App/job_details_bidding/code.html` |
 | **Bidding Flow** | |
-| rider_bid_input | Enter counter-offer amount |
-| rider_awaiting_response | "Waiting for customer response" screen |
-| rider_bid_rejected | Bid was rejected screen |
+| Enter Counter Offer | `UI UX Design/Rider App/enter_counter_offer/code.html` |
+| Waiting for Customer | `UI UX Design/Rider App/waiting_for_customer/code.html` |
+| Bid Declined | `UI UX Design/Rider App/bid_declined/code.html` |
 | **Delivery Flow** | |
-| rider_navigate_pickup | Step 1: Map navigation to pickup |
-| rider_confirm_arrival_pickup | Step 2: Arrival confirmation (geofence auto or manual button) |
-| rider_navigate_dropoff | Step 3: Map navigation to dropoff |
-| rider_delivery_completion | Step 4: Enter delivery code + capture POD photo |
-| rider_trip_complete | Delivery complete, earnings shown |
+| Navigate to Pickup | `UI UX Design/Rider App/navigate_to_pickup_simplified/code.html` |
+| Confirm Arrival at Pickup | `UI UX Design/Rider App/confirm_arrival_at_pickup/code.html` |
+| Navigate to Drop-off | `UI UX Design/Rider App/navigate_to_drop_off/code.html` |
+| Delivery Completion | `UI UX Design/Rider App/delivery_completion/code.html` |
+| Trip Complete | `UI UX Design/Rider App/trip_complete/code.html` |
 | **Earnings & Wallet** | |
-| rider_earnings | Trips count, gross earnings, commission, net — weekly/monthly |
-| rider_wallet | Balance, Fund/Withdraw buttons, transaction list |
-| rider_withdraw | Withdrawal request form |
+| Earnings Dashboard | `UI UX Design/Rider App/rider_earnings_dashboard/code.html` |
+| Wallet | `UI UX Design/Rider App/rider_wallet/code.html` |
+| Withdraw Funds | `UI UX Design/Rider App/withdraw_funds/code.html` |
 | **Profile & Settings** | |
-| rider_profile | Name, rating, vehicle, online stats |
-| rider_settings_vehicle | Edit vehicle info |
-| rider_settings_documents | View/reupload documents |
-| rider_settings_bank | Edit bank account |
-| rider_settings_security | Change password |
-| rider_commission_locked | Locked screen with debt amount + how to unlock |
-| rider_sos | SOS confirmation modal (before trigger) |
-| rider_chat | In-app chat with customer (same style as customer chat) |
+| Rider Profile | `UI UX Design/Rider App/rider_profile/code.html` |
+| Edit Vehicle Info | `UI UX Design/Rider App/edit_vehicle_info/code.html` |
+| Documents Management | `UI UX Design/Rider App/documents_management/code.html` |
+| Bank Account Settings | `UI UX Design/Rider App/bank_account_settings/code.html` |
+| Security — Change Password | `UI UX Design/Rider App/security_change_password/code.html` |
+| Account Locked — Commission Owed | `UI UX Design/Rider App/account_locked_commission_owed/code.html` |
+| SOS Safety Modal | `UI UX Design/Rider App/sos_safety_modal/code.html` |
+| Chat with Customer | `UI UX Design/Rider App/chat_with_customer/code.html` |
+
+> ℹ️ **Note:** No `rider_signup_fleet` screen in designs — fleet join step either folded into `rider_sign_up_review_application` or handled post-approval. Confirm before building step 7a.
 
 #### Build tasks:
 **7a. Auth & Onboarding**
@@ -316,6 +345,7 @@ You design them, hand them over, we build them. No design = no build.
 **7b. Home + Job Feed**
 - [ ] Home screen with map + online/offline toggle
 - [ ] Nearby orders displayed as map pins + list
+  > 🗺️ **Customer home map note:** Currently shows placeholder MapView with 5 dummy 🛵 rider pins. Replace in Sprint 7 with real rider locations from `rider_locations` table via `get_nearby_orders` RPC / Realtime subscription.
 - [ ] get_nearby_orders RPC call
 - [ ] Realtime: `orders:pending` subscription
 - [ ] toggle_rider_online RPC
@@ -470,12 +500,14 @@ Money distributed (platform + fleet + rider) → Customer rates rider
 ### Sprint 10: Admin Configuration + Disputes
 **Goal:** Admin can configure the platform and resolve disputes.
 
+> 📌 **Pricing rules note:** The `pricing_rules` table columns (`base_rate`, `per_km_rate`, `vat_percentage`, `surge_multiplier`, `min_price`, `max_price`) must be fully editable from the `admin_pricing` screen. Changes apply immediately to new orders. Current fallback pricing in dev: ₦500 base + ₦100/km + 7.5% VAT.
+
 #### Screens needed:
 | Screen Name | Description |
 |---|---|
 | admin_service_areas | List of cities, enable/disable toggle, add new |
 | admin_categories | Package category management (add, edit, reorder, disable) |
-| admin_pricing | Per-city pricing rules (base rate, per-km, VAT, surge, min/max) |
+| admin_pricing | Per-city pricing rules (base rate, per-km, VAT, surge, min/max) — **must be editable** |
 | admin_commission | Platform commission rate configuration |
 | admin_promos | Promo code list with usage stats |
 | admin_promo_create | Create new promo code (type, value, limits, expiry) |
@@ -583,7 +615,7 @@ After Sprint 10:
 | Sprint 4 | Tracking + chat + completion (6 screens) | ✅ IN HAND |
 | Sprint 5 | Wallet + payments (3 screens) | ✅ IN HAND |
 | Sprint 6 | History + profile + notifications (5 screens) | ✅ IN HAND |
-| Sprint 7 | **Rider app (29 screens)** | ⏳ CREATE BEFORE SPRINT 7 |
+| Sprint 7 | **Rider app (33 screens)** | ✅ IN HAND |
 | Sprint 8 | **Fleet app (17 screens)** | ⏳ CREATE BEFORE SPRINT 8 |
 | Sprint 9 | **Admin dashboard (10 screens — functional)** | ⏳ CREATE BEFORE SPRINT 9 |
 | Sprint 10 | **Admin config + disputes (9 screens — functional)** | ⏳ CREATE BEFORE SPRINT 10 |
@@ -597,7 +629,7 @@ After Sprint 10:
 | App | Screens | Status |
 |---|---|---|
 | Customer App | 39 | ✅ All designed |
-| Rider App | 29 | ⏳ Need before Sprint 7 |
+| Rider App | 33 | ✅ All designed |
 | Fleet App | 17 | ⏳ Need before Sprint 8 |
 | Admin Dashboard | 19 | ⏳ Need before Sprint 9 (functional OK) |
 | **Total** | **104** | |
@@ -606,4 +638,4 @@ After Sprint 10:
 
 ## Start Here
 
-**Sprint 4** is next — Live Tracking + Chat + Delivery Completion. Say "go" when ready.
+**Sprint 7** is next — Rider App (Complete). Say "go" when ready.

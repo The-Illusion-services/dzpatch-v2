@@ -20,8 +20,8 @@ type SavedAddress = {
   id: string;
   label: string;
   address: string;
-  lat: number;
-  lng: number;
+  latitude: number | null;
+  longitude: number | null;
   is_default: boolean;
 };
 
@@ -95,7 +95,7 @@ export default function SavedAddressesScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(customer)/profile' as any)} style={styles.backBtn} hitSlop={8}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
         <Text style={styles.title}>Saved Addresses</Text>

@@ -1,147 +1,160 @@
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
+  SectionList,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { PackageSize } from '@/types/database';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+const GOOGLE_API_KEY = 'AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws';
+const BIAS_RADIUS = 20000; // 20km in metres
 
-type Category = { id: string; name: string; icon: string };
 type PricingRule = {
-  base_fare: number;
+  base_rate: number;
   per_km_rate: number;
-  minimum_fare: number;
-  service_fee_rate: number;
-};
-type CreateOrderParams = {
-  pickup_address: string;
-  pickup_lat: number;
-  pickup_lng: number;
-  dropoff_address: string;
-  dropoff_lat: number;
-  dropoff_lng: number;
-  dropoff_contact_name: string;
-  dropoff_contact_phone: string;
-  package_size: PackageSize;
-  category_id: string | null;
-  require_delivery_code: boolean;
-  promo_code?: string;
+  min_price: number;
+  vat_percentage: number;
+  surge_multiplier: number;
 };
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const SIZES: { value: PackageSize; label: string }[] = [
-  { value: 'small', label: 'Small' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large' },
+const SIZES: { value: PackageSize; label: string; icon: string; desc: string }[] = [
+  { value: 'small',  label: 'Small',  icon: '📦', desc: 'Docs, phone' },
+  { value: 'medium', label: 'Medium', icon: '🎒', desc: 'Clothes, books' },
+  { value: 'large',  label: 'Large',  icon: '📫', desc: 'Big parcels' },
 ];
 
 const SIZE_MULTIPLIER: Record<PackageSize, number> = {
-  small: 1,
-  medium: 1.3,
-  large: 1.6,
-  extra_large: 2,
+  small: 1, medium: 1.3, large: 1.6, extra_large: 2,
 };
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function CreateOrderScreen() {
   const { profile } = useAuthStore();
   const insets = useSafeAreaInsets();
 
-  // Location
-  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupAddress,  setPickupAddress]  = useState('');
   const [dropoffAddress, setDropoffAddress] = useState('');
-  // Keep lat/lng as 0 until Places is wired — RPC will still work with placeholder coords
-  const pickupCoords = useRef({ lat: 6.5244, lng: 3.3792 }); // Lagos default
-  const dropoffCoords = useRef({ lat: 0, lng: 0 });
+  const pickupCoords  = useRef<{ lat: number; lng: number } | null>(null);
+  const dropoffCoords = useRef<{ lat: number; lng: number } | null>(null);
 
-  // Recipient
-  const [recipientName, setRecipientName] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [currentLocationLabel, setCurrentLocationLabel] = useState('My current location');
+
+  const pickupRef  = useRef<GooglePlacesAutocompleteRef>(null);
+  const dropoffRef = useRef<GooglePlacesAutocompleteRef>(null);
+
+  const [recipientName,  setRecipientName]  = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
+  const [selectedSize,   setSelectedSize]   = useState<PackageSize>('small');
+  const [paymentMethod,  setPaymentMethod]  = useState<'cash' | 'wallet'>('cash');
 
-  // Package
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<PackageSize>('small');
-  const [requireDeliveryCode, setRequireDeliveryCode] = useState(true);
-
-  // Promo
-  const [promoCode, setPromoCode] = useState('');
+  const [showPromo,    setShowPromo]    = useState(false);
+  const [promoCode,    setPromoCode]    = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
-  const [promoError, setPromoError] = useState('');
+  const [promoError,   setPromoError]   = useState('');
+  const [discount,     setDiscount]     = useState(0);
 
-  // Pricing
   const [pricingRule, setPricingRule] = useState<PricingRule | null>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
-  const [serviceFee, setServiceFee] = useState(0);
-  const [discount, setDiscount] = useState(0);
+  const [serviceFee,  setServiceFee]  = useState(0);
 
-  // Submit
+  const [savedAddresses, setSavedAddresses] = useState<{ label: string; address: string; lat: number; lng: number }[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error,      setError]      = useState('');
 
-  // ─── Load categories + pricing rule on mount ──────────────────────────────
+  // ─── Get current location ─────────────────────────────────────────────────
 
   useEffect(() => {
-    async function load() {
-      const [catRes, priceRes] = await Promise.all([
-        supabase.from('package_categories').select('id, name').order('name'),
-        supabase.from('pricing_rules').select('*').eq('is_active', true).limit(1).single(),
-      ]);
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
 
-      if (catRes.data) {
-        const iconMap: Record<string, string> = {
-          food: '🍔', docs: '📄', documents: '📄', parcel: '📦',
-          fashion: '👗', clothing: '👗', electronics: '📱',
-        };
-        setCategories(
-          catRes.data.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            icon: iconMap[c.name.toLowerCase()] ?? '📦',
-          }))
-        );
-        if (catRes.data[0]) setSelectedCategory(catRes.data[0].id);
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      setUserLocation(coords);
+      pickupCoords.current = coords;
+
+      // Reverse geocode to get a readable address for the label
+      const [place] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
+      if (place) {
+        const label = [place.street, place.district ?? place.subregion, place.city]
+          .filter(Boolean).join(', ');
+        if (label) setCurrentLocationLabel(label);
       }
-
-      if (priceRes.data) setPricingRule(priceRes.data as PricingRule);
-    }
-    load();
+    })();
   }, []);
 
-  // ─── Recalculate price whenever inputs change ─────────────────────────────
+  // ─── Load pricing rule ────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!pricingRule) return;
+    supabase
+      .from('pricing_rules')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setPricingRule(data as PricingRule);
+        } else {
+          // Fallback matches RPC fallback: ₦500 base + ₦100/km, 7.5% VAT
+          setPricingRule({ base_rate: 500, per_km_rate: 100, min_price: 500, vat_percentage: 7.5, surge_multiplier: 1 });
+        }
+      });
+  }, []);
 
-    // Estimate distance: if both addresses set, use fixed 5km placeholder until
-    // Places coords are wired in. Real distance calc happens server-side in RPC.
-    const estimatedKm = pickupAddress && dropoffAddress ? 5 : 0;
-    const multiplier = SIZE_MULTIPLIER[selectedSize];
+  // ─── Load saved addresses for dropoff suggestions ─────────────────────────
 
-    const base = Math.max(
-      pricingRule.minimum_fare,
-      pricingRule.base_fare + estimatedKm * pricingRule.per_km_rate
-    ) * multiplier;
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase
+      .from('saved_addresses')
+      .select('label, address_line, latitude, longitude')
+      .eq('user_id', profile.id)
+      .order('is_default', { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data) {
+          setSavedAddresses(data.map((a) => ({
+            label:   a.label,
+            address: a.address_line,
+            lat:     a.latitude,
+            lng:     a.longitude,
+          })));
+        }
+      });
+  }, [profile?.id]);
 
-    const svc = base * pricingRule.service_fee_rate;
-    setDeliveryFee(Math.round(base));
-    setServiceFee(Math.round(svc));
+  // ─── Recalculate price ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    // Only calculate once both pickup AND dropoff coords are confirmed
+    if (!pricingRule || !pickupCoords.current || !dropoffCoords.current) {
+      setDeliveryFee(0);
+      setServiceFee(0);
+      return;
+    }
+    const estimatedKm = 5; // replaced with real distance in RPC; use 5km estimate for preview
+    const multiplier  = SIZE_MULTIPLIER[selectedSize];
+    const raw = (pricingRule.base_rate + estimatedKm * pricingRule.per_km_rate) * pricingRule.surge_multiplier;
+    const price = Math.max(pricingRule.min_price, raw) * multiplier;
+    const vat = price * (pricingRule.vat_percentage / 100);
+    setDeliveryFee(Math.round(price));
+    setServiceFee(Math.round(vat));
   }, [pricingRule, pickupAddress, dropoffAddress, selectedSize]);
 
   const total = deliveryFee + serviceFee - discount;
@@ -151,27 +164,20 @@ export default function CreateOrderScreen() {
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
     setPromoError('');
-
     const { data } = await supabase
       .from('promo_codes')
       .select('id, discount_type, discount_value, min_order_amount, is_active')
       .eq('code', promoCode.trim().toUpperCase())
       .eq('is_active', true)
       .single();
-
-    if (!data) {
-      setPromoError('Invalid or expired promo code');
-      return;
-    }
+    if (!data) { setPromoError('Invalid or expired promo code'); return; }
     if (data.min_order_amount && deliveryFee < data.min_order_amount) {
       setPromoError(`Min order ₦${data.min_order_amount.toLocaleString()} required`);
       return;
     }
-
-    const disc =
-      data.discount_type === 'percentage'
-        ? Math.round((deliveryFee * data.discount_value) / 100)
-        : data.discount_value;
+    const disc = data.discount_type === 'percentage'
+      ? Math.round((deliveryFee * data.discount_value) / 100)
+      : data.discount_value;
     setDiscount(disc);
     setPromoApplied(true);
   };
@@ -180,34 +186,33 @@ export default function CreateOrderScreen() {
 
   const handleFindRider = async () => {
     setError('');
-
-    if (!pickupAddress.trim()) { setError('Enter pick-up address'); return; }
+    if (!pickupAddress.trim())  { setError('Enter pick-up address'); return; }
     if (!dropoffAddress.trim()) { setError('Enter drop-off address'); return; }
-    if (!recipientName.trim()) { setError('Enter recipient name'); return; }
+    if (!recipientName.trim())  { setError('Enter recipient name'); return; }
     if (!recipientPhone.trim()) { setError('Enter recipient phone'); return; }
+    if (!pickupCoords.current)  { setError('Select pick-up from the suggestions'); return; }
+    if (!dropoffCoords.current) { setError('Select drop-off from the suggestions'); return; }
 
     setSubmitting(true);
     try {
-      const params: CreateOrderParams = {
-        pickup_address: pickupAddress.trim(),
-        pickup_lat: pickupCoords.current.lat,
-        pickup_lng: pickupCoords.current.lng,
-        dropoff_address: dropoffAddress.trim(),
-        dropoff_lat: dropoffCoords.current.lat,
-        dropoff_lng: dropoffCoords.current.lng,
-        dropoff_contact_name: recipientName.trim(),
-        dropoff_contact_phone: recipientPhone.trim(),
-        package_size: selectedSize,
-        category_id: selectedCategory,
-        require_delivery_code: requireDeliveryCode,
-        ...(promoApplied ? { promo_code: promoCode.trim().toUpperCase() } : {}),
-      };
-
-      const { data, error: rpcErr } = await supabase.rpc('create_order', params as any);
+      const { data, error: rpcErr } = await supabase.rpc('create_order', {
+        p_customer_id:           profile!.id,
+        p_pickup_address:        pickupAddress.trim(),
+        p_pickup_lat:            pickupCoords.current.lat,
+        p_pickup_lng:            pickupCoords.current.lng,
+        p_dropoff_address:       dropoffAddress.trim(),
+        p_dropoff_lat:           dropoffCoords.current.lat,
+        p_dropoff_lng:           dropoffCoords.current.lng,
+        p_dropoff_contact_name:  recipientName.trim(),
+        p_dropoff_contact_phone: recipientPhone.trim(),
+        p_package_size:          selectedSize,
+        p_category_id:           null,
+        p_payment_method:        paymentMethod,
+        ...(promoApplied ? { p_promo_code: promoCode.trim().toUpperCase() } : {}),
+      } as any);
       if (rpcErr) throw rpcErr;
 
       const orderId = (data as any)?.order_id ?? data;
-      // Go to finding-rider which transitions to live-bidding when first bid arrives
       router.replace({
         pathname: '/(customer)/finding-rider',
         params: { orderId },
@@ -219,6 +224,15 @@ export default function CreateOrderScreen() {
     }
   };
 
+  // ─── Places query ─────────────────────────────────────────────────────────
+
+  const placesQuery = userLocation
+    ? { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng',
+        location: `${userLocation.lat},${userLocation.lng}`, radius: BIAS_RADIUS, strictbounds: false }
+    : { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng' };
+
+  const formSections = [{ title: 'form', data: ['_'] as string[] }];
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -226,649 +240,492 @@ export default function CreateOrderScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
+      {/* Minimal back header — no title */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Create Shipment</Text>
-        <View style={{ width: 36 }} />
+        <Text style={styles.headerTitle}>New Delivery</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      <SectionList
+        sections={formSections}
+        keyExtractor={(item) => item}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-      >
-        {/* ── Locations ─────────────────────────────────────────────────────── */}
-        <Section title="Locations">
-          <View style={styles.locationsCard}>
-            {/* Dashed connector line */}
-            <View style={styles.dashLine} />
+        contentContainerStyle={styles.scroll}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={() => null}
+        renderItem={() => (
+          <View style={styles.formBody}>
 
-            {/* FROM */}
-            <View style={styles.locRow}>
-              <View style={styles.dotFrom} />
-              <View style={styles.locInputWrap}>
-                <Text style={styles.locLabel}>FROM</Text>
-                <TextInput
-                  style={styles.locInput}
-                  placeholder="Search pick-up address..."
-                  placeholderTextColor="#74777e"
-                  value={pickupAddress}
-                  onChangeText={setPickupAddress}
-                  returnKeyType="next"
-                />
+            {/* ── Route card ──────────────────────────────────────────── */}
+            <View style={styles.routeCard}>
+              <View style={styles.dashLine} />
+
+              {/* FROM */}
+              <View style={styles.locRow}>
+                <View style={styles.dotFrom} />
+                <View style={styles.locInputWrap}>
+                  <Text style={styles.locLabel}>FROM</Text>
+                  <GooglePlacesAutocomplete
+                    ref={pickupRef}
+                    placeholder="Pick-up address"
+                    onPress={(data, details) => {
+                      const desc = data.description || (data as any).vicinity || currentLocationLabel;
+                      setPickupAddress(desc);
+                      if (details?.geometry?.location) {
+                        pickupCoords.current = {
+                          lat: details.geometry.location.lat,
+                          lng: details.geometry.location.lng,
+                        };
+                      } else if ((data as any).isPredefinedPlace && userLocation) {
+                        pickupCoords.current = userLocation;
+                        setPickupAddress(currentLocationLabel);
+                      }
+                    }}
+                    query={placesQuery}
+                    fetchDetails
+                    enablePoweredByContainer={false}
+                    minLength={0}
+                    debounce={300}
+                    styles={placesStyles}
+                    textInputProps={{
+                      placeholderTextColor: '#74777e',
+                      value: pickupAddress,
+                      onChangeText: setPickupAddress,
+                    }}
+                    predefinedPlaces={userLocation ? [{
+                      description: currentLocationLabel,
+                      geometry: { location: { lat: userLocation.lat, lng: userLocation.lng } },
+                      isPredefinedPlace: true,
+                    } as any] : []}
+                    renderRow={(rowData) => {
+                      const isPredefined = !!(rowData as any).isPredefinedPlace;
+                      return (
+                        <View style={placesRowStyles.row}>
+                          <View style={[placesRowStyles.iconWrap, isPredefined && placesRowStyles.iconWrapBlue]}>
+                            <Ionicons
+                              name={isPredefined ? 'navigate' : 'location-outline'}
+                              size={16}
+                              color={isPredefined ? '#FFFFFF' : '#0040e0'}
+                            />
+                          </View>
+                          <View style={placesRowStyles.textWrap}>
+                            <Text style={placesRowStyles.primary} numberOfLines={1}>
+                              {isPredefined ? 'Current Location' : rowData.structured_formatting?.main_text || rowData.description}
+                            </Text>
+                            {!isPredefined && rowData.structured_formatting?.secondary_text ? (
+                              <Text style={placesRowStyles.secondary} numberOfLines={1}>
+                                {rowData.structured_formatting.secondary_text}
+                              </Text>
+                            ) : isPredefined ? (
+                              <Text style={placesRowStyles.secondary} numberOfLines={1}>{currentLocationLabel}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      );
+                    }}
+                    currentLocation={false}
+                    keepResultsAfterBlur
+                  />
+                </View>
+              </View>
+
+              {/* TO */}
+              <View style={[styles.locRow, { marginTop: 20 }]}>
+                <View style={styles.dotTo}>
+                  <View style={styles.dotToInner} />
+                </View>
+                <View style={styles.locInputWrap}>
+                  <Text style={styles.locLabelTo}>TO</Text>
+                  <GooglePlacesAutocomplete
+                    ref={dropoffRef}
+                    placeholder="Drop-off address"
+                    onPress={(data, details) => {
+                      const saved = (data as any)._savedAddress;
+                      if (saved) {
+                        setDropoffAddress(saved.address);
+                        dropoffCoords.current = { lat: saved.lat, lng: saved.lng };
+                        return;
+                      }
+                      setDropoffAddress(data.description);
+                      if (details?.geometry?.location) {
+                        dropoffCoords.current = {
+                          lat: details.geometry.location.lat,
+                          lng: details.geometry.location.lng,
+                        };
+                      }
+                    }}
+                    query={placesQuery}
+                    fetchDetails
+                    enablePoweredByContainer={false}
+                    minLength={0}
+                    debounce={300}
+                    styles={placesStyles}
+                    textInputProps={{
+                      placeholderTextColor: '#74777e',
+                      value: dropoffAddress,
+                      onChangeText: setDropoffAddress,
+                    }}
+                    predefinedPlaces={savedAddresses.map((a) => ({
+                      description: a.address,
+                      geometry: { location: { lat: a.lat, lng: a.lng } },
+                      _savedAddress: a,
+                      isPredefinedPlace: true,
+                    } as any))}
+                    renderRow={(rowData) => {
+                      const saved = (rowData as any)._savedAddress as typeof savedAddresses[0] | undefined;
+                      return (
+                        <View style={placesRowStyles.row}>
+                          <View style={[placesRowStyles.iconWrap, saved && placesRowStyles.iconWrapGreen]}>
+                            <Ionicons
+                              name={saved ? 'bookmark-outline' : 'location-outline'}
+                              size={16}
+                              color={saved ? '#FFFFFF' : '#0040e0'}
+                            />
+                          </View>
+                          <View style={placesRowStyles.textWrap}>
+                            <Text style={placesRowStyles.primary} numberOfLines={1}>
+                              {saved ? saved.label : (rowData.structured_formatting?.main_text || rowData.description)}
+                            </Text>
+                            <Text style={placesRowStyles.secondary} numberOfLines={1}>
+                              {saved ? saved.address : rowData.structured_formatting?.secondary_text}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    }}
+                    currentLocation={false}
+                    keepResultsAfterBlur
+                  />
+                </View>
               </View>
             </View>
 
-            {/* TO */}
-            <View style={[styles.locRow, { marginTop: 20 }]}>
-              <View style={styles.dotTo}>
-                <View style={styles.dotToInner} />
-              </View>
-              <View style={styles.locInputWrap}>
-                <Text style={styles.locLabelTo}>TO</Text>
-                <TextInput
-                  style={styles.locInput}
-                  placeholder="Where is it going?"
-                  placeholderTextColor="#74777e"
-                  value={dropoffAddress}
-                  onChangeText={setDropoffAddress}
-                  returnKeyType="next"
-                />
-              </View>
-            </View>
-          </View>
-        </Section>
-
-        {/* ── Recipient ─────────────────────────────────────────────────────── */}
-        <Section title="Recipient">
-          <View style={styles.rowInputs}>
-            <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>FULL NAME</Text>
+            {/* ── Recipient ───────────────────────────────────────────── */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Recipient</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="John Doe"
+                placeholder="Full name"
                 placeholderTextColor="#74777e"
                 value={recipientName}
                 onChangeText={setRecipientName}
               />
-            </View>
-            <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>PHONE NUMBER</Text>
               <TextInput
-                style={styles.textInput}
-                placeholder="+234 --- --- ----"
+                style={[styles.textInput, { marginTop: 10 }]}
+                placeholder="Phone number"
                 placeholderTextColor="#74777e"
                 value={recipientPhone}
                 onChangeText={setRecipientPhone}
                 keyboardType="phone-pad"
               />
             </View>
-          </View>
-        </Section>
 
-        {/* ── Package Details ────────────────────────────────────────────────── */}
-        <Section title="Package Details">
-          {/* Category */}
-          <Text style={styles.inputLabel}>CATEGORY</Text>
-          <View style={styles.categoryGrid}>
-            {(categories.length > 0
-              ? categories
-              : [
-                  { id: 'food', name: 'Food', icon: '🍔' },
-                  { id: 'docs', name: 'Docs', icon: '📄' },
-                  { id: 'parcel', name: 'Parcel', icon: '📦' },
-                  { id: 'fashion', name: 'Fashion', icon: '👗' },
-                ]
-            ).map((cat) => (
-              <Pressable
-                key={cat.id}
-                style={[styles.categoryBtn, selectedCategory === cat.id && styles.categoryBtnActive]}
-                onPress={() => setSelectedCategory(cat.id)}
-              >
-                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                <Text style={[styles.categoryLabel, selectedCategory === cat.id && styles.categoryLabelActive]}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Size */}
-          <Text style={[styles.inputLabel, { marginTop: 16 }]}>SIZE ESTIMATE</Text>
-          <View style={styles.sizeBar}>
-            {SIZES.map((s) => (
-              <Pressable
-                key={s.value}
-                style={[styles.sizeBtn, selectedSize === s.value && styles.sizeBtnActive]}
-                onPress={() => setSelectedSize(s.value)}
-              >
-                <Text style={[styles.sizeBtnText, selectedSize === s.value && styles.sizeBtnTextActive]}>
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Delivery Code Toggle */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleIconWrap}>
-              <Text style={{ fontSize: 20 }}>🔐</Text>
+            {/* ── Package Size ─────────────────────────────────────────── */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Package Size</Text>
+              <View style={styles.sizeRow}>
+                {SIZES.map((s) => (
+                  <Pressable
+                    key={s.value}
+                    style={[styles.sizeBtn, selectedSize === s.value && styles.sizeBtnActive]}
+                    onPress={() => setSelectedSize(s.value)}
+                  >
+                    <Text style={styles.sizeIcon}>{s.icon}</Text>
+                    <Text style={[styles.sizeName, selectedSize === s.value && styles.sizeNameActive]}>{s.label}</Text>
+                    <Text style={[styles.sizeDesc, selectedSize === s.value && styles.sizeDescActive]}>{s.desc}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Require Delivery Code</Text>
-              <Text style={styles.toggleSubtitle}>Rider must enter 4-digit code to finish</Text>
-            </View>
-            <Switch
-              value={requireDeliveryCode}
-              onValueChange={setRequireDeliveryCode}
-              trackColor={{ false: '#c4c6cf', true: '#0040e0' }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        </Section>
 
-        {/* ── Promotions ────────────────────────────────────────────────────── */}
-        <Section title="Promotions">
-          <View style={styles.promoRow}>
-            <TextInput
-              style={[styles.promoInput, promoApplied && styles.promoInputApplied]}
-              placeholder="Promo code"
-              placeholderTextColor="#74777e"
-              value={promoCode}
-              onChangeText={(v) => { setPromoCode(v); setPromoError(''); setPromoApplied(false); setDiscount(0); }}
-              autoCapitalize="characters"
-              editable={!promoApplied}
-            />
-            <Pressable
-              style={[styles.promoApplyBtn, promoApplied && styles.promoAppliedBtn]}
-              onPress={handleApplyPromo}
-              disabled={promoApplied}
-            >
-              <Text style={styles.promoApplyText}>{promoApplied ? '✓' : 'Apply'}</Text>
+            {/* ── Payment Method ───────────────────────────────────────── */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Payment</Text>
+              <View style={styles.payRow}>
+                <Pressable
+                  style={[styles.payBtn, paymentMethod === 'cash' && styles.payBtnActive]}
+                  onPress={() => setPaymentMethod('cash')}
+                >
+                  <Text style={styles.payIcon}>💵</Text>
+                  <Text style={[styles.payLabel, paymentMethod === 'cash' && styles.payLabelActive]}>Cash</Text>
+                  <Text style={[styles.payNote, paymentMethod === 'cash' && styles.payNoteActive]}>Pay on delivery</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.payBtn, paymentMethod === 'wallet' && styles.payBtnActive]}
+                  onPress={() => setPaymentMethod('wallet')}
+                >
+                  <Text style={styles.payIcon}>👛</Text>
+                  <Text style={[styles.payLabel, paymentMethod === 'wallet' && styles.payLabelActive]}>Wallet</Text>
+                  <Text style={[styles.payNote, paymentMethod === 'wallet' && styles.payNoteActive]}>Pay now</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* ── Promo ────────────────────────────────────────────────── */}
+            <Pressable onPress={() => setShowPromo(!showPromo)} style={styles.promoToggle}>
+              <Text style={styles.promoToggleText}>
+                {showPromo ? '▾' : '▸'} {promoApplied ? `✓ Promo applied (-₦${discount.toLocaleString()})` : 'Have a promo code?'}
+              </Text>
             </Pressable>
+            {showPromo && (
+              <View style={styles.promoRow}>
+                <TextInput
+                  style={[styles.promoInput, promoApplied && styles.promoInputApplied]}
+                  placeholder="Enter code"
+                  placeholderTextColor="#74777e"
+                  value={promoCode}
+                  onChangeText={(v) => { setPromoCode(v); setPromoError(''); setPromoApplied(false); setDiscount(0); }}
+                  autoCapitalize="characters"
+                  editable={!promoApplied}
+                />
+                <Pressable style={[styles.promoBtn, promoApplied && styles.promoBtnApplied]} onPress={handleApplyPromo} disabled={promoApplied}>
+                  <Text style={styles.promoBtnText}>{promoApplied ? '✓' : 'Apply'}</Text>
+                </Pressable>
+              </View>
+            )}
+            {promoError ? <Text style={styles.promoError}>{promoError}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
-          {promoError ? <Text style={styles.promoError}>{promoError}</Text> : null}
-          {promoApplied ? (
-            <Text style={styles.promoSuccess}>✓ Discount applied: -₦{discount.toLocaleString()}</Text>
-          ) : null}
-        </Section>
+        )}
+      />
 
-        {/* ── Pricing Summary ───────────────────────────────────────────────── */}
-        <View style={styles.pricingCard}>
-          <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>Delivery Fee</Text>
-            <Text style={styles.pricingValue}>₦{deliveryFee.toLocaleString()}</Text>
-          </View>
-          <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>Service & Tax</Text>
-            <Text style={styles.pricingValue}>₦{serviceFee.toLocaleString()}</Text>
-          </View>
-          {discount > 0 && (
-            <View style={styles.pricingRow}>
-              <Text style={[styles.pricingLabel, { color: '#ffb692' }]}>Discount</Text>
-              <Text style={[styles.pricingValue, { color: '#ffb692' }]}>-₦{discount.toLocaleString()}</Text>
-            </View>
-          )}
-          <View style={styles.pricingDivider} />
-          <View style={styles.pricingTotal}>
-            <View>
-              <Text style={styles.pricingTotalLabel}>TOTAL PAYABLE</Text>
-              <Text style={styles.pricingTotalAmount}>₦{total.toLocaleString()}</Text>
-            </View>
-            <Text style={{ fontSize: 32 }}>⚡</Text>
-          </View>
+      {/* ── Bottom CTA ──────────────────────────────────────────────── */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 6 }]}>
+        {/* Price — always shown, even if 0 while loading */}
+        <View style={styles.pricePreview}>
+          <Text style={styles.priceLabel}>Est. Total</Text>
+          {deliveryFee > 0
+            ? <Text style={styles.priceValue}>₦{total.toLocaleString()}</Text>
+            : <Text style={styles.priceLoading}>Calculating…</Text>
+          }
         </View>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        {/* Spacer for fixed bottom bar */}
-        <View style={{ height: 20 }} />
-      </ScrollView>
-
-      {/* ── Bottom CTA Bar ────────────────────────────────────────────────── */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-        <Pressable style={styles.saveDraftBtn} onPress={() => router.back()}>
-          <Text style={styles.saveDraftText}>Save Draft</Text>
-        </Pressable>
         <Pressable
-          style={[styles.findRiderBtn, submitting && styles.findRiderBtnDisabled]}
+          style={[styles.findRiderBtn, submitting && { opacity: 0.6 }]}
           onPress={handleFindRider}
           disabled={submitting}
         >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.findRiderText}>⚡ Find Rider · ₦{total.toLocaleString()}</Text>
-          )}
+          {submitting
+            ? <ActivityIndicator color="#FFFFFF" size="small" />
+            : <Text style={styles.findRiderText}>⚡ Find Rider</Text>
+          }
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Section wrapper ──────────────────────────────────────────────────────────
+// ─── Google Places styles ─────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
+const placesStyles = {
+  textInputContainer: { backgroundColor: 'transparent', padding: 0, margin: 0 },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+    height: 48,
+    fontSize: Typography.base,
+    fontWeight: Typography.medium as any,
+    color: '#000D22',
+    elevation: 1,
+    margin: 0,
+  },
+  listView: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 4,
+    elevation: 10,
+    shadowColor: '#000D22',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    zIndex: 1000,
+  },
+  row: { backgroundColor: '#FFFFFF', paddingVertical: 0, paddingHorizontal: 0 },
+  description: { fontSize: Typography.sm as any, color: '#000D22', fontWeight: '500' as any },
+  separator: { height: 1, backgroundColor: '#F1F4F6', marginHorizontal: 14 },
+  poweredContainer: { display: 'none' as any },
+};
+
+// ─── Custom row styles ────────────────────────────────────────────────────────
+
+const placesRowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  iconWrapBlue: {
+    backgroundColor: '#0040e0',
+  },
+  iconWrapGreen: {
+    backgroundColor: '#16a34a',
+  },
+  textWrap: { flex: 1, gap: 2 },
+  primary: {
+    fontSize: Typography.sm,
+    fontWeight: '600',
+    color: '#000D22',
+  },
+  secondary: {
+    fontSize: Typography.xs,
+    color: '#74777e',
+  },
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7FAFC',
-  },
+  container: { flex: 1, backgroundColor: '#F7FAFC' },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(196,198,207,0.2)',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: 12,
+    backgroundColor: '#F7FAFC',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
-  backArrow: {
-    fontSize: 20,
-    color: '#0040e0',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: '#000D22',
-    letterSpacing: -0.3,
-  },
-  scroll: {
-    paddingHorizontal: Spacing[5],
-    paddingBottom: 100,
-    paddingTop: 20,
-    gap: 24,
-  },
+  backArrow: { fontSize: 18, color: '#000D22', fontWeight: '700' },
+  headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#000D22', letterSpacing: -0.3 },
 
-  // Section
-  section: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: Typography.bold,
-    color: '#44474e',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
+  scroll: { paddingHorizontal: Spacing[5], paddingTop: 8, paddingBottom: 120 },
+  formBody: { gap: 14 },
 
-  // Locations
-  locationsCard: {
+  // Route card
+  routeCard: {
     backgroundColor: '#F1F4F6',
     borderRadius: 20,
     padding: 20,
     position: 'relative',
+    zIndex: 100,
   },
   dashLine: {
-    position: 'absolute',
-    left: 27,
-    top: 42,
-    bottom: 42,
-    width: 1,
-    borderStyle: 'dashed',
-    borderLeftWidth: 2,
-    borderColor: 'rgba(196,198,207,0.5)',
+    position: 'absolute', left: 27, top: 44, bottom: 44,
+    width: 1, borderStyle: 'dashed', borderLeftWidth: 2,
+    borderColor: 'rgba(196,198,207,0.6)',
   },
-  locRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    zIndex: 1,
-  },
+  locRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, zIndex: 1 },
   dotFrom: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#0040e0',
-    backgroundColor: '#FFFFFF',
-    marginTop: 22,
-    flexShrink: 0,
+    width: 16, height: 16, borderRadius: 8,
+    borderWidth: 2, borderColor: '#0040e0', backgroundColor: '#FFFFFF',
+    marginTop: 16, flexShrink: 0,
   },
   dotTo: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#0A2342',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 22,
-    flexShrink: 0,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#0A2342', alignItems: 'center', justifyContent: 'center',
+    marginTop: 16, flexShrink: 0,
   },
-  dotToInner: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FFFFFF',
-  },
-  locInputWrap: {
-    flex: 1,
-    gap: 4,
-  },
-  locLabel: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: '#0040e0',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  locLabelTo: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: '#44474e',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  locInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: '#000D22',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
+  dotToInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFFFFF' },
+  locInputWrap: { flex: 1, gap: 4, zIndex: 1 },
+  locLabel:   { fontSize: 10, fontWeight: '700', color: '#0040e0', textTransform: 'uppercase', letterSpacing: 2 },
+  locLabelTo: { fontSize: 10, fontWeight: '700', color: '#44474e', textTransform: 'uppercase', letterSpacing: 2 },
 
-  // Recipient
-  rowInputs: {
-    flexDirection: 'row',
-    gap: 12,
+  // Card
+  card: {
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, gap: 4,
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
   },
-  halfInput: {
-    flex: 1,
-    gap: 6,
-  },
-  inputLabel: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: '#324768',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
+  cardTitle: {
+    fontSize: 11, fontWeight: '700', color: '#44474e',
+    textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#E0E3E5',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: '#000D22',
-  },
-
-  // Category
-  categoryGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  categoryBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#F1F4F6',
-    borderRadius: 16,
-    gap: 6,
-  },
-  categoryBtnActive: {
-    backgroundColor: '#0A2342',
-  },
-  categoryIcon: {
-    fontSize: 22,
-  },
-  categoryLabel: {
-    fontSize: 9,
-    fontWeight: Typography.bold,
-    color: '#44474e',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  categoryLabelActive: {
-    color: '#FFFFFF',
+    backgroundColor: '#F1F4F6', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 14,
+    fontSize: Typography.base, fontWeight: Typography.medium, color: '#000D22',
   },
 
   // Size
-  sizeBar: {
-    flexDirection: 'row',
-    backgroundColor: '#E0E3E5',
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
+  sizeRow: { flexDirection: 'row', gap: 10 },
   sizeBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 10,
+    flex: 1, alignItems: 'center', paddingVertical: 14,
+    borderRadius: 16, backgroundColor: '#F1F4F6', gap: 4,
+    borderWidth: 2, borderColor: 'transparent',
   },
-  sizeBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sizeBtnText: {
-    fontSize: 11,
-    fontWeight: Typography.bold,
-    color: '#44474e',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  sizeBtnTextActive: {
-    color: '#000D22',
-  },
+  sizeBtnActive: { backgroundColor: '#EEF2FF', borderColor: '#0040e0' },
+  sizeIcon: { fontSize: 24 },
+  sizeName: { fontSize: Typography.sm, fontWeight: '700', color: '#44474e' },
+  sizeNameActive: { color: '#0040e0' },
+  sizeDesc: { fontSize: 10, color: '#74777e', textAlign: 'center' },
+  sizeDescActive: { color: '#0040e0', opacity: 0.7 },
 
-  // Toggle
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#F1F4F6',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 16,
+  // Payment
+  payRow: { flexDirection: 'row', gap: 10 },
+  payBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 16,
+    borderRadius: 16, backgroundColor: '#F1F4F6', gap: 4,
+    borderWidth: 2, borderColor: 'transparent',
   },
-  toggleIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffdbcb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: '#000D22',
-  },
-  toggleSubtitle: {
-    fontSize: Typography.xs,
-    color: '#44474e',
-    marginTop: 2,
-  },
+  payBtnActive: { backgroundColor: '#EEF2FF', borderColor: '#0040e0' },
+  payIcon: { fontSize: 24 },
+  payLabel: { fontSize: Typography.sm, fontWeight: '700', color: '#44474e' },
+  payLabelActive: { color: '#0040e0' },
+  payNote: { fontSize: 10, color: '#74777e' },
+  payNoteActive: { color: '#0040e0', opacity: 0.7 },
 
   // Promo
-  promoRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  promoToggle: { paddingVertical: 4 },
+  promoToggleText: { fontSize: Typography.sm, color: '#0040e0', fontWeight: '600' },
+  promoRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
   promoInput: {
-    flex: 1,
-    backgroundColor: '#F1F4F6',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: '#000D22',
-    letterSpacing: 1,
+    flex: 1, backgroundColor: '#F1F4F6', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 13,
+    fontSize: Typography.sm, fontWeight: '600', color: '#000D22', letterSpacing: 1,
   },
-  promoInputApplied: {
-    backgroundColor: '#dde1ff',
+  promoInputApplied: { backgroundColor: '#dde1ff' },
+  promoBtn: {
+    backgroundColor: '#0A2342', borderRadius: 12,
+    paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center',
   },
-  promoApplyBtn: {
-    backgroundColor: '#0A2342',
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promoAppliedBtn: {
-    backgroundColor: '#0040e0',
-  },
-  promoApplyText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: '#FFFFFF',
-  },
-  promoError: {
-    fontSize: Typography.xs,
-    color: '#ba1a1a',
-    marginTop: 4,
-  },
-  promoSuccess: {
-    fontSize: Typography.xs,
-    color: '#0040e0',
-    fontWeight: Typography.semibold,
-    marginTop: 4,
-  },
-
-  // Pricing
-  pricingCard: {
-    backgroundColor: '#0A2342',
-    borderRadius: 24,
-    padding: 24,
-    gap: 12,
-    shadowColor: '#0A2342',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  pricingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pricingLabel: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  pricingValue: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.7)',
-    fontVariant: ['tabular-nums'],
-  },
-  pricingDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 4,
-  },
-  pricingTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  pricingTotalLabel: {
-    fontSize: 10,
-    fontWeight: Typography.bold,
-    color: '#b8c3ff',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  pricingTotalAmount: {
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.extrabold,
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginTop: 2,
-  },
-
-  // Error
-  error: {
-    fontSize: Typography.sm,
-    color: '#ba1a1a',
-    textAlign: 'center',
-    fontWeight: Typography.medium,
-  },
+  promoBtnApplied: { backgroundColor: '#0040e0' },
+  promoBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
+  promoError: { fontSize: Typography.xs, color: '#ba1a1a', marginTop: 2 },
+  error: { fontSize: Typography.sm, color: '#ba1a1a', textAlign: 'center', fontWeight: '500' },
 
   // Bottom bar
   bottomBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    gap: 10,
+    flexDirection: 'row', paddingHorizontal: Spacing[5],
+    paddingTop: 14, gap: 12,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(196,198,207,0.2)',
-    shadowColor: '#000D22',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  saveDraftBtn: {
-    flex: 1,
-    paddingVertical: 16,
+    borderTopWidth: 1, borderTopColor: 'rgba(196,198,207,0.2)',
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06, shadowRadius: 20, elevation: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#c4c6cf',
   },
-  saveDraftText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: '#44474e',
-  },
+  pricePreview: { gap: 2, minWidth: 90 },
+  priceLabel: { fontSize: 10, color: '#74777e', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  priceValue: { fontSize: Typography.lg, fontWeight: '800', color: '#000D22' },
+  priceLoading: { fontSize: Typography.sm, color: '#74777e', fontWeight: '500' },
   findRiderBtn: {
-    flex: 2,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0040e0',
-    borderRadius: 16,
-    shadowColor: '#0040e0',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    flex: 1, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0040e0', borderRadius: 16,
+    shadowColor: '#0040e0', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
   },
-  findRiderBtnDisabled: {
-    opacity: 0.6,
-  },
-  findRiderText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
+  findRiderText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.2 },
 });

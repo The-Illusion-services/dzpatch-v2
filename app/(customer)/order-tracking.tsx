@@ -280,7 +280,10 @@ export default function OrderTrackingScreen() {
 
         {/* Cancel button — only if order is still cancellable */}
         {['pending', 'matched'].includes(order.status) && (
-          <Pressable style={styles.cancelBtn} onPress={handleCancel}>
+          <Pressable
+            style={styles.cancelBtn}
+            onPress={() => router.push({ pathname: '/(customer)/cancel-order-modal', params: { orderId } } as any)}
+          >
             <Text style={styles.cancelBtnText}>Cancel Order</Text>
           </Pressable>
         )}

@@ -1,15 +1,24 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Typography } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/theme';
 
-type TabIconProps = { focused: boolean; icon: string; label: string };
+type TabIconProps = {
+  focused: boolean;
+  name: keyof typeof Ionicons.glyphMap;
+  focusedName: keyof typeof Ionicons.glyphMap;
+};
 
-function TabItem({ focused, icon, label }: TabIconProps) {
+function TabItem({ focused, name, focusedName }: TabIconProps) {
   return (
     <View style={styles.tabItem}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
+      <Ionicons
+        name={focused ? focusedName : name}
+        size={26}
+        color={focused ? '#0040e0' : '#9ea2ac'}
+      />
+      {focused && <View style={styles.activeDot} />}
     </View>
   );
 }
@@ -21,7 +30,7 @@ export default function CustomerLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom + 8 }],
+        tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom + 6 }],
         tabBarShowLabel: false,
       }}
     >
@@ -29,7 +38,7 @@ export default function CustomerLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem focused={focused} icon="⊞" label="Home" />
+            <TabItem focused={focused} name="home-outline" focusedName="home" />
           ),
         }}
       />
@@ -37,15 +46,7 @@ export default function CustomerLayout() {
         name="deliveries"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem focused={focused} icon="🚚" label="Deliveries" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wallet"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem focused={focused} icon="💳" label="Wallet" />
+            <TabItem focused={focused} name="bicycle-outline" focusedName="bicycle" />
           ),
         }}
       />
@@ -53,10 +54,13 @@ export default function CustomerLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem focused={focused} icon="👤" label="Profile" />
+            <TabItem focused={focused} name="person-outline" focusedName="person" />
           ),
         }}
       />
+
+      {/* Wallet — accessible via profile menu, not a tab */}
+      <Tabs.Screen name="wallet" options={{ href: null }} />
 
       {/* Non-tab screens — hidden from tab bar */}
       <Tabs.Screen name="create-order" options={{ href: null }} />
@@ -68,6 +72,16 @@ export default function CustomerLayout() {
       <Tabs.Screen name="counter-offer" options={{ href: null }} />
       <Tabs.Screen name="waiting-response" options={{ href: null }} />
       <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="active-order-tracking" options={{ href: null }} />
+      <Tabs.Screen name="cancel-order-modal" options={{ href: null }} />
+      <Tabs.Screen name="booking-success" options={{ href: null }} />
+      <Tabs.Screen name="delivery-success" options={{ href: null }} />
+      <Tabs.Screen name="driver-rating" options={{ href: null }} />
+      <Tabs.Screen name="fund-wallet" options={{ href: null }} />
+      <Tabs.Screen name="withdraw" options={{ href: null }} />
+      <Tabs.Screen name="order-history" options={{ href: null }} />
+      <Tabs.Screen name="order-details" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -75,37 +89,27 @@ export default function CustomerLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    paddingTop: 12,
-    height: 80,
+    paddingTop: 10,
+    height: 70,
     shadowColor: '#000D22',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.07,
     shadowRadius: 20,
-    elevation: 8,
+    elevation: 10,
   },
   tabItem: {
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 5,
   },
-  tabIcon: {
-    fontSize: 22,
-    opacity: 0.4,
-  },
-  tabIconActive: {
-    opacity: 1,
-  },
-  tabLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.tabInactive,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  tabLabelActive: {
-    color: Colors.tabActive,
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#0040e0',
   },
 });

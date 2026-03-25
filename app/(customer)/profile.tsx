@@ -1,18 +1,20 @@
 import { router } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth.store';
-import { Avatar } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type MenuItem = {
-  icon: string;
+  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
   label: string;
-  sublabel?: string;
+  sublabel: string;
   onPress: () => void;
-  danger?: boolean;
 };
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuthStore();
@@ -34,153 +36,207 @@ export default function ProfileScreen() {
 
   const menuItems: MenuItem[] = [
     {
-      icon: '📍',
+      icon: 'location-outline',
       label: 'Saved Addresses',
       sublabel: 'Manage your frequent locations',
       onPress: () => router.push('/(customer)/saved-addresses' as any),
     },
     {
-      icon: '🔔',
+      icon: 'cube-outline',
+      label: 'Order History',
+      sublabel: 'View past and active deliveries',
+      onPress: () => router.push('/(customer)/order-history' as any),
+    },
+    {
+      icon: 'wallet-outline',
+      label: 'Wallet',
+      sublabel: 'Balance, top-up, withdrawals',
+      onPress: () => router.push('/(customer)/wallet' as any),
+    },
+    {
+      icon: 'notifications-outline',
       label: 'Notifications',
-      sublabel: 'Manage push preferences',
-      onPress: () => {},
+      sublabel: 'Order updates and alerts',
+      onPress: () => router.push('/(customer)/notifications' as any),
     },
     {
-      icon: '🔒',
-      label: 'Security',
-      sublabel: 'Password & account security',
-      onPress: () => {},
+      icon: 'lock-closed-outline',
+      label: 'Account Security',
+      sublabel: 'Password and login settings',
+      onPress: () => Alert.alert('Coming Soon', 'Account security settings are coming in the next update.'),
     },
     {
-      icon: '🎧',
+      icon: 'headset-outline',
       label: 'Help & Support',
       sublabel: 'FAQs, contact us',
-      onPress: () => {},
-    },
-    {
-      icon: '📄',
-      label: 'Terms & Privacy',
-      onPress: () => {},
-    },
-    {
-      icon: '🚪',
-      label: 'Sign Out',
-      onPress: handleSignOut,
-      danger: true,
+      onPress: () => Alert.alert('Need Help?', 'Email us at support@dzpatch.com or WhatsApp +234 800 000 0000.'),
     },
   ];
+
+  const initials = profile?.full_name
+    ?.split(' ')
+    .map((w) => w.charAt(0))
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() ?? '?';
 
   return (
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Profile card */}
-      <View style={styles.profileCard}>
-        <Avatar name={profile?.full_name ?? ''} uri={profile?.avatar_url} size="lg" />
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profile?.full_name ?? '—'}</Text>
-          <Text style={styles.profilePhone}>{profile?.phone ?? ''}</Text>
-          {profile?.email ? <Text style={styles.profileEmail}>{profile.email}</Text> : null}
+      {/* Hero section */}
+      <View style={styles.hero}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={[styles.kycDot, profile?.kyc_status === 'approved' && styles.kycDotApproved]} />
         </View>
-        <View style={[styles.kycBadge, profile?.kyc_status === 'approved' && styles.kycApproved]}>
-          <Text style={styles.kycText}>
-            {profile?.kyc_status === 'approved' ? '✓ Verified' : profile?.kyc_status?.replace('_', ' ') ?? 'KYC Pending'}
+
+        <Text style={styles.profileName}>{profile?.full_name ?? '—'}</Text>
+        {profile?.email && <Text style={styles.profileEmail}>{profile.email}</Text>}
+        {profile?.phone && <Text style={styles.profilePhone}>{profile.phone}</Text>}
+
+        <View style={[styles.kycBadge, profile?.kyc_status === 'approved' && styles.kycBadgeApproved]}>
+          <Text style={[styles.kycText, profile?.kyc_status === 'approved' && styles.kycTextApproved]}>
+            {profile?.kyc_status === 'approved' ? '✓  Verified' : '⏳  KYC Pending'}
           </Text>
         </View>
       </View>
 
       {/* Menu */}
-      <View style={styles.menu}>
+      <View style={styles.menuCard}>
         {menuItems.map((item, idx) => (
           <Pressable
             key={idx}
-            style={({ pressed }) => [styles.menuRow, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [
+              styles.menuRow,
+              idx === menuItems.length - 1 && styles.menuRowLast,
+              pressed && { backgroundColor: '#F7FAFC' },
+            ]}
             onPress={item.onPress}
           >
             <View style={styles.menuIconWrap}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
+              <Ionicons name={item.icon} size={18} color="#0040e0" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.menuLabel, item.danger && styles.menuLabelDanger]}>{item.label}</Text>
-              {item.sublabel ? <Text style={styles.menuSublabel}>{item.sublabel}</Text> : null}
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Text style={styles.menuSublabel}>{item.sublabel}</Text>
             </View>
-            {!item.danger && <Text style={styles.menuChevron}>›</Text>}
+            <Ionicons name="chevron-forward" size={16} color="#C4C6CF" />
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.version}>Dzpatch v2.0.0 — Nigeria</Text>
+      {/* Upgrade to Business CTA */}
+      <Pressable
+        style={({ pressed }) => [styles.upgradeBanner, pressed && { opacity: 0.92 }]}
+        onPress={() => Alert.alert('Coming Soon', 'Business accounts are launching soon. We\'ll notify you when it\'s ready!')}
+      >
+        <View style={styles.upgradeLeft}>
+          <View style={styles.upgradeIconWrap}>
+            <Ionicons name="business-outline" size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.upgradeTextWrap}>
+            <Text style={styles.upgradeTitle}>Upgrade to Business</Text>
+            <Text style={styles.upgradeSub}>Bulk deliveries, invoicing & analytics</Text>
+          </View>
+        </View>
+        <View style={styles.upgardeArrow}>
+          <Ionicons name="arrow-forward" size={16} color="#0040e0" />
+        </View>
+      </Pressable>
+
+      {/* Sign out */}
+      <Pressable
+        style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.8 }]}
+        onPress={handleSignOut}
+      >
+        <Ionicons name="log-out-outline" size={18} color="#ba1a1a" />
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </Pressable>
+
+      <Text style={styles.version}>Dzpatch v2.0.0 · Built for Speed</Text>
     </ScrollView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7FAFC' },
-  content: {
+  content: { gap: 16, paddingTop: 8 },
+
+  // Hero
+  hero: {
+    alignItems: 'center',
     paddingHorizontal: Spacing[5],
-    paddingBottom: 120,
-    gap: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 6,
   },
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
+  avatarWrap: { position: 'relative', marginBottom: 4 },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#0040e0',
     alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000D22',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 3,
-    marginTop: 16,
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#0040e0',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  profileInfo: {
-    alignItems: 'center',
-    gap: 4,
+  avatarText: { fontSize: Typography['2xl'], fontWeight: Typography.extrabold, color: '#FFFFFF' },
+  kycDot: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#C4C6CF',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
+  kycDotApproved: { backgroundColor: '#16A34A' },
   profileName: {
-    fontSize: Typography.xl,
+    fontSize: Typography['2xl'],
     fontWeight: Typography.extrabold,
     color: '#000D22',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
+    marginTop: 4,
   },
-  profilePhone: {
-    fontSize: Typography.sm,
-    color: '#44474e',
-    fontWeight: Typography.medium,
-  },
-  profileEmail: {
-    fontSize: Typography.xs,
-    color: '#74777e',
-  },
+  profileEmail: { fontSize: Typography.sm, color: '#44474e' },
+  profilePhone: { fontSize: Typography.sm, color: '#74777e' },
   kycBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: '#F1F4F6',
     borderWidth: 1,
-    borderColor: '#c4c6cf',
+    borderColor: '#C4C6CF',
   },
-  kycApproved: {
-    backgroundColor: '#dde1ff',
-    borderColor: '#0040e0',
-  },
-  kycText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: '#44474e',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  menu: {
+  kycBadgeApproved: { backgroundColor: '#dcfce7', borderColor: '#16A34A' },
+  kycText: { fontSize: Typography.xs, fontWeight: Typography.bold, color: '#44474e', letterSpacing: 0.5 },
+  kycTextApproved: { color: '#16A34A' },
+
+  // Menu
+  menuCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 24,
+    marginHorizontal: Spacing[5],
     overflow: 'hidden',
     shadowColor: '#000D22',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
   },
@@ -193,37 +249,85 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F4F6',
   },
+  menuRowLast: { borderBottomWidth: 0 },
   menuIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F1F4F6',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  menuIcon: { fontSize: 18 },
-  menuLabel: {
+  menuLabel: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#000D22' },
+  menuSublabel: { fontSize: Typography.xs, color: '#74777e', marginTop: 1 },
+
+  // Upgrade banner
+  upgradeBanner: {
+    marginHorizontal: Spacing[5],
+    backgroundColor: '#0A2342',
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  upgradeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  upgradeIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#0040e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  upgradeTextWrap: { flex: 1, gap: 3 },
+  upgradeTitle: {
     fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: '#000D22',
+    fontWeight: Typography.extrabold,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
-  menuLabelDanger: {
-    color: '#ba1a1a',
-  },
-  menuSublabel: {
+  upgradeSub: {
     fontSize: Typography.xs,
-    color: '#74777e',
-    marginTop: 1,
+    color: 'rgba(168,196,255,0.8)',
   },
-  menuChevron: {
-    fontSize: 20,
-    color: '#c4c6cf',
+  upgardeArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
+
+  // Sign out
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: Spacing[5],
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#ffdad6',
+    borderWidth: 1,
+    borderColor: '#ba1a1a',
+  },
+  signOutText: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#ba1a1a' },
+
   version: {
     fontSize: Typography.xs,
-    color: '#c4c6cf',
+    color: '#C4C6CF',
     textAlign: 'center',
-    fontWeight: Typography.medium,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+    paddingBottom: 8,
   },
 });

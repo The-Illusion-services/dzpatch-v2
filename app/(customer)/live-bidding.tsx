@@ -171,7 +171,7 @@ export default function LiveBiddingScreen() {
         (payload) => {
           const updated = payload.new as any;
           if (updated.status === 'matched') {
-            router.replace({ pathname: '/(customer)/order-tracking', params: { orderId } } as any);
+            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           }
         }
       )
@@ -227,7 +227,7 @@ export default function LiveBiddingScreen() {
               Alert.alert('Error', error.message);
             } else {
               addActivity(`Accepted ${bid.rider_name}'s offer`, '#22c55e');
-              router.replace({ pathname: '/(customer)/order-tracking', params: { orderId } } as any);
+              router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
             }
           },
         },

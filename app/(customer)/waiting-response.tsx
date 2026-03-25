@@ -76,7 +76,7 @@ export default function WaitingResponseScreen() {
           const updated = payload.new as any;
           if (updated.status === 'accepted') {
             // Rider accepted our counter — go to tracking
-            router.replace({ pathname: '/(customer)/order-tracking', params: { orderId } } as any);
+            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           } else if (updated.status === 'rejected') {
             // Rider rejected — go back to bidding pool
             router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
@@ -88,7 +88,7 @@ export default function WaitingResponseScreen() {
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         (payload) => {
           if ((payload.new as any).status === 'matched') {
-            router.replace({ pathname: '/(customer)/order-tracking', params: { orderId } } as any);
+            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           }
         }
       )

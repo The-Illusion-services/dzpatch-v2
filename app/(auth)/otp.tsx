@@ -17,7 +17,7 @@ const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
 
 export default function OtpScreen() {
-  const { phone, email } = useLocalSearchParams<{ phone?: string; email?: string }>();
+  const { phone, email, isEmailSignup } = useLocalSearchParams<{ phone?: string; email?: string; isEmailSignup?: string }>();
   const { initialize } = useAuthStore();
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
@@ -89,6 +89,15 @@ export default function OtpScreen() {
 
       // Initialize auth store (loads profile, sets role)
       await initialize();
+
+      // Navigate by role
+      const role = useAuthStore.getState().role;
+      switch (role) {
+        case 'rider':         router.replace('/(rider)' as any); break;
+        case 'fleet_manager': router.replace('/(fleet)' as any); break;
+        case 'admin':         router.replace('/(admin)' as any); break;
+        default:              router.replace('/(customer)' as any); break;
+      }
     } catch (err: any) {
       setError(err.message ?? 'Invalid code. Please try again.');
       setOtp(Array(OTP_LENGTH).fill(''));
@@ -117,6 +126,9 @@ export default function OtpScreen() {
     ? phone.replace(/(\+\d{3})\d+(\d{4})/, '$1****$2')
     : email?.replace(/^(.{2})(.*)(@.*)/, '$1****$3') ?? '';
 
+  // For email signup with confirmation enabled
+  const isConfirmationFlow = isEmailSignup === 'true';
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -136,8 +148,11 @@ export default function OtpScreen() {
           </View>
           <Text style={styles.title}>{'Verify your\nidentity.'}</Text>
           <Text style={styles.subtitle}>
-            We've sent a 6-digit code to{' '}
+            {isConfirmationFlow
+              ? `Check your inbox at `
+              : `We've sent a 6-digit code to `}
             <Text style={styles.target}>{maskedTarget}</Text>
+            {isConfirmationFlow ? ` and enter the confirmation code below.` : null}
           </Text>
         </View>
 

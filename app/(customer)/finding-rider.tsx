@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -9,16 +10,41 @@ import {
   Text,
   View,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import type { OrderStatus } from '@/types/database';
 
+// Dummy riders that "converge" toward the pickup marker
+const DUMMY_RIDERS = [
+  { id: 'r1', startLatOffset: 0.022,  startLngOffset: 0.028  },
+  { id: 'r2', startLatOffset: -0.018, startLngOffset: 0.032  },
+  { id: 'r3', startLatOffset: 0.030,  startLngOffset: -0.014 },
+  { id: 'r4', startLatOffset: -0.025, startLngOffset: -0.020 },
+];
+
+const DEFAULT_CENTER = { latitude: 6.4551, longitude: 3.3841 };
+
+const MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b0' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a4a' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a3a5a' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d2137' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+];
+
 export default function FindingRiderScreen() {
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { profile } = useAuthStore();
+  const mapRef = useRef<MapView>(null);
 
   const [order, setOrder] = useState<{
     id: string;
@@ -27,53 +53,90 @@ export default function FindingRiderScreen() {
     dropoff_address: string;
     package_size: string;
     dynamic_price: number;
+    final_price: number;
+    payment_method: string;
     expires_at: string | null;
   } | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [riderViews, setRiderViews] = useState(0);
 
-  // ── Pulse animation ──────────────────────────────────────────────────────
-  const pulse1 = useRef(new Animated.Value(0)).current;
-  const pulse2 = useRef(new Animated.Value(0)).current;
-  const pulse3 = useRef(new Animated.Value(0)).current;
+  // ── Rider converge animations (each 0→1 = moving toward center) ──────────
+  const convergeAnims = useRef(DUMMY_RIDERS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
-    const anim = (val: Animated.Value, delay: number) =>
+    const animations = convergeAnims.map((anim, i) =>
       Animated.loop(
         Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(val, {
-            toValue: 1,
-            duration: 2400,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
+          Animated.delay(i * 600),
+          Animated.timing(anim, {
+            toValue: 0.6,
+            duration: 3500,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: false,
           }),
-          Animated.timing(val, {
+          Animated.timing(anim, {
             toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
+            duration: 800,
+            useNativeDriver: false,
           }),
         ])
-      );
-    const a1 = anim(pulse1, 0);
-    const a2 = anim(pulse2, 700);
-    const a3 = anim(pulse3, 1400);
-    a1.start(); a2.start(); a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); };
+      )
+    );
+    animations.forEach((a) => a.start());
+    return () => animations.forEach((a) => a.stop());
   }, []);
 
-  // ── Load order ───────────────────────────────────────────────────────────
+  // ── Pulse animation for pickup marker ────────────────────────────────────
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  // ── Scanning bar animation ────────────────────────────────────────────────
+  const scanAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(scanAnim, { toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: false })
+    ).start();
+  }, []);
+
+  // ── Get user location for better map center ───────────────────────────────
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    })();
+  }, []);
+
+  // ── Load order + realtime ─────────────────────────────────────────────────
   useEffect(() => {
     if (!orderId) return;
 
     supabase
       .from('orders')
-      .select('id, status, pickup_address, dropoff_address, package_size, dynamic_price, expires_at')
+      .select('id, status, pickup_address, dropoff_address, package_size, dynamic_price, final_price, payment_method, expires_at')
       .eq('id', orderId)
       .single()
       .then(({ data }) => { if (data) setOrder(data as any); });
 
-    // Subscribe to status changes
+    // Fetch initial bid count (riders who have already bid = "viewed offer")
+    supabase
+      .from('bids')
+      .select('id', { count: 'exact', head: true })
+      .eq('order_id', orderId)
+      .then(({ count }) => { if (count) setRiderViews(count); });
+
     const channel = supabase
       .channel(`finding:${orderId}`)
       .on(
@@ -82,23 +145,28 @@ export default function FindingRiderScreen() {
         (payload) => {
           const updated = payload.new as any;
           setOrder((prev) => prev ? { ...prev, ...updated } : updated);
-          // Rider matched — move to bidding pool
-          if (updated.status === 'pending' && updated.rider_id == null) return; // still searching
           if (updated.status === 'matched') {
-            router.replace({ pathname: '/(customer)/order-tracking', params: { orderId } } as any);
+            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           }
         }
       )
       .subscribe();
 
-    // Also subscribe to bids — first bid = go to bidding pool
     const bidsChannel = supabase
       .channel(`finding-bids:${orderId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         () => {
-          router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
+          // Increment view counter then navigate to bidding
+          setRiderViews((v) => {
+            const next = v + 1;
+            // Navigate after state update
+            setTimeout(() => {
+              router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
+            }, 600);
+            return next;
+          });
         }
       )
       .subscribe();
@@ -109,7 +177,7 @@ export default function FindingRiderScreen() {
     };
   }, [orderId]);
 
-  // ── Countdown timer ──────────────────────────────────────────────────────
+  // ── Countdown timer ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!order?.expires_at) return;
     const tick = setInterval(() => {
@@ -120,7 +188,7 @@ export default function FindingRiderScreen() {
     return () => clearInterval(tick);
   }, [order?.expires_at]);
 
-  // ── Cancel ───────────────────────────────────────────────────────────────
+  // ── Cancel ────────────────────────────────────────────────────────────────
   const handleCancel = () => {
     Alert.alert('Cancel Search', 'Stop looking for a rider and cancel this order?', [
       { text: 'Keep Searching', style: 'cancel' },
@@ -143,32 +211,72 @@ export default function FindingRiderScreen() {
     ]);
   };
 
-  // ── Pulse ring helper ────────────────────────────────────────────────────
-  const PulseRing = ({ anim, size }: { anim: Animated.Value; size: number }) => (
-    <Animated.View
-      style={[
-        styles.pulseRing,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          opacity: anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.35, 0.15, 0] }),
-          transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
-        },
-      ]}
-    />
-  );
-
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
+  const region = {
+    latitude: center.latitude,
+    longitude: center.longitude,
+    latitudeDelta: 0.06,
+    longitudeDelta: 0.06,
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* ── Full-screen dark map ─────────────────────────────────────────── */}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFill}
+        provider={PROVIDER_GOOGLE}
+        region={region}
+        scrollEnabled={false}
+        zoomEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        customMapStyle={MAP_STYLE}
+      >
+        {/* Pickup / customer location marker */}
+        <Marker coordinate={center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+          <View style={styles.pickupMarker}>
+            <View style={styles.pickupDot} />
+          </View>
+        </Marker>
+
+        {/* Dummy rider markers converging toward pickup */}
+        {DUMMY_RIDERS.map((r, i) => {
+          const lat = convergeAnims[i].interpolate({
+            inputRange: [0, 1],
+            outputRange: [center.latitude + r.startLatOffset, center.latitude + r.startLatOffset * 0.1],
+          });
+          const lng = convergeAnims[i].interpolate({
+            inputRange: [0, 1],
+            outputRange: [center.longitude + r.startLngOffset, center.longitude + r.startLngOffset * 0.1],
+          });
+          // Note: Animated.Value coords don't animate on native MapView; use static offsets
+          // that look like different positions around center
+          return (
+            <Marker
+              key={r.id}
+              coordinate={{
+                latitude:  center.latitude  + r.startLatOffset,
+                longitude: center.longitude + r.startLngOffset,
+              }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+            >
+              <View style={styles.riderMarker}>
+                <Text style={styles.riderMarkerText}>🛵</Text>
+              </View>
+            </Marker>
+          );
+        })}
+      </MapView>
+
+      {/* ── Header overlay ──────────────────────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerLeft}>
           <View style={styles.logoMark} />
           <Text style={styles.logoText}>dzpatch</Text>
@@ -179,58 +287,84 @@ export default function FindingRiderScreen() {
         </View>
       </View>
 
-      {/* Radar center */}
-      <View style={styles.radarWrap}>
-        {/* Pulse rings */}
-        <PulseRing anim={pulse3} size={320} />
-        <PulseRing anim={pulse2} size={240} />
-        <PulseRing anim={pulse1} size={160} />
+      {/* ── Pulse ring around pickup ─────────────────────────────────────── */}
+      <View style={styles.pulseContainer} pointerEvents="none">
+        <Animated.View
+          style={[
+            styles.pulseRing,
+            {
+              opacity: pulseAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.5, 0.15, 0] }),
+              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.8] }) }],
+            },
+          ]}
+        />
+      </View>
 
-        {/* Center orb */}
-        <View style={styles.radarOrb}>
-          <Text style={styles.radarIcon}>🏍️</Text>
+      {/* ── Bottom sheet ────────────────────────────────────────────────── */}
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+
+        {/* Scan bar */}
+        <View style={styles.scanTrack}>
+          <Animated.View
+            style={[
+              styles.scanBar,
+              {
+                left: scanAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] as any }),
+              },
+            ]}
+          />
         </View>
 
-        {/* Timer above orb */}
-        {timeLeft !== null && timeLeft > 0 && (
-          <View style={styles.timerBadge}>
-            <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-            <Text style={styles.timerLabel}>remaining</Text>
+        {/* Title + timer */}
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.sheetTitle}>Finding your rider</Text>
+            {riderViews > 0 ? (
+              <View style={styles.viewerRow}>
+                <View style={styles.viewerDot} />
+                <Text style={styles.viewerText}>
+                  {riderViews} rider{riderViews !== 1 ? 's' : ''} viewed your offer
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.sheetSub}>Matching you with the nearest rider...</Text>
+            )}
+          </View>
+          {timeLeft !== null && timeLeft > 0 && (
+            <View style={styles.timerBadge}>
+              <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+              <Text style={styles.timerLabel}>left</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Order summary */}
+        {order && (
+          <View style={styles.orderCard}>
+            <View style={styles.orderRow}>
+              <View style={styles.orderDotFrom} />
+              <Text style={styles.orderAddr} numberOfLines={1}>{order.pickup_address}</Text>
+            </View>
+            <View style={styles.orderConnector} />
+            <View style={styles.orderRow}>
+              <View style={styles.orderDotTo} />
+              <Text style={styles.orderAddr} numberOfLines={1}>{order.dropoff_address}</Text>
+            </View>
+            <View style={styles.orderMeta}>
+              <View style={styles.orderMetaBadge}>
+                <Text style={styles.orderMetaBadgeText}>{order.package_size.replace('_', ' ')}</Text>
+              </View>
+              <View style={styles.orderMetaBadge}>
+                <Text style={styles.orderMetaBadgeText}>
+                  {order.payment_method === 'cash' ? '💵 Cash' : '👛 Wallet'}
+                </Text>
+              </View>
+              <Text style={styles.orderPrice}>₦{Number(order.final_price || order.dynamic_price).toLocaleString()}</Text>
+            </View>
           </View>
         )}
-      </View>
 
-      {/* Status card */}
-      <View style={styles.statusCard}>
-        <Text style={styles.statusCardTitle}>Finding your rider</Text>
-        <Text style={styles.statusCardBody}>
-          Matching you with the nearest available rider in your area...
-        </Text>
-      </View>
-
-      {/* Order summary card */}
-      {order && (
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryIcon}>📍</Text>
-            <Text style={styles.summaryText} numberOfLines={1}>{order.pickup_address}</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryIcon}>🎯</Text>
-            <Text style={styles.summaryText} numberOfLines={1}>{order.dropoff_address}</Text>
-          </View>
-          <View style={styles.summaryMeta}>
-            <View style={styles.metaBadge}>
-              <Text style={styles.metaBadgeText}>{order.package_size.replace('_', ' ')}</Text>
-            </View>
-            <Text style={styles.summaryPrice}>₦{Number(order.dynamic_price).toLocaleString()}</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Cancel button */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        {/* Cancel button */}
         <Pressable
           style={[styles.cancelBtn, cancelling && { opacity: 0.6 }]}
           onPress={handleCancel}
@@ -244,20 +378,20 @@ export default function FindingRiderScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7FAFC',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
 
   // Header
   header: {
-    width: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing[5],
-    paddingVertical: 14,
+    paddingBottom: 12,
+    zIndex: 10,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -265,166 +399,219 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoMark: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#000D22',
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: '#0040e0',
   },
   logoText: {
     fontSize: Typography.lg,
     fontWeight: Typography.extrabold,
-    color: '#000D22',
+    color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#dde1ff',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#0040e0',
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: '#22c55e',
   },
   statusText: {
     fontSize: 11,
     fontWeight: Typography.bold,
-    color: '#0040e0',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
 
-  // Radar
-  radarWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+  // Pickup marker
+  pickupMarker: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,64,224,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#0040e0',
   },
-  pulseRing: {
-    position: 'absolute',
+  pickupDot: {
+    width: 10, height: 10, borderRadius: 5,
     backgroundColor: '#0040e0',
-  },
-  radarOrb: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#0040e0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0040e0',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 10,
-    zIndex: 10,
-  },
-  radarIcon: { fontSize: 36 },
-  timerBadge: {
-    position: 'absolute',
-    top: -48,
-    alignItems: 'center',
-  },
-  timerText: {
-    fontSize: 28,
-    fontWeight: Typography.extrabold,
-    color: '#000D22',
-    letterSpacing: -1,
-  },
-  timerLabel: {
-    fontSize: Typography.xs,
-    color: '#44474e',
-    fontWeight: Typography.medium,
   },
 
-  // Status card
-  statusCard: {
-    marginHorizontal: Spacing[5],
-    marginBottom: 16,
-    alignItems: 'center',
-    gap: 6,
+  // Rider marker
+  riderMarker: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  statusCardTitle: {
+  riderMarkerText: { fontSize: 20 },
+
+  // Pulse ring (centered in screen)
+  pulseContainer: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 260,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  pulseRing: {
+    width: 160, height: 160, borderRadius: 80,
+    borderWidth: 2, borderColor: '#0040e0',
+    backgroundColor: 'rgba(0,64,224,0.08)',
+  },
+
+  // Bottom sheet
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: Spacing[5],
+    paddingTop: 20,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+
+  // Scan bar
+  scanTrack: {
+    height: 3,
+    backgroundColor: '#F1F4F6',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  scanBar: {
+    position: 'absolute',
+    width: 60,
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: '#0040e0',
+    opacity: 0.7,
+  },
+
+  // Title row
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  sheetTitle: {
     fontSize: Typography.xl,
     fontWeight: Typography.extrabold,
     color: '#000D22',
     letterSpacing: -0.3,
   },
-  statusCardBody: {
+  sheetSub: {
     fontSize: Typography.sm,
-    color: '#44474e',
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 260,
+    color: '#74777e',
+  },
+  viewerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  viewerDot: {
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: '#22c55e',
+  },
+  viewerText: {
+    fontSize: Typography.sm,
+    fontWeight: '700',
+    color: '#16a34a',
+  },
+  timerBadge: {
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    minWidth: 60,
+  },
+  timerText: {
+    fontSize: Typography.md,
+    fontWeight: Typography.extrabold,
+    color: '#0040e0',
+    letterSpacing: -0.5,
+  },
+  timerLabel: {
+    fontSize: 10,
+    color: '#0040e0',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 
-  // Summary card
-  summaryCard: {
-    width: '100%',
-    marginHorizontal: 0,
-    paddingHorizontal: Spacing[5],
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F4F6',
-    paddingTop: 16,
-    gap: 10,
+  // Order card
+  orderCard: {
+    backgroundColor: '#F7FAFC',
+    borderRadius: 16,
+    padding: 14,
+    gap: 8,
   },
-  summaryRow: {
+  orderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  summaryIcon: { fontSize: 16 },
-  summaryText: {
+  orderDotFrom: {
+    width: 10, height: 10, borderRadius: 5,
+    borderWidth: 2, borderColor: '#0040e0',
+    backgroundColor: '#FFFFFF',
+    flexShrink: 0,
+  },
+  orderDotTo: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#0040e0',
+    flexShrink: 0,
+  },
+  orderConnector: {
+    width: 1, height: 16,
+    backgroundColor: '#C4C6CF',
+    marginLeft: 4.5,
+  },
+  orderAddr: {
     flex: 1,
     fontSize: Typography.sm,
     fontWeight: Typography.medium,
     color: '#000D22',
   },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: '#F1F4F6',
-    marginLeft: 26,
-  },
-  summaryMeta: {
+  orderMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
     marginTop: 4,
   },
-  metaBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#F1F4F6',
+  orderMetaBadge: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    backgroundColor: '#E8EAF0',
     borderRadius: 999,
   },
-  metaBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
+  orderMetaBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#44474e',
     textTransform: 'capitalize',
   },
-  summaryPrice: {
+  orderPrice: {
+    marginLeft: 'auto',
     fontSize: Typography.md,
     fontWeight: Typography.extrabold,
     color: '#0040e0',
   },
 
-  // Bottom
-  bottomBar: {
-    width: '100%',
-    paddingHorizontal: Spacing[5],
-    paddingTop: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F4F6',
-  },
+  // Cancel
   cancelBtn: {
     paddingVertical: 16,
     alignItems: 'center',

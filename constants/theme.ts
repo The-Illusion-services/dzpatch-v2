@@ -48,15 +48,15 @@ export const Colors = {
 
 export const Typography = {
   // Font sizes
-  xs: 11,
-  sm: 13,
-  base: 15,
-  md: 17,
-  lg: 20,
-  xl: 24,
-  '2xl': 28,
-  '3xl': 32,
-  '4xl': 38,
+  xs: 12,
+  sm: 14,
+  base: 16,
+  md: 18,
+  lg: 21,
+  xl: 25,
+  '2xl': 30,
+  '3xl': 34,
+  '4xl': 40,
 
   // Line heights
   lineHeightTight: 1.2,
