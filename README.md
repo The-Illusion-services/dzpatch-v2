@@ -1,50 +1,124 @@
-# Welcome to your Expo app 👋
+# DZpatch v2
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+On-demand delivery app for Nigeria. Customers book riders, riders bid on jobs, packages move.
 
-## Get started
+This is a ground-up rewrite of v1 — cleaner architecture, better database design, and a proper Supabase backend.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## What it does
 
-2. Start the app
+Customers open the app, enter a pickup and dropoff address, and book a delivery. Riders nearby see the job, place a bid, and the customer accepts. The rider collects the package and delivers it while the customer tracks live on a map.
 
-   ```bash
-   npx expo start
-   ```
+Payments go through Paystack (card, bank transfer, USSD) or cash on delivery. Riders earn from each job minus a platform commission. Wallets are built-in for both sides.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- React Native + Expo 54 (SDK 54)
+- Expo Router (file-based navigation)
+- Supabase — PostgreSQL, Auth, Realtime, Edge Functions, Storage
+- Paystack — wallet funding and rider payouts
+- Google Maps + Places API
+- Zustand for auth state
+- Jest + Testing Library for tests
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## Project structure
 
-```bash
-npm run reset-project
+```
+app/
+  (auth)/          Login, OTP, password reset
+  (customer)/      All customer screens
+supabase/
+  migrations/      All database migrations, numbered sequentially
+  functions/       Edge functions (payment-initialize, payment-webhook)
+store/             Zustand stores
+lib/               Supabase client setup
+types/             Database types
+constants/         Theme, colors, spacing
+__tests__/         Test suites by sprint
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## Getting started
 
-To learn more about developing your project with Expo, look at the following resources:
+**Prerequisites:** Node 18+, Expo CLI, Android Studio or Xcode
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm install
+```
 
-## Join the community
+Copy `.env.example` to `.env` and fill in your keys:
 
-Join our community of developers creating universal apps.
+```
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY=
+GOOGLE_MAPS_API_KEY=
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Start the dev server:
+
+```bash
+npx expo start
+```
+
+---
+
+## Database
+
+All migrations live in `supabase/migrations/` and are numbered `00001`, `00002`, etc. Apply them in order using the Supabase SQL Editor. Never edit a migration that has already been applied — add a new one instead.
+
+Current migrations:
+- `00001` — Core schema: 26 tables, 17 enums, 40+ indexes
+- `00002` — RPC functions (create_order, cancel_order, credit_wallet, etc.)
+- `00003` — RLS policies
+- `00004` — Fix handle_new_user trigger
+- `00005` — Nullable phone/email on profiles
+- `00006` — Fix trigger search_path
+- `00007` — Cash payment method on orders
+- `00008` — Fix order_status_history column name
+- `00009` — saved_addresses: is_default, latitude, longitude columns
+
+---
+
+## Edge Functions
+
+Deploy from the `supabase/functions/` directory:
+
+- `payment-initialize` — Creates a Paystack transaction and returns the authorization URL. Called by the app when a user taps Fund Wallet.
+- `payment-webhook` — Receives Paystack webhooks, verifies the HMAC signature, and credits the wallet via the `credit_wallet` RPC.
+
+Set `PAYSTACK_SECRET_KEY` in your Supabase project's Edge Function secrets before deploying.
+
+---
+
+## Testing
+
+```bash
+npm test
+```
+
+242 tests across 10 suites covering auth, ordering, tracking, payments, wallet, and notifications.
+
+---
+
+## Build phases
+
+**Phase 1 (current)** — Customer ordering, rider matching, delivery, payments, chat, notifications
+
+**Phase 2** — Fleet management, admin dashboard, B2B features
+
+**Phase 3** — Referral program, merchant booking, virtual accounts, fraud detection
+
+---
+
+## Supabase project
+
+Project ref: `fgegxqtynigdceuxjnxd` (ap-southeast-2)
+
+The v1 codebase lives separately at `c:\Dev\dzpatch-mobile` and is not touched.
