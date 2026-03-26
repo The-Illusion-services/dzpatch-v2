@@ -44,8 +44,13 @@ export default function NavigateToPickupScreen() {
       .eq('id', orderId)
       .single()
       .then(({ data }) => {
-        if (data) setOrder(data as OrderInfo);
-        setEta(Math.floor(Math.random() * 6) + 3);
+        if (data) {
+          const o = data as OrderInfo;
+          setOrder(o);
+          // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
+          const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
+          setEta(mins);
+        }
       });
 
     // Set status to pickup_en_route when rider opens this screen

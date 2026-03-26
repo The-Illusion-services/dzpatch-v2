@@ -51,7 +51,9 @@ export default function NavigateToDropoffScreen() {
         if (!data) return;
         const o = data as OrderInfo;
         setOrder(o);
-        setEta(Math.floor(Math.random() * 12) + 5);
+        // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
+        const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
+        setEta(mins);
         const { data: cust } = await supabase
           .from('profiles')
           .select('full_name, phone')
