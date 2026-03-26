@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -14,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { Avatar, Card, StatusBadge } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 import type { Order } from '@/types/database';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 
 // ─── Progress timeline ────────────────────────────────────────────────────────
 
@@ -50,17 +50,18 @@ export default function OrderTrackingScreen() {
 
   // ─── Fetch order + rider ────────────────────────────────────────────────
 
-  const fetchOrder = async (id: string) => {
+  const fetchOrder = useCallback(async (id: string) => {
     const { data } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, status, rider_id, final_price, pickup_address, dropoff_address, dropoff_contact_name, dropoff_contact_phone, package_size, delivery_code')
       .eq('id', id)
       .single();
     if (data) {
-      setOrder(data as Order);
-      if (data.rider_id) fetchRider(data.rider_id);
+      const o = data as { rider_id: string | null; status: string; [key: string]: any };
+      setOrder(o as unknown as Order);
+      if (o.rider_id) fetchRider(o.rider_id);
     }
-  };
+  }, []);
 
   const fetchRider = async (riderId: string) => {
     const { data } = await supabase
@@ -100,29 +101,11 @@ export default function OrderTrackingScreen() {
     channelRef.current = channel;
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [orderId]);
+  }, [orderId, fetchOrder]);
 
-  // ─── Cancel order ───────────────────────────────────────────────────────
-
-  const handleCancel = () => {
-    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
-      { text: 'Keep Order', style: 'cancel' },
-      {
-        text: 'Cancel Order',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.rpc('cancel_order', { p_order_id: orderId } as any);
-          if (error) {
-            Alert.alert('Error', error.message);
-          } else {
-            router.back();
-          }
-        },
-      },
-    ]);
-  };
+  useAppStateChannels([channelRef.current]);
 
   if (loading || !order) {
     return (

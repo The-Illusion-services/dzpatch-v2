@@ -18,7 +18,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 
-const GOOGLE_API_KEY = 'AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws';
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY ?? '';
 const BIAS_RADIUS = 20000;
 
 type Label = 'home' | 'work' | 'school' | 'other';
@@ -61,7 +61,7 @@ export default function AddAddressScreen() {
     if (!addressId) return;
     supabase
       .from('saved_addresses')
-      .select('*')
+      .select('id, address, label, is_default, latitude, longitude')
       .eq('id', addressId)
       .single()
       .then(({ data }) => {
@@ -90,21 +90,18 @@ export default function AddAddressScreen() {
     try {
       if (isDefault) {
         // Clear existing default first
-        await supabase
-          .from('saved_addresses')
-          .update({ is_default: false } as any)
+        await (supabase.from('saved_addresses') as any)
+          .update({ is_default: false })
           .eq('user_id', profile?.id ?? '');
       }
 
       if (isEditing) {
-        const { error: e } = await supabase
-          .from('saved_addresses')
-          .update({ address: address.trim(), label, is_default: isDefault, latitude: lat, longitude: lng } as any)
+        const { error: e } = await (supabase.from('saved_addresses') as any)
+          .update({ address: address.trim(), label, is_default: isDefault, latitude: lat, longitude: lng })
           .eq('id', addressId!);
         if (e) throw e;
       } else {
-        const { error: e } = await supabase
-          .from('saved_addresses')
+        const { error: e } = await (supabase.from('saved_addresses') as any)
           .insert({
             user_id: profile?.id ?? '',
             address: address.trim(),
@@ -113,7 +110,7 @@ export default function AddAddressScreen() {
             latitude: lat,
             longitude: lng,
             location: wkt,
-          } as any);
+          });
         if (e) throw e;
       }
 
@@ -153,6 +150,7 @@ export default function AddAddressScreen() {
               placeholder="Search for an address..."
               minLength={2}
               fetchDetails
+              debounce={400}
               onPress={(data, details) => {
                 setAddress(data.description);
                 if (details?.geometry?.location) {
@@ -166,6 +164,7 @@ export default function AddAddressScreen() {
                 key: GOOGLE_API_KEY,
                 language: 'en',
                 components: 'country:ng',
+                sessiontoken: true,
                 ...(userLocation ? {
                   location: `${userLocation.lat},${userLocation.lng}`,
                   radius: BIAS_RADIUS,

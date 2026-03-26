@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 type TabIconProps = {
   focused: boolean;
@@ -11,26 +11,35 @@ type TabIconProps = {
 };
 
 function TabItem({ focused, name, focusedName }: TabIconProps) {
+  const { colors } = useTheme();
   return (
     <View style={styles.tabItem}>
       <Ionicons
         name={focused ? focusedName : name}
         size={26}
-        color={focused ? '#0040e0' : '#9ea2ac'}
+        color={focused ? colors.tabActive : colors.tabInactive}
       />
-      {focused && <View style={styles.activeDot} />}
+      {focused && <View style={[styles.activeDot, { backgroundColor: colors.tabActive }]} />}
     </View>
   );
 }
 
 export default function CustomerLayout() {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom + 6 }],
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            backgroundColor: colors.tabBackground,
+            borderTopColor: isDark ? colors.border : '#f1f5f9',
+            paddingBottom: insets.bottom + 6,
+          },
+        ],
         tabBarShowLabel: false,
       }}
     >
@@ -88,11 +97,9 @@ export default function CustomerLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
     paddingTop: 10,
     height: 70,
     shadowColor: '#000D22',
@@ -110,6 +117,5 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#0040e0',
   },
 });

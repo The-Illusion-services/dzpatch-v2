@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,15 +46,17 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [riderInfo, setRiderInfo] = useState<RiderInfo | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // ── Fetch rider info for header ────────────────────────────────────────────
 
-  const fetchRiderInfo = async () => {
-    const { data: order } = await supabase
+  const fetchRiderInfo = useCallback(async () => {
+    const { data: orderRaw } = await supabase
       .from('orders')
       .select('rider_id, status')
       .eq('id', orderId)
       .single();
+    const order = orderRaw as { rider_id: string | null; status: string } | null;
 
     if (order?.rider_id) {
       const { data: rider } = await supabase
@@ -69,19 +73,19 @@ export default function ChatScreen() {
         });
       }
     }
-  };
+  }, [orderId]);
 
   // ── Fetch message history ──────────────────────────────────────────────────
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     const { data } = await supabase
       .from('chat_messages')
-      .select('*')
+      .select('id, sender_id, message, created_at, is_read')
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
 
     if (data) setMessages(data as ChatMessage[]);
-  };
+  }, [orderId]);
 
   // ── Subscribe to new messages ──────────────────────────────────────────────
 
@@ -107,8 +111,12 @@ export default function ChatScreen() {
       )
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
-  }, [orderId]);
+    channelRef.current = channel;
+
+    return () => { supabase.removeChannel(channel); };
+  }, [orderId, fetchRiderInfo, fetchMessages]);
+
+  useAppStateChannels([channelRef.current]);
 
   // ── Send message ───────────────────────────────────────────────────────────
 
@@ -122,7 +130,7 @@ export default function ChatScreen() {
       order_id: orderId,
       sender_id: profile.id,
       message: text,
-    });
+    } as any);
 
     setSending(false);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);

@@ -55,8 +55,9 @@ export default function WithdrawScreen() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setBalance(data.balance);
-          setWalletId(data.id);
+          const w = data as { id: string; balance: number };
+          setBalance(w.balance);
+          setWalletId(w.id);
         }
         setFetching(false);
       });
@@ -87,9 +88,10 @@ export default function WithdrawScreen() {
       p_wallet_id: walletId,
       p_amount: parsedAmount,
       p_bank_name: bankName,
+      p_bank_code: '',
       p_account_number: accountNumber,
       p_account_name: profile.full_name ?? '',
-    });
+    } as any);
 
     setLoading(false);
 
@@ -249,7 +251,7 @@ export default function WithdrawScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.feeTitle}>Transaction Fee: ₦{FEE.toLocaleString()}</Text>
               <Text style={styles.feeBody}>
-                You'll receive ₦{parsedAmount.toLocaleString()} and ₦{FEE} is deducted for bank processing.
+                You&apos;ll receive ₦{parsedAmount.toLocaleString()} and ₦{FEE} is deducted for bank processing.
                 Total deducted: ₦{total.toLocaleString()}.
               </Text>
             </View>

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   FlatList,
@@ -16,6 +16,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { SkeletonCard } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,18 +70,20 @@ export default function WalletScreen() {
 
   // ── Balance counter animation ──────────────────────────────────────────────
   const animBalance = useRef(new Animated.Value(0)).current;
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const animateTo = (target: number) => {
+  const animateTo = useCallback((target: number) => {
     Animated.timing(animBalance, {
       toValue: target,
       duration: 800,
       useNativeDriver: false,
     }).start();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!profile?.id) return;
 
     const { data: wallet } = await supabase
@@ -90,24 +94,25 @@ export default function WalletScreen() {
       .single();
 
     if (wallet) {
-      setBalance(wallet.balance);
-      setWalletId(wallet.id);
-      animateTo(wallet.balance);
+      const w = wallet as { id: string; balance: number };
+      setBalance(w.balance);
+      setWalletId(w.id);
+      animateTo(w.balance);
 
       const { data: txs } = await supabase
         .from('transactions')
         .select('id, type, amount, balance_after, description, status, created_at')
-        .eq('wallet_id', wallet.id)
+        .eq('wallet_id', w.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (txs) setTransactions(txs as Transaction[]);
     }
-  };
+  }, [profile?.id, animateTo]);
 
   useEffect(() => {
     fetchData().finally(() => setLoading(false));
-  }, [profile?.id]);
+  }, [profile?.id, fetchData]);
 
   // ── Realtime balance updates ───────────────────────────────────────────────
   useEffect(() => {
@@ -125,8 +130,11 @@ export default function WalletScreen() {
         { event: 'INSERT', schema: 'public', table: 'transactions', filter: `wallet_id=eq.${walletId}` },
         () => fetchData())
       .subscribe();
-    return () => { channel.unsubscribe(); };
-  }, [walletId]);
+    channelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [walletId, animateTo, fetchData]);
+
+  useAppStateChannels([channelRef.current]);
 
   const onRefresh = async () => {
     setRefreshing(true);

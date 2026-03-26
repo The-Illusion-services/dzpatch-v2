@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -71,7 +71,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!profile?.id) return;
     const { data } = await supabase
       .from('notifications')
@@ -80,7 +80,7 @@ export default function NotificationsScreen() {
       .order('created_at', { ascending: false })
       .limit(60);
     if (data) setNotifications(data as Notification[]);
-  };
+  }, [profile?.id]);
 
   useEffect(() => {
     fetchNotifications().finally(() => setLoading(false));
@@ -99,8 +99,8 @@ export default function NotificationsScreen() {
       })
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
-  }, [profile?.id]);
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, fetchNotifications]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -110,8 +110,7 @@ export default function NotificationsScreen() {
 
   const markAllRead = async () => {
     if (!profile?.id) return;
-    await supabase
-      .from('notifications')
+    await (supabase.from('notifications') as any)
       .update({ is_read: true })
       .eq('user_id', profile.id)
       .eq('is_read', false);
@@ -119,7 +118,7 @@ export default function NotificationsScreen() {
   };
 
   const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    await (supabase.from('notifications') as any).update({ is_read: true }).eq('id', id);
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
   };
 

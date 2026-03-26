@@ -39,21 +39,21 @@ export default function SavedAddressesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAddresses = async () => {
+  const fetchAddresses = useCallback(async () => {
     const { data } = await supabase
       .from('saved_addresses')
-      .select('*')
+      .select('id, label, address, latitude, longitude, is_default')
       .eq('user_id', profile?.id ?? '')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
     setAddresses((data as SavedAddress[]) ?? []);
-  };
+  }, [profile?.id]);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
       fetchAddresses().finally(() => setLoading(false));
-    }, [profile?.id])
+    }, [fetchAddresses])
   );
 
   const onRefresh = async () => {
@@ -78,12 +78,10 @@ export default function SavedAddressesScreen() {
 
   const handleSetDefault = async (id: string) => {
     // Clear existing default, set new one
-    await supabase
-      .from('saved_addresses')
+    await (supabase.from('saved_addresses') as any)
       .update({ is_default: false })
       .eq('user_id', profile?.id ?? '');
-    await supabase
-      .from('saved_addresses')
+    await (supabase.from('saved_addresses') as any)
       .update({ is_default: true })
       .eq('id', id);
     setAddresses((prev) =>

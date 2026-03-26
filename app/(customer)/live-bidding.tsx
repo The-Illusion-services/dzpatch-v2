@@ -1,21 +1,21 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  FlatList,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/ui';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,6 @@ type Bid = {
   amount: number;
   status: string;
   created_at: string;
-  // joined
   rider_name: string;
   rider_avatar: string | null;
   rider_rating: number;
@@ -34,12 +33,28 @@ type Bid = {
   vehicle_type: string;
 };
 
-type ActivityItem = {
-  id: string;
-  text: string;
-  color: string;
-  time: string;
-};
+const DEFAULT_CENTER = { latitude: 6.4551, longitude: 3.3841 };
+
+const MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#f5f7fa' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#e8ecf0' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9dff0' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+];
+
+// Deterministic scatter around center from rider_id chars
+function scatterCoord(id: string, center: { latitude: number; longitude: number }, idx: number) {
+  const seed = (id.charCodeAt(0) + id.charCodeAt(2) + idx * 31) / 600;
+  const seed2 = (id.charCodeAt(1) + id.charCodeAt(3) + idx * 17) / 600;
+  return {
+    latitude: center.latitude + (seed - 0.5) * 0.06,
+    longitude: center.longitude + (seed2 - 0.5) * 0.06,
+  };
+}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -56,10 +71,10 @@ export default function LiveBiddingScreen() {
     dynamic_price: number;
     expires_at: string | null;
   } | null>(null);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [accepting, setAccepting] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [selectedBid, setSelectedBid] = useState<string | null>(null);
 
   // Live ping animation
   const pingAnim = useRef(new Animated.Value(0)).current;
@@ -70,11 +85,24 @@ export default function LiveBiddingScreen() {
         Animated.timing(pingAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Get user location for map center — last known first (instant), then refine
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) setCenter({ latitude: last.coords.latitude, longitude: last.coords.longitude });
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    })();
   }, []);
 
   // ── Fetch order + bids ────────────────────────────────────────────────────
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const [orderRes, bidsRes] = await Promise.all([
       supabase
         .from('orders')
@@ -95,7 +123,7 @@ export default function LiveBiddingScreen() {
         .order('amount', { ascending: true }),
     ]);
 
-    if (orderRes.data) setOrder(orderRes.data as any);
+    if (orderRes.data) setOrder((orderRes as any).data as any);
 
     if (bidsRes.data) {
       const mapped: Bid[] = (bidsRes.data as any[]).map((b) => ({
@@ -112,24 +140,23 @@ export default function LiveBiddingScreen() {
         vehicle_type: b.riders?.vehicle_type ?? 'motorcycle',
       }));
       setBids(mapped);
+      if (mapped.length > 0) setSelectedBid((s) => s ?? mapped[0].id);
     }
-  };
+  }, [orderId]);
 
   useEffect(() => {
     fetchData();
 
-    // Realtime: new bids coming in
     const channel = supabase
       .channel(`bids:${orderId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         async (payload) => {
-          // Fetch rider details for the new bid
           const { data: riderData } = await supabase
             .from('riders')
             .select('average_rating, total_trips, vehicle_type, profiles(full_name, avatar_url)')
-            .eq('profile_id', (payload.new as any).rider_id)
+            .eq('id', (payload.new as any).rider_id)
             .single();
 
           const newBid: Bid = {
@@ -149,10 +176,10 @@ export default function LiveBiddingScreen() {
           setBids((prev) => {
             const exists = prev.find((b) => b.id === newBid.id);
             if (exists) return prev;
-            return [...prev, newBid].sort((a, b) => a.amount - b.amount);
+            const sorted = [...prev, newBid].sort((a, b) => a.amount - b.amount);
+            setSelectedBid((s) => s ?? sorted[0].id);
+            return sorted;
           });
-
-          addActivity(`New offer: ₦${Number((payload.new as any).amount).toLocaleString()}`, '#0040e0');
         }
       )
       .on(
@@ -160,8 +187,11 @@ export default function LiveBiddingScreen() {
         { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         (payload) => {
           const updated = payload.new as any;
-          if (updated.status !== 'pending') {
+          if (updated.status === 'rejected' || updated.status === 'expired') {
             setBids((prev) => prev.filter((b) => b.id !== updated.id));
+          } else if (updated.status === 'pending') {
+            // Amount updated (e.g. counter accepted) — refresh the bid amount
+            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, amount: updated.amount } : b));
           }
         }
       )
@@ -177,7 +207,8 @@ export default function LiveBiddingScreen() {
       )
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   // ── Countdown ─────────────────────────────────────────────────────────────
@@ -191,20 +222,6 @@ export default function LiveBiddingScreen() {
     }, 1000);
     return () => clearInterval(tick);
   }, [order?.expires_at]);
-
-  // ── Activity log helper ───────────────────────────────────────────────────
-
-  const addActivity = (text: string, color: string) => {
-    setActivity((prev) => [
-      {
-        id: Date.now().toString(),
-        text,
-        color,
-        time: new Date().toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }),
-      },
-      ...prev.slice(0, 9),
-    ]);
-  };
 
   // ── Accept bid ────────────────────────────────────────────────────────────
 
@@ -226,7 +243,6 @@ export default function LiveBiddingScreen() {
             if (error) {
               Alert.alert('Error', error.message);
             } else {
-              addActivity(`Accepted ${bid.rider_name}'s offer`, '#22c55e');
               router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
             }
           },
@@ -235,8 +251,6 @@ export default function LiveBiddingScreen() {
     );
   };
 
-  // ── Counter-offer ─────────────────────────────────────────────────────────
-
   const handleNegotiate = (bid: Bid) => {
     router.push({
       pathname: '/(customer)/counter-offer',
@@ -244,151 +258,161 @@ export default function LiveBiddingScreen() {
     } as any);
   };
 
-  const formatTime = (secs: number) => {
+  const formatTime = useCallback((secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
-  };
+  }, []);
 
-  const vehicleIcon: Record<string, string> = {
+  const vehicleIcon: Record<string, string> = useMemo(() => ({
     motorcycle: '🏍️', bicycle: '🚲', car: '🚗', van: '🚐', truck: '🚛',
-  };
+  }), []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-  };
+  const activeBid = bids.find((b) => b.id === selectedBid) ?? bids[0] ?? null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* ── Full-screen Map ─────────────────────────────────────────────── */}
+      <MapView
+        style={StyleSheet.absoluteFill}
+        provider={PROVIDER_GOOGLE}
+        region={{ ...center, latitudeDelta: 0.08, longitudeDelta: 0.08 }}
+        scrollEnabled={false}
+        zoomEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        customMapStyle={MAP_STYLE}
+      >
+        {/* Customer location */}
+        <Marker coordinate={center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+          <View style={styles.centerPin}>
+            <View style={styles.centerPinInner} />
+          </View>
+        </Marker>
+
+        {/* Rider markers scattered around */}
+        {bids.map((bid, idx) => (
+          <Marker
+            key={bid.id}
+            coordinate={scatterCoord(bid.id, center, idx)}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+            onPress={() => setSelectedBid(bid.id)}
+          >
+            <View style={[styles.riderPin, bid.id === selectedBid && styles.riderPinSelected]}>
+              <Text style={styles.riderPinText}>{vehicleIcon[bid.vehicle_type] ?? '🏍️'}</Text>
+              <View style={[styles.riderPinBadge, bid.id === selectedBid && styles.riderPinBadgeSelected]}>
+                <Text style={[styles.riderPinPrice, bid.id === selectedBid && styles.riderPinPriceSelected]}>
+                  ₦{(bid.amount / 1000).toFixed(0)}k
+                </Text>
+              </View>
+            </View>
+          </Marker>
+        ))}
+      </MapView>
+
+      {/* ── Header overlay ──────────────────────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
+
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Rider Offers</Text>
-          {/* Live badge */}
           <View style={styles.liveBadge}>
             <Animated.View style={[styles.liveDot, { opacity: pingAnim }]} />
-            <Text style={styles.liveText}>LIVE</Text>
+            <Text style={styles.liveText}>LIVE OFFERS</Text>
           </View>
-        </View>
-        {/* Timer */}
-        <View style={[styles.timerBadge, timeLeft < 30 && styles.timerBadgeUrgent]}>
-          <Text style={[styles.timerText, timeLeft < 30 && styles.timerTextUrgent]}>
-            {timeLeft > 0 ? formatTime(timeLeft) : '--:--'}
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-      >
-        {/* Order summary strip */}
-        {order && (
-          <View style={styles.orderStrip}>
-            <View style={styles.orderStripRow}>
-              <Text style={styles.orderStripIcon}>📍</Text>
-              <Text style={styles.orderStripText} numberOfLines={1}>{order.pickup_address}</Text>
-            </View>
-            <Text style={styles.orderStripArrow}>↓</Text>
-            <View style={styles.orderStripRow}>
-              <Text style={styles.orderStripIcon}>🎯</Text>
-              <Text style={styles.orderStripText} numberOfLines={1}>{order.dropoff_address}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Bids section title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {bids.length === 0 ? 'Waiting for offers...' : `${bids.length} offer${bids.length !== 1 ? 's' : ''} received`}
-          </Text>
           {bids.length > 0 && (
-            <Text style={styles.sectionHint}>Lowest first</Text>
+            <Text style={styles.bidCount}>{bids.length} rider{bids.length !== 1 ? 's' : ''}</Text>
           )}
         </View>
 
-        {/* Empty state */}
-        {bids.length === 0 && (
-          <View style={styles.emptyBids}>
-            <Text style={styles.emptyBidsIcon}>⏳</Text>
-            <Text style={styles.emptyBidsText}>Riders are reviewing your order...</Text>
+        {timeLeft > 0 && (
+          <View style={[styles.timerChip, timeLeft < 300 && styles.timerChipUrgent]}>
+            <Text style={[styles.timerText, timeLeft < 300 && styles.timerTextUrgent]}>{formatTime(timeLeft)}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* ── Bottom sheet ────────────────────────────────────────────────── */}
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
+
+        {/* Order strip */}
+        {order && (
+          <View style={styles.orderStrip}>
+            <View style={styles.orderDot} />
+            <Text style={styles.orderStripText} numberOfLines={1}>{order.pickup_address}</Text>
+            <Text style={styles.orderArrow}>→</Text>
+            <Text style={styles.orderStripText} numberOfLines={1}>{order.dropoff_address}</Text>
           </View>
         )}
 
-        {/* Bid cards */}
-        {bids.map((bid, index) => (
-          <View key={bid.id} style={[styles.bidCard, index === 0 && styles.bidCardBest]}>
-            {index === 0 && bids.length > 1 && (
-              <View style={styles.bestBadge}>
-                <Text style={styles.bestBadgeText}>Best Value</Text>
-              </View>
-            )}
+        {/* Waiting state */}
+        {bids.length === 0 ? (
+          <View style={styles.waitingState}>
+            <Animated.View style={[styles.waitingPulse, { opacity: pingAnim }]} />
+            <Text style={styles.waitingTitle}>Waiting for offers...</Text>
+            <Text style={styles.waitingSub}>Riders are reviewing your order</Text>
+          </View>
+        ) : (
+          <>
+            {/* Bid tabs */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bidTabs}>
+              {bids.map((bid, idx) => (
+                <Pressable
+                  key={bid.id}
+                  style={[styles.bidTab, bid.id === selectedBid && styles.bidTabActive]}
+                  onPress={() => setSelectedBid(bid.id)}
+                >
+                  {idx === 0 && bids.length > 1 && (
+                    <Text style={styles.bestLabel}>BEST</Text>
+                  )}
+                  <Text style={[styles.bidTabAmount, bid.id === selectedBid && styles.bidTabAmountActive]}>
+                    ₦{Number(bid.amount).toLocaleString()}
+                  </Text>
+                  <Text style={[styles.bidTabName, bid.id === selectedBid && styles.bidTabNameActive]} numberOfLines={1}>
+                    {bid.rider_name.split(' ')[0]}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
-            {/* Rider info row */}
-            <View style={styles.bidRiderRow}>
-              <Avatar name={bid.rider_name} uri={bid.rider_avatar} size="md" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.bidRiderName}>{bid.rider_name}</Text>
-                <View style={styles.bidRiderMeta}>
-                  <Text style={styles.bidRatingText}>⭐ {bid.rider_rating.toFixed(1)}</Text>
-                  <Text style={styles.bidMetaDot}>·</Text>
-                  <Text style={styles.bidTripsText}>{bid.rider_trips} trips</Text>
-                  <Text style={styles.bidMetaDot}>·</Text>
-                  <Text style={styles.bidVehicleText}>{vehicleIcon[bid.vehicle_type] ?? '🏍️'} {bid.vehicle_type}</Text>
+            {/* Active bid detail card */}
+            {activeBid && (
+              <View style={styles.bidDetail}>
+                <View style={styles.bidDetailTop}>
+                  <Avatar name={activeBid.rider_name} uri={activeBid.rider_avatar} size="lg" />
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={styles.bidDetailName}>{activeBid.rider_name}</Text>
+                    <View style={styles.bidDetailMeta}>
+                      <Text style={styles.metaChip}>⭐ {activeBid.rider_rating.toFixed(1)}</Text>
+                      <Text style={styles.metaChip}>{activeBid.rider_trips} trips</Text>
+                      <Text style={styles.metaChip}>{vehicleIcon[activeBid.vehicle_type] ?? '🏍️'} {activeBid.vehicle_type}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.bidDetailAmount}>₦{Number(activeBid.amount).toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.bidDetailActions}>
+                  <Pressable style={styles.negotiateBtn} onPress={() => handleNegotiate(activeBid)}>
+                    <Text style={styles.negotiateBtnText}>Negotiate</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.acceptBtn, accepting === activeBid.id && styles.acceptBtnDisabled]}
+                    onPress={() => handleAccept(activeBid)}
+                    disabled={accepting !== null}
+                  >
+                    <Text style={styles.acceptBtnText}>
+                      {accepting === activeBid.id ? 'Accepting...' : 'Accept Offer'}
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
-              {/* Bid amount */}
-              <View style={styles.bidAmountWrap}>
-                <Text style={styles.bidAmount}>₦{Number(bid.amount).toLocaleString()}</Text>
-              </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.bidActions}>
-              <Pressable
-                style={styles.negotiateBtn}
-                onPress={() => handleNegotiate(bid)}
-              >
-                <Text style={styles.negotiateBtnText}>Negotiate</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.acceptBtn, accepting === bid.id && styles.acceptBtnDisabled]}
-                onPress={() => handleAccept(bid)}
-                disabled={accepting !== null}
-              >
-                <Text style={styles.acceptBtnText}>
-                  {accepting === bid.id ? 'Accepting...' : 'Accept Offer'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-
-        {/* Live Activity feed */}
-        {activity.length > 0 && (
-          <View style={styles.activitySection}>
-            <Text style={styles.sectionTitle}>Live Activity</Text>
-            {activity.map((item) => (
-              <View key={item.id} style={styles.activityRow}>
-                <View style={[styles.activityDot, { backgroundColor: item.color }]} />
-                <Text style={styles.activityText}>{item.text}</Text>
-                <Text style={styles.activityTime}>{item.time}</Text>
-              </View>
-            ))}
-          </View>
+            )}
+          </>
         )}
 
-        <View style={{ height: 20 }} />
-      </ScrollView>
-
-      {/* Cancel */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+        {/* Cancel */}
         <Pressable
           style={styles.cancelBtn}
           onPress={() => {
@@ -420,148 +444,156 @@ export default function LiveBiddingScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7FAFC' },
+  container: { flex: 1 },
 
+  // Header overlay
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing[5],
-    paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(196,198,207,0.2)',
-    gap: 12,
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing[5], paddingBottom: 12,
+    gap: 10,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
   },
   backArrow: { fontSize: 20, color: '#0040e0', fontWeight: '600' },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: '#000D22',
-    letterSpacing: -0.3,
-  },
+  headerCenter: { flex: 1, gap: 3 },
   liveBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#dde1ff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#0040e0' },
-  liveText: { fontSize: 9, fontWeight: Typography.bold, color: '#0040e0', letterSpacing: 1 },
-  timerBadge: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    backgroundColor: '#F1F4F6', borderRadius: 10,
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#0040e0' },
+  liveText: { fontSize: 10, fontWeight: '800', color: '#0040e0', letterSpacing: 1.5, textTransform: 'uppercase' },
+  bidCount: {
+    fontSize: Typography.xs, fontWeight: '700', color: '#44474e',
+    marginLeft: 2,
   },
-  timerBadgeUrgent: { backgroundColor: '#ffdad6' },
-  timerText: {
-    fontSize: Typography.sm, fontWeight: Typography.extrabold,
-    color: '#000D22', letterSpacing: 1,
+  timerChip: {
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
+  timerChipUrgent: { backgroundColor: '#ffdad6' },
+  timerText: { fontSize: Typography.sm, fontWeight: '800', color: '#000D22', letterSpacing: 0.5 },
   timerTextUrgent: { color: '#ba1a1a' },
 
-  scroll: { paddingBottom: 100 },
+  // Map markers
+  centerPin: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,64,224,0.2)', borderWidth: 2.5, borderColor: '#0040e0',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  centerPinInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#0040e0' },
+  riderPin: {
+    alignItems: 'center', gap: 2,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 16, padding: 6,
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
+    borderWidth: 1.5, borderColor: 'rgba(196,198,207,0.4)',
+  },
+  riderPinSelected: {
+    backgroundColor: '#0040e0', borderColor: '#0040e0',
+    shadowColor: '#0040e0', shadowOpacity: 0.4,
+  },
+  riderPinText: { fontSize: 18 },
+  riderPinBadge: {
+    paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999,
+    backgroundColor: '#EEF2FF',
+  },
+  riderPinBadgeSelected: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  riderPinPrice: { fontSize: 9, fontWeight: '800', color: '#0040e0' },
+  riderPinPriceSelected: { color: '#FFFFFF' },
 
-  orderStrip: {
+  // Bottom sheet
+  sheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: Spacing[5],
-    paddingVertical: 14,
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F4F6',
-  },
-  orderStripRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  orderStripIcon: { fontSize: 14 },
-  orderStripText: { flex: 1, fontSize: Typography.sm, fontWeight: Typography.medium, color: '#000D22' },
-  orderStripArrow: { fontSize: 14, color: '#74777e', marginLeft: 22 },
-
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing[5], paddingTop: 20, paddingBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: Typography.sm, fontWeight: Typography.bold, color: '#000D22',
-  },
-  sectionHint: { fontSize: Typography.xs, color: '#74777e' },
-  activitySection: { paddingHorizontal: Spacing[5], paddingTop: 20, gap: 8 },
-
-  emptyBids: {
-    alignItems: 'center', paddingVertical: 40, gap: 10,
-    paddingHorizontal: Spacing[5],
-  },
-  emptyBidsIcon: { fontSize: 36 },
-  emptyBidsText: { fontSize: Typography.sm, color: '#44474e', textAlign: 'center' },
-
-  bidCard: {
-    marginHorizontal: Spacing[5],
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: Spacing[5], paddingTop: 16,
     gap: 14,
-    shadowColor: '#000D22',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.1, shadowRadius: 20, elevation: 16,
   },
-  bidCardBest: {
-    borderWidth: 1.5,
-    borderColor: '#0040e0',
-  },
-  bestBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#0040e0',
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 999,
-    marginBottom: -4,
-  },
-  bestBadgeText: {
-    fontSize: 10, fontWeight: Typography.bold, color: '#FFFFFF',
-    textTransform: 'uppercase', letterSpacing: 1,
-  },
-  bidRiderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bidRiderName: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#000D22' },
-  bidRiderMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' },
-  bidRatingText: { fontSize: Typography.xs, color: '#44474e' },
-  bidMetaDot: { fontSize: Typography.xs, color: '#c4c6cf' },
-  bidTripsText: { fontSize: Typography.xs, color: '#44474e' },
-  bidVehicleText: { fontSize: Typography.xs, color: '#44474e', textTransform: 'capitalize' },
-  bidAmountWrap: { alignItems: 'flex-end' },
-  bidAmount: { fontSize: Typography.xl, fontWeight: Typography.extrabold, color: '#000D22', letterSpacing: -0.5 },
 
-  bidActions: { flexDirection: 'row', gap: 10 },
-  negotiateBtn: {
-    flex: 1, paddingVertical: 12, alignItems: 'center',
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#0040e0',
+  // Order strip
+  orderStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F7FAFC', borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 10,
   },
-  negotiateBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#0040e0' },
+  orderDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0040e0', flexShrink: 0 },
+  orderStripText: { flex: 1, fontSize: Typography.xs, fontWeight: '600', color: '#44474e' },
+  orderArrow: { fontSize: Typography.xs, color: '#c4c6cf', fontWeight: '700' },
+
+  // Waiting state
+  waitingState: {
+    alignItems: 'center', paddingVertical: 24, gap: 8,
+  },
+  waitingPulse: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#EEF2FF',
+    position: 'absolute', top: 12,
+  },
+  waitingTitle: { fontSize: Typography.md, fontWeight: '700', color: '#000D22' },
+  waitingSub: { fontSize: Typography.sm, color: '#74777e' },
+
+  // Bid tabs
+  bidTabs: { gap: 8, paddingVertical: 2 },
+  bidTab: {
+    alignItems: 'center', gap: 2, minWidth: 80,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16,
+    backgroundColor: '#F1F4F6',
+    borderWidth: 1.5, borderColor: 'transparent',
+  },
+  bidTabActive: { backgroundColor: '#EEF2FF', borderColor: '#0040e0' },
+  bestLabel: { fontSize: 8, fontWeight: '800', color: '#0040e0', letterSpacing: 1.5, textTransform: 'uppercase' },
+  bidTabAmount: { fontSize: Typography.sm, fontWeight: '800', color: '#44474e' },
+  bidTabAmountActive: { color: '#0040e0' },
+  bidTabName: { fontSize: 10, fontWeight: '600', color: '#74777e' },
+  bidTabNameActive: { color: '#0040e0' },
+
+  // Bid detail
+  bidDetail: {
+    backgroundColor: '#F7FAFC', borderRadius: 20,
+    padding: 16, gap: 14,
+  },
+  bidDetailTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bidDetailName: { fontSize: Typography.md, fontWeight: '700', color: '#000D22' },
+  bidDetailMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  metaChip: { fontSize: Typography.xs, color: '#44474e' },
+  bidDetailAmount: { fontSize: 26, fontWeight: '900', color: '#0040e0', letterSpacing: -0.5 },
+
+  bidDetailActions: { flexDirection: 'row', gap: 10 },
+  negotiateBtn: {
+    flex: 1, height: 48, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: '#0040e0',
+    backgroundColor: '#FFFFFF',
+  },
+  negotiateBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#0040e0' },
   acceptBtn: {
-    flex: 2, paddingVertical: 12, alignItems: 'center',
-    borderRadius: 12, backgroundColor: '#0040e0',
+    flex: 2, height: 48, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0040e0',
     shadowColor: '#0040e0', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   acceptBtnDisabled: { opacity: 0.6 },
-  acceptBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#FFFFFF' },
+  acceptBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
 
-  activityRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 6,
-  },
-  activityDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  activityText: { flex: 1, fontSize: Typography.xs, color: '#44474e' },
-  activityTime: { fontSize: Typography.xs, color: '#c4c6cf' },
-
-  bottomBar: {
-    paddingHorizontal: Spacing[5], paddingTop: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1, borderTopColor: 'rgba(196,198,207,0.2)',
-  },
+  // Cancel
   cancelBtn: {
-    paddingVertical: 14, alignItems: 'center',
-    borderRadius: 14, borderWidth: 1, borderColor: '#c4c6cf',
+    height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#F1F4F6',
   },
-  cancelBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#44474e' },
+  cancelBtnText: { fontSize: Typography.sm, fontWeight: '600', color: '#74777e' },
 });

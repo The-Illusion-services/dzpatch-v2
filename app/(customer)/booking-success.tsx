@@ -41,6 +41,7 @@ export default function BookingSuccessScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Ping ring loop ────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ export default function BookingSuccessScreen() {
         Animated.timing(pingAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

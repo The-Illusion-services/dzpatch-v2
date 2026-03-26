@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Linking,
@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Spacing, Typography } from '@/constants/theme';
 import type { Order } from '@/types/database';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Status timeline ──────────────────────────────────────────────────────────
 
@@ -63,6 +65,8 @@ export default function ActiveOrderTrackingScreen() {
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<MapView>(null);
+  const orderChannelRef = useRef<RealtimeChannel | null>(null);
+  const locationChannelRef = useRef<RealtimeChannel | null>(null);
 
   // ── Rider pin bounce ──────────────────────────────────────────────────────
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -73,29 +77,31 @@ export default function ActiveOrderTrackingScreen() {
         Animated.timing(bounceAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Fetch order ───────────────────────────────────────────────────────────
 
-  const fetchOrder = async (id: string) => {
-    const { data } = await supabase.from('orders').select('*').eq('id', id).single();
+  const fetchOrder = useCallback(async (id: string) => {
+    const { data } = await supabase.from('orders').select('id, status, rider_id, final_price, dropoff_address, created_at').eq('id', id).single();
     if (data) {
-      setOrder(data as Order);
-      if ((data as any).dropoff_lat && (data as any).dropoff_lng) {
-        setDropoffLocation({ latitude: (data as any).dropoff_lat, longitude: (data as any).dropoff_lng });
+      const o = data as { rider_id: string | null; status: string; [key: string]: any };
+      setOrder(o as unknown as Order);
+      if (o.dropoff_lat && o.dropoff_lng) {
+        setDropoffLocation({ latitude: o.dropoff_lat, longitude: o.dropoff_lng });
       }
-      if (data.rider_id) {
-        fetchRider(data.rider_id);
-        fetchRiderLocation(data.rider_id);
+      if (o.rider_id) {
+        fetchRider(o.rider_id);
+        fetchRiderLocation(o.rider_id);
       }
     }
-  };
+  }, []);
 
   const fetchRider = async (riderId: string) => {
     const { data } = await supabase
       .from('riders')
       .select('average_rating, vehicle_plate, profiles(full_name, phone)')
-      .eq('profile_id', riderId)
+      .eq('id', riderId)
       .single();
     if (data && (data as any).profiles) {
       setRiderProfile({
@@ -112,7 +118,10 @@ export default function ActiveOrderTrackingScreen() {
       .select('latitude, longitude')
       .eq('rider_id', riderId)
       .single();
-    if (data) setRiderLocation({ latitude: data.latitude, longitude: data.longitude });
+    if (data) {
+      const loc = data as { latitude: number; longitude: number };
+      setRiderLocation({ latitude: loc.latitude, longitude: loc.longitude });
+    }
   };
 
   // ── Realtime — order status ────────────────────────────────────────────────
@@ -131,17 +140,29 @@ export default function ActiveOrderTrackingScreen() {
           setOrder(updated);
           if (updated.rider_id) fetchRider(updated.rider_id);
           if (updated.status === 'delivered' || updated.status === 'completed') {
+            const createdAt = (order as any)?.created_at;
+            const deliveryMins = createdAt
+              ? Math.round((Date.now() - new Date(createdAt).getTime()) / 60000)
+              : null;
             router.replace({
               pathname: '/(customer)/delivery-success',
-              params: { orderId, finalPrice: String((updated as any).final_price ?? 0) },
+              params: {
+                orderId,
+                finalPrice: String((updated as any).final_price ?? 0),
+                riderId: (updated as any).rider_id ?? '',
+                riderName: riderProfile?.full_name ?? '',
+                deliveryTime: deliveryMins ? `${deliveryMins} min` : undefined,
+              },
             } as any);
           }
         }
       )
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
-  }, [orderId]);
+    orderChannelRef.current = channel;
+
+    return () => { supabase.removeChannel(channel); };
+  }, [orderId, fetchOrder]);
 
   // ── Realtime — rider location ──────────────────────────────────────────────
 
@@ -166,8 +187,12 @@ export default function ActiveOrderTrackingScreen() {
       )
       .subscribe();
 
-    return () => { locationChannel.unsubscribe(); };
+    locationChannelRef.current = locationChannel;
+
+    return () => { supabase.removeChannel(locationChannel); };
   }, [order?.rider_id]);
+
+  useAppStateChannels([orderChannelRef.current, locationChannelRef.current]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 

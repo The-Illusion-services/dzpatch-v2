@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,13 +16,13 @@ import { Spacing, Typography } from '@/constants/theme';
 
 export default function CounterOfferScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
   const { orderId, bidId, riderName, bidAmount } = useLocalSearchParams<{
     orderId: string;
     bidId: string;
     riderName: string;
     bidAmount: string;
   }>();
+  const { profile } = useAuthStore();
 
   const originalAmount = Number(bidAmount);
   const minimumAllowed = Math.round(originalAmount * 0.8); // 20% below rider bid
@@ -51,27 +50,13 @@ export default function CounterOfferScreen() {
 
     setSubmitting(true);
     try {
-      // Customer counter = new bid from customer with parent_bid_id pointing to rider's bid
-      // We insert a countered status update on the original bid, then navigate to waiting screen
-      const { error: rpcErr } = await supabase
-        .from('bids')
-        .update({ status: 'countered' })
-        .eq('id', bidId);
+      const { error: rpcErr } = await (supabase as any).rpc('send_counter_offer', {
+        p_bid_id: bidId,
+        p_customer_id: profile?.id,
+        p_amount: parsedCounter,
+      });
 
       if (rpcErr) throw rpcErr;
-
-      // Insert the customer's counter bid
-      const { error: insertErr } = await supabase
-        .from('bids')
-        .insert({
-          order_id: orderId,
-          rider_id: (await supabase.from('bids').select('rider_id').eq('id', bidId).single()).data?.rider_id,
-          amount: parsedCounter,
-          status: 'pending',
-          parent_bid_id: bidId,
-        } as any);
-
-      if (insertErr) throw insertErr;
 
       router.replace({
         pathname: '/(customer)/waiting-response',
@@ -109,7 +94,7 @@ export default function CounterOfferScreen() {
         {/* Comparison row */}
         <View style={styles.compareRow}>
           <View style={styles.compareBox}>
-            <Text style={styles.compareLabel}>Rider's Bid</Text>
+            <Text style={styles.compareLabel}>Rider&apos;s Bid</Text>
             <Text style={styles.compareAmount}>₦{originalAmount.toLocaleString()}</Text>
           </View>
           <View style={styles.compareArrow}>
@@ -138,7 +123,7 @@ export default function CounterOfferScreen() {
         </View>
 
         <Text style={styles.hint}>
-          Min: ₦{minimumAllowed.toLocaleString()} · Must be lower than rider's bid
+          Min: ₦{minimumAllowed.toLocaleString()} · Must be lower than rider&apos;s bid
         </Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}

@@ -335,12 +335,12 @@ You design them, hand them over, we build them. No design = no build.
 > ℹ️ **Note:** No `rider_signup_fleet` screen in designs — fleet join step either folded into `rider_sign_up_review_application` or handled post-approval. Confirm before building step 7a.
 
 #### Build tasks:
-**7a. Auth & Onboarding**
-- [ ] Rider splash + onboarding screens
-- [ ] Multi-step signup (personal → OTP → vehicle → documents → fleet → bank → review)
-- [ ] Document upload to Supabase Storage
-- [ ] Admin approval gate ("Pending Verification" screen with status polling)
-- [ ] Bank account setup (rider_bank_accounts table)
+**7a. Auth & Onboarding** ✓ COMPLETE
+- [x] Rider splash + onboarding screens
+- [x] Multi-step signup (personal → OTP → vehicle → documents → bank → review)
+- [x] Document upload to Supabase Storage (expo-image-picker + Supabase Storage)
+- [x] Admin approval gate ("Pending Verification" screen with 30s polling)
+- [x] Bank account setup (rider_bank_accounts table)
 
 **7b. Home + Job Feed**
 - [ ] Home screen with map + online/offline toggle

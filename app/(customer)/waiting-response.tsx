@@ -10,12 +10,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 
 export default function WaitingResponseScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
   const { orderId, riderName, counterAmount, originalBid } = useLocalSearchParams<{
     orderId: string;
     riderName: string;
@@ -36,6 +34,7 @@ export default function WaitingResponseScreen() {
         useNativeDriver: true,
       })
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
@@ -48,6 +47,7 @@ export default function WaitingResponseScreen() {
         Animated.timing(pulseAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Shimmer bar ───────────────────────────────────────────────────────────
@@ -61,6 +61,7 @@ export default function WaitingResponseScreen() {
         useNativeDriver: true,
       })
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Listen for bid response ───────────────────────────────────────────────
@@ -71,38 +72,28 @@ export default function WaitingResponseScreen() {
       .channel(`waiting:${orderId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
-        (payload) => {
-          const updated = payload.new as any;
-          if (updated.status === 'accepted') {
-            // Rider accepted our counter — go to tracking
-            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
-          } else if (updated.status === 'rejected') {
-            // Rider rejected — go back to bidding pool
-            router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         (payload) => {
-          if ((payload.new as any).status === 'matched') {
+          const updated = payload.new as any;
+          if (updated.status === 'matched') {
+            // Order matched — rider accepted the counter or original bid
             router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+          } else if (updated.status === 'cancelled') {
+            // Order cancelled (expired or rider withdrew)
+            router.replace('/(customer)/' as any);
           }
         }
       )
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
+    return () => { supabase.removeChannel(channel); };
   }, [orderId]);
 
   // ── Cancel & search again ─────────────────────────────────────────────────
   const handleCancelAndSearch = async () => {
     setCancelling(true);
     // Cancel the pending counter bid and go back to bidding pool
-    await supabase
-      .from('bids')
+    await (supabase.from('bids') as any)
       .update({ status: 'rejected' })
       .eq('order_id', orderId)
       .eq('status', 'pending');
@@ -151,7 +142,7 @@ export default function WaitingResponseScreen() {
             <Text style={styles.headlineAmount}>₦{Number(counterAmount).toLocaleString()}</Text>
           </Text>
           <Text style={styles.subtext}>
-            The rider will accept, reject, or counter your offer. We'll notify you instantly.
+            The rider will accept, reject, or counter your offer. We&apos;ll notify you instantly.
           </Text>
         </View>
 

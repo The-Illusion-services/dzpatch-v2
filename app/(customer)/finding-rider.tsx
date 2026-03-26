@@ -42,7 +42,12 @@ const MAP_STYLE = [
 
 export default function FindingRiderScreen() {
   const insets = useSafeAreaInsets();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, pickupAddress: paramPickup, dropoffAddress: paramDropoff, finalPrice: paramFinalPrice } = useLocalSearchParams<{
+    orderId: string;
+    pickupAddress?: string;
+    dropoffAddress?: string;
+    finalPrice?: string;
+  }>();
   const { profile } = useAuthStore();
   const mapRef = useRef<MapView>(null);
 
@@ -86,6 +91,7 @@ export default function FindingRiderScreen() {
     );
     animations.forEach((a) => a.start());
     return () => animations.forEach((a) => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Pulse animation for pickup marker ────────────────────────────────────
@@ -98,6 +104,7 @@ export default function FindingRiderScreen() {
         Animated.timing(pulseAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Scanning bar animation ────────────────────────────────────────────────
@@ -107,6 +114,7 @@ export default function FindingRiderScreen() {
     Animated.loop(
       Animated.timing(scanAnim, { toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: false })
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Get user location for better map center ───────────────────────────────
@@ -114,14 +122,27 @@ export default function FindingRiderScreen() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
+      // Use last known position instantly, then refine with current
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) setCenter({ latitude: last.coords.latitude, longitude: last.coords.longitude });
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     })();
   }, []);
 
-  // ── Load order + realtime ─────────────────────────────────────────────────
+  // ── Load order + realtime + poll ─────────────────────────────────────────
+  const navigatingRef = useRef(false);
+
   useEffect(() => {
     if (!orderId) return;
+
+    navigatingRef.current = false;
+
+    const goToBidding = () => {
+      if (navigatingRef.current) return;
+      navigatingRef.current = true;
+      router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
+    };
 
     supabase
       .from('orders')
@@ -130,12 +151,32 @@ export default function FindingRiderScreen() {
       .single()
       .then(({ data }) => { if (data) setOrder(data as any); });
 
-    // Fetch initial bid count (riders who have already bid = "viewed offer")
+    // Check for existing bids immediately on mount
     supabase
       .from('bids')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('order_id', orderId)
-      .then(({ count }) => { if (count) setRiderViews(count); });
+      .eq('status', 'pending')
+      .then(({ count }) => {
+        if (count && count > 0) {
+          setRiderViews(count);
+          goToBidding();
+        }
+      });
+
+    // Poll every 5s as fallback (realtime RLS may block delivery)
+    const pollInterval = setInterval(async () => {
+      const { count } = await supabase
+        .from('bids')
+        .select('id', { count: 'exact' })
+        .eq('order_id', orderId)
+        .eq('status', 'pending')
+        .then((r) => r);
+      if (count && count > 0) {
+        setRiderViews(count);
+        goToBidding();
+      }
+    }, 5000);
 
     const channel = supabase
       .channel(`finding:${orderId}`)
@@ -158,35 +199,54 @@ export default function FindingRiderScreen() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         () => {
-          // Increment view counter then navigate to bidding
-          setRiderViews((v) => {
-            const next = v + 1;
-            // Navigate after state update
-            setTimeout(() => {
-              router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
-            }, 600);
-            return next;
-          });
+          setRiderViews((v) => v + 1);
+          setTimeout(goToBidding, 600);
         }
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      bidsChannel.unsubscribe();
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+      supabase.removeChannel(bidsChannel);
     };
   }, [orderId]);
 
   // ── Countdown timer ───────────────────────────────────────────────────────
+  const cancelledRef = useRef(false);
+
   useEffect(() => {
     if (!order?.expires_at) return;
+
+    const cancelExpired = () => {
+      if (cancelledRef.current) return;
+      cancelledRef.current = true;
+      supabase.rpc('cancel_order', {
+        p_order_id: orderId,
+        p_cancelled_by: 'customer',
+        p_user_id: profile?.id,
+        p_reason: 'Order expired — no rider found in time',
+      } as any).then();
+    };
+
+    // Already expired when screen loads
+    const initialSecs = Math.max(0, Math.floor((new Date(order.expires_at).getTime() - Date.now()) / 1000));
+    if (initialSecs === 0) {
+      setTimeLeft(0);
+      cancelExpired();
+      return;
+    }
+
     const tick = setInterval(() => {
       const secs = Math.max(0, Math.floor((new Date(order.expires_at!).getTime() - Date.now()) / 1000));
       setTimeLeft(secs);
-      if (secs === 0) clearInterval(tick);
+      if (secs === 0) {
+        clearInterval(tick);
+        cancelExpired();
+      }
     }, 1000);
     return () => clearInterval(tick);
-  }, [order?.expires_at]);
+  }, [order?.expires_at, orderId, profile?.id]);
 
   // ── Cancel ────────────────────────────────────────────────────────────────
   const handleCancel = () => {
@@ -247,14 +307,6 @@ export default function FindingRiderScreen() {
 
         {/* Dummy rider markers converging toward pickup */}
         {DUMMY_RIDERS.map((r, i) => {
-          const lat = convergeAnims[i].interpolate({
-            inputRange: [0, 1],
-            outputRange: [center.latitude + r.startLatOffset, center.latitude + r.startLatOffset * 0.1],
-          });
-          const lng = convergeAnims[i].interpolate({
-            inputRange: [0, 1],
-            outputRange: [center.longitude + r.startLngOffset, center.longitude + r.startLngOffset * 0.1],
-          });
           // Note: Animated.Value coords don't animate on native MapView; use static offsets
           // that look like different positions around center
           return (
@@ -303,75 +355,105 @@ export default function FindingRiderScreen() {
       {/* ── Bottom sheet ────────────────────────────────────────────────── */}
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
 
-        {/* Scan bar */}
-        <View style={styles.scanTrack}>
-          <Animated.View
-            style={[
-              styles.scanBar,
-              {
-                left: scanAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] as any }),
-              },
-            ]}
-          />
-        </View>
-
-        {/* Title + timer */}
-        <View style={styles.titleRow}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={styles.sheetTitle}>Finding your rider</Text>
-            {riderViews > 0 ? (
-              <View style={styles.viewerRow}>
-                <View style={styles.viewerDot} />
-                <Text style={styles.viewerText}>
-                  {riderViews} rider{riderViews !== 1 ? 's' : ''} viewed your offer
-                </Text>
+        {timeLeft === 0 ? (
+          /* ── Expired state ──────────────────────────────────────────────── */
+          <>
+            <View style={styles.expiredHeader}>
+              <View style={styles.expiredIcon}>
+                <Text style={styles.expiredIconText}>!</Text>
               </View>
-            ) : (
-              <Text style={styles.sheetSub}>Matching you with the nearest rider...</Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.expiredTitle}>Order Expired</Text>
+                <Text style={styles.expiredSub}>No riders were available. Your order has been cancelled and any payment refunded.</Text>
+              </View>
+            </View>
+            <Pressable
+              style={styles.retryBtn}
+              onPress={() => router.replace('/(customer)/' as any)}
+            >
+              <Text style={styles.retryBtnText}>Back to Home</Text>
+            </Pressable>
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => router.replace({ pathname: '/(customer)/create-order' } as any)}
+            >
+              <Text style={styles.cancelBtnText}>Try Again</Text>
+            </Pressable>
+          </>
+        ) : (
+          /* ── Searching state ────────────────────────────────────────────── */
+          <>
+            {/* Scan bar */}
+            <View style={styles.scanTrack}>
+              <Animated.View
+                style={[
+                  styles.scanBar,
+                  {
+                    left: scanAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] as any }),
+                  },
+                ]}
+              />
+            </View>
+
+            {/* Title + timer */}
+            <View style={styles.titleRow}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.sheetTitle}>Finding your rider</Text>
+                {riderViews > 0 ? (
+                  <View style={styles.viewerRow}>
+                    <View style={styles.viewerDot} />
+                    <Text style={styles.viewerText}>
+                      {riderViews} rider{riderViews !== 1 ? 's' : ''} viewed your offer
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.sheetSub}>Matching you with the nearest rider...</Text>
+                )}
+              </View>
+              {timeLeft !== null && timeLeft > 0 && timeLeft <= 1800 && (
+                <View style={[styles.timerBadge, timeLeft <= 300 && styles.timerBadgeUrgent]}>
+                  <Text style={[styles.timerText, timeLeft <= 300 && styles.timerTextUrgent]}>{formatTime(timeLeft)}</Text>
+                  <Text style={[styles.timerLabel, timeLeft <= 300 && styles.timerTextUrgent]}>left</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Order summary */}
+            {order && (
+              <View style={styles.orderCard}>
+                <View style={styles.orderRow}>
+                  <View style={styles.orderDotFrom} />
+                  <Text style={styles.orderAddr} numberOfLines={1}>{order.pickup_address}</Text>
+                </View>
+                <View style={styles.orderConnector} />
+                <View style={styles.orderRow}>
+                  <View style={styles.orderDotTo} />
+                  <Text style={styles.orderAddr} numberOfLines={1}>{order.dropoff_address}</Text>
+                </View>
+                <View style={styles.orderMeta}>
+                  <View style={styles.orderMetaBadge}>
+                    <Text style={styles.orderMetaBadgeText}>{order.package_size.replace('_', ' ')}</Text>
+                  </View>
+                  <View style={styles.orderMetaBadge}>
+                    <Text style={styles.orderMetaBadgeText}>
+                      {order.payment_method === 'cash' ? '💵 Cash' : '👛 Wallet'}
+                    </Text>
+                  </View>
+                  <Text style={styles.orderPrice}>₦{Number(order.final_price || order.dynamic_price).toLocaleString()}</Text>
+                </View>
+              </View>
             )}
-          </View>
-          {timeLeft !== null && timeLeft > 0 && (
-            <View style={styles.timerBadge}>
-              <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-              <Text style={styles.timerLabel}>left</Text>
-            </View>
-          )}
-        </View>
 
-        {/* Order summary */}
-        {order && (
-          <View style={styles.orderCard}>
-            <View style={styles.orderRow}>
-              <View style={styles.orderDotFrom} />
-              <Text style={styles.orderAddr} numberOfLines={1}>{order.pickup_address}</Text>
-            </View>
-            <View style={styles.orderConnector} />
-            <View style={styles.orderRow}>
-              <View style={styles.orderDotTo} />
-              <Text style={styles.orderAddr} numberOfLines={1}>{order.dropoff_address}</Text>
-            </View>
-            <View style={styles.orderMeta}>
-              <View style={styles.orderMetaBadge}>
-                <Text style={styles.orderMetaBadgeText}>{order.package_size.replace('_', ' ')}</Text>
-              </View>
-              <View style={styles.orderMetaBadge}>
-                <Text style={styles.orderMetaBadgeText}>
-                  {order.payment_method === 'cash' ? '💵 Cash' : '👛 Wallet'}
-                </Text>
-              </View>
-              <Text style={styles.orderPrice}>₦{Number(order.final_price || order.dynamic_price).toLocaleString()}</Text>
-            </View>
-          </View>
+            {/* Cancel button */}
+            <Pressable
+              style={[styles.cancelBtn, cancelling && { opacity: 0.6 }]}
+              onPress={handleCancel}
+              disabled={cancelling}
+            >
+              <Text style={styles.cancelBtnText}>{cancelling ? 'Cancelling...' : 'Cancel Search'}</Text>
+            </Pressable>
+          </>
         )}
-
-        {/* Cancel button */}
-        <Pressable
-          style={[styles.cancelBtn, cancelling && { opacity: 0.6 }]}
-          onPress={handleCancel}
-          disabled={cancelling}
-        >
-          <Text style={styles.cancelBtnText}>{cancelling ? 'Cancelling...' : 'Cancel Search'}</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -622,5 +704,48 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: Typography.bold,
     color: '#44474e',
+  },
+
+  // Timer urgent state (last 60s)
+  timerBadgeUrgent: { backgroundColor: '#FEF2F2' },
+  timerTextUrgent: { color: '#dc2626' },
+
+  // Expired state
+  expiredHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  expiredIcon: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  expiredIconText: {
+    fontSize: 22,
+    fontWeight: Typography.extrabold,
+    color: '#dc2626',
+  },
+  expiredTitle: {
+    fontSize: Typography.lg,
+    fontWeight: Typography.extrabold,
+    color: '#000D22',
+  },
+  expiredSub: {
+    fontSize: Typography.sm,
+    color: '#74777e',
+    lineHeight: 20,
+  },
+  retryBtn: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: '#0040e0',
+  },
+  retryBtnText: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.bold,
+    color: '#FFFFFF',
   },
 });

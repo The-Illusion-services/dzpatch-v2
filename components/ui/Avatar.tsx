@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Typography } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 

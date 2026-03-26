@@ -75,14 +75,15 @@ export default function OrderDetailsScreen() {
   useEffect(() => {
     if (!orderId) return;
     const load = async () => {
-      const { data: orderData } = await supabase
+      const { data: orderRaw } = await supabase
         .from('orders')
         .select('id, status, base_price, final_price, service_tax, pickup_address, dropoff_address, package_category, package_size, created_at, delivered_at, rider_id, cancellation_reason')
         .eq('id', orderId)
         .single();
+      const orderData = orderRaw as OrderDetail | null;
 
       if (orderData) {
-        setOrder(orderData as OrderDetail);
+        setOrder(orderData);
 
         if (orderData.rider_id) {
           const { data: riderData } = await supabase

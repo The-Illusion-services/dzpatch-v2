@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -93,7 +93,7 @@ export default function OrderHistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (!profile?.id) return;
     const { data } = await supabase
       .from('orders')
@@ -102,26 +102,29 @@ export default function OrderHistoryScreen() {
       .order('created_at', { ascending: false })
       .limit(50);
     if (data) setOrders(data as Order[]);
-  };
+  }, [profile?.id]);
 
   useEffect(() => {
     fetchOrders().finally(() => setLoading(false));
-  }, [profile?.id]);
+  }, [profile?.id, fetchOrders]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchOrders();
     setRefreshing(false);
-  };
+  }, [fetchOrders]);
 
-  const filtered = orders.filter((o) => {
-    switch (filter) {
-      case 'active':    return ACTIVE_STATUSES.includes(o.status);
-      case 'completed': return COMPLETED_STATUSES.includes(o.status);
-      case 'cancelled': return CANCELLED_STATUSES.includes(o.status);
-      default:          return true;
-    }
-  });
+  const filtered = useMemo(
+    () => orders.filter((o) => {
+      switch (filter) {
+        case 'active':    return ACTIVE_STATUSES.includes(o.status);
+        case 'completed': return COMPLETED_STATUSES.includes(o.status);
+        case 'cancelled': return CANCELLED_STATUSES.includes(o.status);
+        default:          return true;
+      }
+    }),
+    [orders, filter]
+  );
 
   const FILTERS: { key: OrderFilter; label: string }[] = [
     { key: 'all',       label: 'All' },

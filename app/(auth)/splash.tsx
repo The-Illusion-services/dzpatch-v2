@@ -32,17 +32,39 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if (!isInitialized) return;
-    const timer = setTimeout(() => {
-      if (!session) {
-        router.replace('/(auth)/onboarding');
-      } else {
-        // Route by role
-        switch (role) {
-          case 'rider': router.replace('/(rider)'); break;
-          case 'fleet_manager': router.replace('/(fleet)'); break;
-          case 'admin': router.replace('/(admin)'); break;
+
+    // Dev bypass: EXPO_PUBLIC_DEV_ROLE skips auth and jumps to role directly
+    const devRole = process.env.EXPO_PUBLIC_DEV_ROLE;
+    if (__DEV__ && devRole) {
+      const timer = setTimeout(() => {
+        switch (devRole) {
+          case 'rider': router.replace('/(rider)' as any); break;
+          case 'fleet': router.replace('/(fleet)' as any); break;
+          case 'admin': router.replace('/(admin)' as any); break;
           default: router.replace('/(customer)'); break;
         }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+
+    // No session — go to onboarding (don't wait for role)
+    if (!session) {
+      const timer = setTimeout(() => {
+        router.replace('/(auth)/onboarding');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+
+    // Session exists but profile/role not loaded yet — wait
+    if (!role) return;
+
+    // Role is ready — navigate
+    const timer = setTimeout(() => {
+      switch (role) {
+        case 'rider': router.replace('/(rider)' as any); break;
+        case 'fleet_manager': router.replace('/(fleet)' as any); break;
+        case 'admin': router.replace('/(admin)' as any); break;
+        default: router.replace('/(customer)'); break;
       }
     }, 2000);
     return () => clearTimeout(timer);

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,10 +17,11 @@ import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
+import { useAppDataStore } from '@/store/app-data.store';
 import { Spacing, Typography } from '@/constants/theme';
 import type { PackageSize } from '@/types/database';
 
-const GOOGLE_API_KEY = 'AIzaSyA3mvMe2cDnVIMVFOmLKDhVAv7bJ8WV-ws';
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY ?? '';
 const BIAS_RADIUS = 20000; // 20km in metres
 
 type PricingRule = {
@@ -43,6 +44,7 @@ const SIZE_MULTIPLIER: Record<PackageSize, number> = {
 
 export default function CreateOrderScreen() {
   const { profile } = useAuthStore();
+  const { fetchCategories } = useAppDataStore();
   const insets = useSafeAreaInsets();
 
   const [pickupAddress,  setPickupAddress]  = useState('');
@@ -98,12 +100,19 @@ export default function CreateOrderScreen() {
     })();
   }, []);
 
+  // ─── Load package categories (cached in store, 30-min TTL) ───────────────
+
+  useEffect(() => {
+    fetchCategories();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ─── Load pricing rule ────────────────────────────────────────────────────
 
   useEffect(() => {
     supabase
       .from('pricing_rules')
-      .select('*')
+      .select('base_rate, per_km_rate, min_price, vat_percentage, surge_multiplier')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle()
@@ -129,11 +138,12 @@ export default function CreateOrderScreen() {
       .limit(5)
       .then(({ data }) => {
         if (data) {
-          setSavedAddresses(data.map((a) => ({
+          const addrs = data as { label: string; address_line: string | null; latitude: number | null; longitude: number | null }[];
+          setSavedAddresses(addrs.map((a) => ({
             label:   a.label,
-            address: a.address_line,
-            lat:     a.latitude,
-            lng:     a.longitude,
+            address: a.address_line ?? '',
+            lat:     a.latitude ?? 0,
+            lng:     a.longitude ?? 0,
           })));
         }
       });
@@ -157,19 +167,23 @@ export default function CreateOrderScreen() {
     setServiceFee(Math.round(vat));
   }, [pricingRule, pickupAddress, dropoffAddress, selectedSize]);
 
-  const total = deliveryFee + serviceFee - discount;
+  const total = useMemo(
+    () => deliveryFee + serviceFee - discount,
+    [deliveryFee, serviceFee, discount]
+  );
 
   // ─── Apply promo ──────────────────────────────────────────────────────────
 
-  const handleApplyPromo = async () => {
+  const handleApplyPromo = useCallback(async () => {
     if (!promoCode.trim()) return;
     setPromoError('');
-    const { data } = await supabase
+    const { data: promoRaw } = await supabase
       .from('promo_codes')
       .select('id, discount_type, discount_value, min_order_amount, is_active')
       .eq('code', promoCode.trim().toUpperCase())
       .eq('is_active', true)
       .single();
+    const data = promoRaw as { id: string; min_order_amount: number; discount_type: string; discount_value: number } | null;
     if (!data) { setPromoError('Invalid or expired promo code'); return; }
     if (data.min_order_amount && deliveryFee < data.min_order_amount) {
       setPromoError(`Min order ₦${data.min_order_amount.toLocaleString()} required`);
@@ -180,11 +194,11 @@ export default function CreateOrderScreen() {
       : data.discount_value;
     setDiscount(disc);
     setPromoApplied(true);
-  };
+  }, [promoCode, deliveryFee]);
 
   // ─── Submit ───────────────────────────────────────────────────────────────
 
-  const handleFindRider = async () => {
+  const handleFindRider = useCallback(async () => {
     setError('');
     if (!pickupAddress.trim())  { setError('Enter pick-up address'); return; }
     if (!dropoffAddress.trim()) { setError('Enter drop-off address'); return; }
@@ -212,24 +226,33 @@ export default function CreateOrderScreen() {
       } as any);
       if (rpcErr) throw rpcErr;
 
-      const orderId = (data as any)?.order_id ?? data;
+      const result = data as any;
+      const orderId = result?.order_id ?? data;
       router.replace({
         pathname: '/(customer)/finding-rider',
-        params: { orderId },
+        params: {
+          orderId,
+          pickupAddress: pickupAddress.trim(),
+          dropoffAddress: dropoffAddress.trim(),
+          finalPrice: String(result?.final_price ?? ''),
+        },
       } as any);
     } catch (err: any) {
       setError(err.message ?? 'Failed to create order. Try again.');
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [profile, pickupAddress, dropoffAddress, recipientName, recipientPhone, selectedSize, paymentMethod, promoApplied, promoCode]);
 
   // ─── Places query ─────────────────────────────────────────────────────────
 
-  const placesQuery = userLocation
-    ? { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng',
-        location: `${userLocation.lat},${userLocation.lng}`, radius: BIAS_RADIUS, strictbounds: false }
-    : { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng' };
+  const placesQuery = useMemo(
+    () => userLocation
+      ? { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng', sessiontoken: true,
+          location: `${userLocation.lat},${userLocation.lng}`, radius: BIAS_RADIUS, strictbounds: false }
+      : { key: GOOGLE_API_KEY, language: 'en', components: 'country:ng', sessiontoken: true },
+    [userLocation]
+  );
 
   const formSections = [{ title: 'form', data: ['_'] as string[] }];
 
@@ -289,7 +312,7 @@ export default function CreateOrderScreen() {
                     fetchDetails
                     enablePoweredByContainer={false}
                     minLength={0}
-                    debounce={300}
+                    debounce={400}
                     styles={placesStyles}
                     textInputProps={{
                       placeholderTextColor: '#74777e',
@@ -362,7 +385,7 @@ export default function CreateOrderScreen() {
                     fetchDetails
                     enablePoweredByContainer={false}
                     minLength={0}
-                    debounce={300}
+                    debounce={400}
                     styles={placesStyles}
                     textInputProps={{
                       placeholderTextColor: '#74777e',

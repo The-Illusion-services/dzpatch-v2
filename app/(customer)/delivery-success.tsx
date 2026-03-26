@@ -48,6 +48,7 @@ export default function DeliverySuccessScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -116,7 +117,7 @@ export default function DeliverySuccessScreen() {
         {/* Receipt link */}
         <Pressable
           style={styles.receiptRow}
-          onPress={() => {/* navigate to order receipt if needed */}}
+          onPress={() => router.push({ pathname: '/(customer)/order-details', params: { orderId } } as any)}
         >
           <Text style={styles.receiptIcon}>🧾</Text>
           <Text style={styles.receiptText}>View Digital Receipt</Text>

@@ -62,23 +62,25 @@ export default function HomeScreen() {
     );
     animations.forEach((a) => a.start());
     return () => animations.forEach((a) => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Get location — animate map to user's actual position
+  // Last known position first (instant), then refine
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) {
+        const r = { latitude: last.coords.latitude, longitude: last.coords.longitude, latitudeDelta: 0.018, longitudeDelta: 0.018 };
+        setRegion(r);
+        mapRef.current?.animateToRegion(r, 400);
+      }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const userRegion = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.018,
-        longitudeDelta: 0.018,
-      };
+      const userRegion = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.018, longitudeDelta: 0.018 };
       setRegion(userRegion);
-      // Animate map camera to user location once loaded
-      mapRef.current?.animateToRegion(userRegion, 800);
+      mapRef.current?.animateToRegion(userRegion, 600);
     })();
   }, []);
 
@@ -86,7 +88,7 @@ export default function HomeScreen() {
     if (!userId) return;
     const { data } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, status, created_at, pickup_address, dropoff_address, final_price')
       .eq('customer_id', userId)
       .not('status', 'in', '("completed","cancelled")')
       .order('created_at', { ascending: false })

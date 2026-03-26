@@ -201,7 +201,7 @@ export default function LoginScreen() {
               <Text style={styles.newUserNote}>
                 New to DZPATCH?{' '}
                 <Text style={styles.newUserLink}>
-                  Just enter your number — we'll create your account automatically.
+                  Just enter your number — we&apos;ll create your account automatically.
                 </Text>
               </Text>
             </>

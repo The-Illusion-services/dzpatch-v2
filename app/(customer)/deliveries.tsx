@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -40,15 +40,18 @@ export default function DeliveriesScreen() {
   const [showSort, setShowSort] = useState(false);
   const searchRef = useRef<TextInput>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('*')
+      .select('id, status, created_at, pickup_address, dropoff_address, final_price')
       .eq('customer_id', profile?.id ?? '')
       .limit(100);
 
     if (filter === 'Active') {
-      q = q.not('status', 'in', '("completed","cancelled")');
+      // Exclude terminal statuses AND exclude pending orders past their expiry
+      q = q
+        .not('status', 'in', '("completed","cancelled")')
+        .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
     } else if (filter === 'Completed') {
       q = q.eq('status', 'completed');
     } else if (filter === 'Cancelled') {
@@ -61,7 +64,7 @@ export default function DeliveriesScreen() {
     else q = q.order('created_at', { ascending: false }); // price sort done client-side
 
     const { data } = await q;
-    let result = data ?? [];
+    let result = ((data as any[]) ?? []) as Order[];
 
     // Client-side price sort
     if (sort === 'price_high') {
@@ -71,31 +74,34 @@ export default function DeliveriesScreen() {
     }
 
     setOrders(result);
-  };
+  }, [profile?.id, filter, sort]);
 
   useEffect(() => {
     setLoading(true);
     fetchOrders().finally(() => setLoading(false));
-  }, [profile?.id, filter, sort]);
+  }, [profile?.id, filter, sort, fetchOrders]);
 
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchOrders();
     setRefreshing(false);
-  };
+  }, [fetchOrders]);
 
   // Client-side search filter
-  const filtered = search.trim()
-    ? orders.filter((o) => {
-        const q = search.toLowerCase();
-        return (
-          o.id.slice(-6).toLowerCase().includes(q) ||
-          o.pickup_address?.toLowerCase().includes(q) ||
-          o.dropoff_address?.toLowerCase().includes(q)
-        );
-      })
-    : orders;
+  const filtered = useMemo(
+    () => search.trim()
+      ? orders.filter((o) => {
+          const q = search.toLowerCase();
+          return (
+            o.id.slice(-6).toLowerCase().includes(q) ||
+            o.pickup_address?.toLowerCase().includes(q) ||
+            o.dropoff_address?.toLowerCase().includes(q)
+          );
+        })
+      : orders,
+    [orders, search]
+  );
 
   const currentSortLabel = SORT_OPTIONS.find((s) => s.key === sort)?.label ?? 'Sort';
 

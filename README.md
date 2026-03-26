@@ -83,6 +83,7 @@ Current migrations:
 - `00007` — Cash payment method on orders
 - `00008` — Fix order_status_history column name
 - `00009` — saved_addresses: is_default, latitude, longitude columns
+- `00010` — Storage bucket: `documents` (private, 10MB limit, image/PDF) + RLS policies for rider uploads and admin review
 
 ---
 

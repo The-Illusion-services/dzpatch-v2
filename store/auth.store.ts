@@ -8,6 +8,7 @@ interface AuthState {
   user: User | null;
   profile: Profile | null;
   role: UserRole | null;
+  riderId: string | null; // riders.id UUID (distinct from profile.id); only populated when role === 'rider'
   isLoading: boolean;
   isInitialized: boolean;
 
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   role: null,
+  riderId: null,
   isLoading: false,
   isInitialized: false,
 
@@ -40,7 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (session?.user) {
         await get().loadProfile(session.user.id);
       } else {
-        set({ profile: null, role: null });
+        set({ profile: null, role: null, riderId: null });
       }
     });
   },
@@ -57,12 +59,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .single();
 
     if (!error && data) {
-      set({ profile: data, role: data.role });
+      const p = data as Profile;
+      set({ profile: p, role: p.role });
+
+      // For rider accounts, fetch riders.id (different from profile.id).
+      // All delivery RPCs (update_rider_location, verify_delivery_code,
+      // complete_delivery, place_bid) expect this UUID, not the auth profile UUID.
+      if (p.role === 'rider') {
+        const { data: riderRow } = await supabase
+          .from('riders')
+          .select('id')
+          .eq('profile_id', userId)
+          .single();
+        set({ riderId: (riderRow as any)?.id ?? null });
+      } else {
+        set({ riderId: null });
+      }
     }
   },
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, profile: null, role: null });
+    set({ session: null, user: null, profile: null, role: null, riderId: null });
   },
 }));

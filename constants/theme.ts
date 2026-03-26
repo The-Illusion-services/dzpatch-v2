@@ -46,6 +46,46 @@ export const Colors = {
   tabBackground: '#FFFFFF',
 } as const;
 
+// Dark mode palette — same token names, dark-adapted values
+export const DarkColors = {
+  primary: '#3B82F6',
+  primaryDark: '#2563EB',
+  primaryLight: '#1E3A5F',
+
+  background: '#0D1117',
+  surface: '#161B22',
+  border: '#30363D',
+  borderFocus: '#3B82F6',
+
+  textPrimary: '#E6EDF3',
+  textSecondary: '#8B949E',
+  textDisabled: '#484F58',
+  textInverse: '#0D1117',
+
+  success: '#3FB950',
+  successLight: '#0D2B16',
+  warning: '#D29922',
+  warningLight: '#2D1F07',
+  error: '#F85149',
+  errorLight: '#2D1414',
+  info: '#58A6FF',
+  infoLight: '#0D2340',
+
+  statusPending: '#D29922',
+  statusMatched: '#3B82F6',
+  statusInTransit: '#A78BFA',
+  statusDelivered: '#3FB950',
+  statusCancelled: '#F85149',
+
+  overlay: 'rgba(0, 0, 0, 0.7)',
+
+  tabActive: '#3B82F6',
+  tabInactive: '#484F58',
+  tabBackground: '#161B22',
+} as const;
+
+export type ColorToken = keyof typeof Colors;
+
 export const Typography = {
   // Font sizes
   xs: 12,

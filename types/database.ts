@@ -117,7 +117,19 @@ export interface Database {
           vehicle_year?: number | null;
           vehicle_color?: string | null;
         };
-        Update: Partial<Database['public']['Tables']['riders']['Insert']>;
+        Update: {
+          vehicle_type?: VehicleType;
+          vehicle_plate?: string | null;
+          vehicle_make?: string | null;
+          vehicle_model?: string | null;
+          vehicle_year?: number | null;
+          vehicle_color?: string | null;
+          is_online?: boolean;
+          documents_verified?: boolean;
+          is_approved?: boolean;
+          is_commission_locked?: boolean;
+          unpaid_commission_count?: number;
+        };
       };
       fleets: {
         Row: {
@@ -209,7 +221,7 @@ export interface Database {
           updated_at: string;
         };
         Insert: never; // via place_bid RPC
-        Update: never;
+        Update: { status?: BidStatus };
       };
       wallets: {
         Row: {
@@ -309,7 +321,13 @@ export interface Database {
           review: string | null;
           created_at: string;
         };
-        Insert: never; // via rate_rider RPC
+        Insert: {
+          order_id: string;
+          customer_id: string;
+          rider_id: string;
+          score: number;
+          review?: string | null;
+        };
         Update: never;
       };
       saved_addresses: {
@@ -318,8 +336,12 @@ export interface Database {
           user_id: string;
           label: string;
           address: string;
+          address_line: string | null;
           location: unknown;
+          latitude: number | null;
+          longitude: number | null;
           place_id: string | null;
+          is_default: boolean;
           use_count: number;
           created_at: string;
           updated_at: string;
@@ -328,15 +350,23 @@ export interface Database {
           user_id: string;
           label: string;
           address: string;
-          location: unknown;
+          address_line?: string | null;
+          location?: unknown;
+          latitude?: number | null;
+          longitude?: number | null;
           place_id?: string | null;
+          is_default?: boolean;
         };
         Update: {
           label?: string;
           address?: string;
+          address_line?: string | null;
           location?: unknown;
+          latitude?: number | null;
+          longitude?: number | null;
           place_id?: string | null;
           use_count?: number;
+          is_default?: boolean;
         };
       };
       package_categories: {
@@ -411,8 +441,13 @@ export interface Database {
           rider_id: string;
           document_type: DocumentType;
           document_url: string;
+          status?: DocumentStatus;
         };
-        Update: never;
+        Update: {
+          document_url?: string;
+          status?: DocumentStatus;
+          rejection_reason?: string | null;
+        };
       };
       rider_bank_accounts: {
         Row: {
@@ -436,6 +471,10 @@ export interface Database {
           is_default?: boolean;
         };
         Update: {
+          bank_name?: string;
+          bank_code?: string;
+          account_number?: string;
+          account_name?: string;
           is_default?: boolean;
           paystack_recipient_code?: string | null;
         };
@@ -488,7 +527,7 @@ export interface Database {
         Returns: boolean;
       };
       complete_delivery: {
-        Args: { p_order_id: string; p_rider_id: string; p_pod_photo_url?: string };
+        Args: { p_order_id: string; p_rider_id: string; p_pod_photo_url?: string | null };
         Returns: Json;
       };
       cancel_order: {
@@ -557,6 +596,18 @@ export interface Database {
       };
       trigger_sos: {
         Args: { p_user_id: string; p_order_id?: string; p_lat?: number; p_lng?: number };
+        Returns: string;
+      };
+      credit_wallet: {
+        Args: {
+          p_wallet_id: string;
+          p_amount: number;
+          p_type: TransactionType;
+          p_reference: string;
+          p_description?: string;
+          p_order_id?: string;
+          p_metadata?: Json;
+        };
         Returns: string;
       };
     };

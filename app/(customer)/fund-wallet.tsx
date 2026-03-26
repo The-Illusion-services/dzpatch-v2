@@ -51,8 +51,9 @@ export default function FundWalletScreen() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setBalance(data.balance);
-          setWalletId(data.id);
+          const w = data as { id: string; balance: number };
+          setBalance(w.balance);
+          setWalletId(w.id);
         }
       });
   }, [profile?.id]);
@@ -256,7 +257,7 @@ export default function FundWalletScreen() {
               <Text style={[styles.methodTitle, method === 'ussd' && styles.methodTitleActive]}>
                 USSD Code
               </Text>
-              <Text style={styles.methodSub}>Pay using your bank's code</Text>
+              <Text style={styles.methodSub}>Pay using your bank&apos;s code</Text>
             </View>
             <View style={[styles.radioOuter, method === 'ussd' && styles.radioOuterActive]}>
               {method === 'ussd' && <View style={styles.radioInner} />}
