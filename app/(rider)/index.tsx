@@ -188,7 +188,13 @@ export default function RiderHomeScreen() {
     const channel = supabase
       .channel(`rider-pending-orders-${riderId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: 'status=eq.pending' },
-        () => { fetchNearbyOrders(); }
+        async () => {
+          await fetchNearbyOrders();
+          // Notify rider of new nearby order
+          Alert.alert('🛵 New Order Nearby', 'A new delivery request is available. Check the job feed below!', [
+            { text: 'View', style: 'default' },
+          ]);
+        }
       )
       .subscribe();
 

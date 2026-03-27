@@ -68,10 +68,46 @@ export default function WaitingForCustomerScreen() {
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   };
 
-  // ── Realtime bid status subscription ──────────────────────────────────────
+  // ── Realtime bid status subscription + poll fallback ─────────────────────
 
   useEffect(() => {
     if (!orderId || !riderId) return;
+
+    // Poll every 5s — realtime RLS may block bid UPDATE events
+    const poll = setInterval(async () => {
+      const { data: bids } = await supabase
+        .from('bids')
+        .select('id, status, amount')
+        .eq('order_id', orderId)
+        .eq('rider_id', riderId)
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      if (!bids || bids.length === 0) return;
+      const latest = (bids as any[])[0];
+
+      if (latest.status === 'accepted') {
+        clearInterval(poll);
+        router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
+      } else if (latest.status === 'rejected' || latest.status === 'expired') {
+        clearInterval(poll);
+        router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } });
+      } else if (latest.status === 'countered') {
+        clearInterval(poll);
+        // The counter bid is the most-recent pending bid
+        const counterBid = (bids as any[]).find((b) => b.status === 'pending') ?? bids[1];
+        router.replace({
+          pathname: '/(rider)/counter-offer' as any,
+          params: {
+            orderId,
+            originalBidId: latest.id,
+            counterBidId: counterBid?.id ?? '',
+            customerCounterAmount: String(counterBid?.amount ?? 0),
+            myOriginalAmount: String(latest.amount),
+          },
+        });
+      }
+    }, 5000);
 
     const channel = supabase
       .channel(`bid-status-${orderId}-${riderId}`)
@@ -83,20 +119,34 @@ export default function WaitingForCustomerScreen() {
           table: 'bids',
           filter: `order_id=eq.${orderId}`,
         },
-        (payload) => {
-          const bid = payload.new as { status: string; rider_id: string };
+        async (payload) => {
+          const bid = payload.new as { id: string; status: string; rider_id: string; amount: number };
           if (bid.rider_id !== riderId) return;
 
           if (bid.status === 'accepted') {
-            // Order accepted — navigate to pickup
-            router.replace({
-              pathname: '/(rider)/navigate-to-pickup' as any,
-              params: { orderId },
-            });
+            router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
           } else if (bid.status === 'rejected' || bid.status === 'expired') {
+            router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } });
+          } else if (bid.status === 'countered') {
+            // Customer sent a counter-offer — fetch the new counter bid amount
+            const { data: counterBid } = await supabase
+              .from('bids')
+              .select('id, amount')
+              .eq('order_id', orderId)
+              .eq('rider_id', riderId)
+              .eq('status', 'pending')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
             router.replace({
-              pathname: '/(rider)/bid-declined' as any,
-              params: { orderId },
+              pathname: '/(rider)/counter-offer' as any,
+              params: {
+                orderId,
+                originalBidId: bid.id,
+                counterBidId: (counterBid as any)?.id ?? '',
+                customerCounterAmount: String((counterBid as any)?.amount ?? 0),
+                myOriginalAmount: String(bid.amount),
+              },
             });
           }
         }
@@ -125,7 +175,10 @@ export default function WaitingForCustomerScreen() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
   }, [orderId, riderId]);
 
   // ── Cancel bid ─────────────────────────────────────────────────────────────
@@ -138,11 +191,28 @@ export default function WaitingForCustomerScreen() {
         style: 'destructive',
         onPress: async () => {
           setCancelling(true);
-          // Update bid status to withdrawn via DB
-          await (supabase.from('bids') as any)
-            .update({ status: 'rejected' })
+          // Fetch the rider's pending bid ID first, then withdraw via RPC
+          const { data: bidRow } = await supabase
+            .from('bids')
+            .select('id')
             .eq('order_id', orderId)
-            .eq('rider_id', riderId);
+            .eq('rider_id', riderId)
+            .in('status', ['pending', 'countered'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (bidRow) {
+            const { error } = await (supabase as any).rpc('withdraw_bid', {
+              p_bid_id: (bidRow as any).id,
+              p_rider_id: riderId,
+            });
+            if (error) {
+              setCancelling(false);
+              Alert.alert('Error', error.message);
+              return;
+            }
+          }
           router.replace({ pathname: '/(rider)/' as any });
         },
       },

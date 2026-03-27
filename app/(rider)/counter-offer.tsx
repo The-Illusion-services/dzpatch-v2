@@ -34,8 +34,15 @@ interface OrderSummary {
 
 export default function CounterOfferScreen() {
   const insets = useSafeAreaInsets();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, customerCounterAmount, myOriginalAmount } = useLocalSearchParams<{
+    orderId: string;
+    customerCounterAmount?: string;
+    myOriginalAmount?: string;
+  }>();
   const { riderId } = useAuthStore();
+  // If customer sent a counter, pre-fill at their amount and show the banner
+  const isCustomerCounter = !!customerCounterAmount && Number(customerCounterAmount) > 0;
+  const customerOffer = isCustomerCounter ? Number(customerCounterAmount) : null;
 
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [bidAmount, setBidAmount] = useState('');
@@ -57,8 +64,9 @@ export default function CounterOfferScreen() {
         if (data) {
           const o = data as { dynamic_price: number | null; suggested_price: number; [key: string]: any };
           setOrder(o as OrderSummary);
-          const listed = o.dynamic_price ?? o.suggested_price;
-          setBidAmount(String(Math.round(listed)));
+          // Pre-fill at customer's counter amount if we're responding to one, else listed price
+          const prefill = isCustomerCounter ? Number(customerCounterAmount) : (o.dynamic_price ?? o.suggested_price);
+          setBidAmount(String(Math.round(prefill)));
         }
       });
   }, [orderId]);
@@ -160,6 +168,20 @@ export default function CounterOfferScreen() {
           </View>
         </View>
 
+        {/* Customer counter-offer banner */}
+        {isCustomerCounter && (
+          <View style={styles.customerCounterBanner}>
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#0040e0" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.customerCounterLabel}>Customer Counter-Offer</Text>
+              <Text style={styles.customerCounterText}>
+                Customer offered <Text style={styles.customerCounterAmount}>₦{customerOffer!.toLocaleString()}</Text>
+                {myOriginalAmount ? ` (your bid: ₦${Number(myOriginalAmount).toLocaleString()})` : ''}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Order Summary Card */}
         {order && (
           <View style={styles.summaryCard}>
@@ -256,6 +278,16 @@ export default function CounterOfferScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 16, paddingHorizontal: Spacing[5] },
+
+  // Customer counter banner
+  customerCounterBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    backgroundColor: '#EEF2FF', borderRadius: 14,
+    padding: 14, borderWidth: 1.5, borderColor: '#0040e0',
+  },
+  customerCounterLabel: { fontSize: Typography.xs, fontWeight: '800', color: '#0040e0', textTransform: 'uppercase', letterSpacing: 1 },
+  customerCounterText: { fontSize: Typography.sm, color: '#000D22', marginTop: 2 },
+  customerCounterAmount: { fontWeight: '800', color: '#0040e0' },
 
   // Header
   header: {
