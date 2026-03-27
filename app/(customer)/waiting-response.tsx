@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
@@ -21,7 +21,6 @@ export default function WaitingResponseScreen() {
     originalBid: string;
   }>();
 
-  const [cancelling, setCancelling] = useState(false);
 
   // ── Hourglass spin ────────────────────────────────────────────────────────
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -64,40 +63,47 @@ export default function WaitingResponseScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Listen for bid response ───────────────────────────────────────────────
+  // ── Listen for bid response + poll fallback ──────────────────────────────
   useEffect(() => {
     if (!orderId) return;
+
+    const navigate = (status: string) => {
+      if (status === 'matched') {
+        router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+      } else if (status === 'cancelled') {
+        router.replace('/(customer)/' as any);
+      }
+    };
+
+    // Poll every 4s as the primary mechanism (realtime RLS may block bid events)
+    const poll = setInterval(async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', orderId)
+        .single();
+      if (data) navigate((data as any).status);
+    }, 4000);
 
     const channel = supabase
       .channel(`waiting:${orderId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
-          const updated = payload.new as any;
-          if (updated.status === 'matched') {
-            // Order matched — rider accepted the counter or original bid
-            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
-          } else if (updated.status === 'cancelled') {
-            // Order cancelled (expired or rider withdrew)
-            router.replace('/(customer)/' as any);
-          }
-        }
+        (payload) => { navigate((payload.new as any).status); }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
   }, [orderId]);
 
   // ── Cancel & search again ─────────────────────────────────────────────────
-  const handleCancelAndSearch = async () => {
-    setCancelling(true);
-    // Cancel the pending counter bid and go back to bidding pool
-    await (supabase.from('bids') as any)
-      .update({ status: 'rejected' })
-      .eq('order_id', orderId)
-      .eq('status', 'pending');
-    setCancelling(false);
+  const handleCancelAndSearch = () => {
+    // Counter bid expires on its own (5 min TTL set by send_counter_offer RPC).
+    // Just navigate back to live-bidding — no raw bid mutations (blocked by RLS).
     router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
   };
 
@@ -183,13 +189,10 @@ export default function WaitingResponseScreen() {
             Changed your mind? Cancel and search for other riders.
           </Text>
           <Pressable
-            style={[styles.cancelBtn, cancelling && { opacity: 0.6 }]}
+            style={styles.cancelBtn}
             onPress={handleCancelAndSearch}
-            disabled={cancelling}
           >
-            <Text style={styles.cancelBtnText}>
-              {cancelling ? 'Cancelling...' : 'Cancel & Search Again'}
-            </Text>
+            <Text style={styles.cancelBtnText}>Cancel & Search Again</Text>
           </Pressable>
         </View>
 

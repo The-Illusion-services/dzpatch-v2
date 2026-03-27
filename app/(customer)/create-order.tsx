@@ -90,12 +90,16 @@ export default function CreateOrderScreen() {
       setUserLocation(coords);
       pickupCoords.current = coords;
 
-      // Reverse geocode to get a readable address for the label
-      const [place] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
-      if (place) {
-        const label = [place.street, place.district ?? place.subregion, place.city]
-          .filter(Boolean).join(', ');
-        if (label) setCurrentLocationLabel(label);
+      // Reverse geocode to get a readable address — fails gracefully on emulators
+      try {
+        const [place] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
+        if (place) {
+          const label = [place.street, place.district ?? place.subregion, place.city]
+            .filter(Boolean).join(', ');
+          if (label) setCurrentLocationLabel(label);
+        }
+      } catch {
+        // Service unavailable (emulator / no network) — keep default label
       }
     })();
   }, []);
