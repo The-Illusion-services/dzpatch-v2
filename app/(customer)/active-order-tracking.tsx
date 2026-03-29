@@ -83,7 +83,7 @@ export default function ActiveOrderTrackingScreen() {
   // ── Fetch order ───────────────────────────────────────────────────────────
 
   const fetchOrder = useCallback(async (id: string) => {
-    const { data } = await supabase.from('orders').select('id, status, rider_id, final_price, dropoff_address, created_at').eq('id', id).single();
+    const { data } = await supabase.from('orders').select('id, status, rider_id, final_price, dropoff_address, created_at, delivery_code').eq('id', id).single();
     if (data) {
       const o = data as { rider_id: string | null; status: string; [key: string]: any };
       setOrder(o as unknown as Order);
@@ -338,6 +338,15 @@ export default function ActiveOrderTrackingScreen() {
         ) : (
           <View style={styles.waitingCard}>
             <Text style={styles.waitingText}>Connecting with rider...</Text>
+          </View>
+        )}
+
+        {/* Delivery code — visible once rider is in transit */}
+        {(order as any).delivery_code && ['in_transit', 'arrived_dropoff'].includes(order.status) && (
+          <View style={styles.deliveryCodeCard}>
+            <Text style={styles.deliveryCodeLabel}>DELIVERY CODE</Text>
+            <Text style={styles.deliveryCodeValue}>{(order as any).delivery_code}</Text>
+            <Text style={styles.deliveryCodeHint}>Give this code to the rider when they arrive</Text>
           </View>
         )}
 
@@ -611,4 +620,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cancelLink: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#ba1a1a' },
+
+  // Delivery code
+  deliveryCodeCard: {
+    backgroundColor: '#0A2342', borderRadius: 16,
+    padding: 16, alignItems: 'center', gap: 4,
+  },
+  deliveryCodeLabel: {
+    fontSize: 10, fontWeight: '800', color: '#b8c3ff',
+    letterSpacing: 2, textTransform: 'uppercase',
+  },
+  deliveryCodeValue: {
+    fontSize: 36, fontWeight: '900', color: '#FFFFFF',
+    letterSpacing: 8,
+  },
+  deliveryCodeHint: {
+    fontSize: Typography.xs, color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
+  },
 });

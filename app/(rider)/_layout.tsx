@@ -1,7 +1,9 @@
-import { Redirect, Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Redirect, Tabs, router, usePathname } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -25,10 +27,99 @@ function TabItem({ focused, name, focusedName }: TabIconProps) {
   );
 }
 
+// Screens where job/counter alerts are redundant (rider already in the flow)
+const ACTIVE_FLOW_SCREENS = [
+  '/(rider)/waiting-for-customer',
+  '/(rider)/counter-offer',
+  '/(rider)/navigate-to-pickup',
+  '/(rider)/confirm-arrival',
+  '/(rider)/navigate-to-dropoff',
+  '/(rider)/delivery-completion',
+  '/(rider)/trip-complete',
+];
+
+function useRiderAlerts() {
+  const { riderId } = useAuthStore();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
+  useEffect(() => {
+    if (!riderId) return;
+
+    const channel = supabase
+      .channel(`rider-alerts:${riderId}`)
+      // Watch for order status becoming 'matched' with this rider — bid was accepted
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'orders',
+        filter: `rider_id=eq.${riderId}`,
+      }, (payload) => {
+        const order = payload.new as { id: string; status: string };
+        if (order.status !== 'matched') return;
+        const inFlow = ACTIVE_FLOW_SCREENS.some((s) => pathnameRef.current.startsWith(s));
+        if (inFlow) return;
+        Alert.alert(
+          '✅ Bid Accepted!',
+          'Your bid was accepted. Head to the pickup location.',
+          [{ text: 'Go to Order', onPress: () => router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId: order.id } }) }],
+          { cancelable: false }
+        );
+      })
+      // Watch for new counter-offer bids inserted for this rider
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'bids',
+      }, async (payload) => {
+        const bid = payload.new as { id: string; order_id: string; rider_id: string; status: string; amount: number };
+        if (bid.rider_id !== riderId || bid.status !== 'pending') return;
+
+        // Only alert if there's a countered bid from this rider on the same order
+        // (meaning this insert is a customer counter, not a fresh rider bid)
+        const { data: bids } = await supabase
+          .from('bids')
+          .select('id, status, amount')
+          .eq('order_id', bid.order_id)
+          .eq('rider_id', riderId)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        const counteredBid = (bids as any[] ?? []).find((b: any) => b.status === 'countered');
+        if (!counteredBid) return; // Not a counter-offer, just a fresh bid
+
+        const inFlow = ACTIVE_FLOW_SCREENS.some((s) => pathnameRef.current.startsWith(s));
+        if (inFlow) return;
+
+        Alert.alert(
+          '💬 Customer Counter-Offer',
+          `Customer offered ₦${Number(bid.amount).toLocaleString()}. Tap to respond.`,
+          [
+            {
+              text: 'Respond',
+              onPress: () => router.replace({
+                pathname: '/(rider)/counter-offer' as any,
+                params: {
+                  orderId: bid.order_id,
+                  originalBidId: counteredBid.id,
+                  counterBidId: bid.id,
+                  customerCounterAmount: String(bid.amount),
+                  myOriginalAmount: String(counteredBid.amount),
+                },
+              }),
+            },
+            { text: 'Later', style: 'cancel' },
+          ]
+        );
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [riderId]);
+}
+
 export default function RiderLayout() {
   const insets = useSafeAreaInsets();
   const { profile } = useAuthStore();
   const { colors, isDark } = useTheme();
+  useRiderAlerts();
 
   // In dev bypass mode, skip the KYC gate — no real profile exists
   const isDevBypass = __DEV__ && process.env.EXPO_PUBLIC_DEV_ROLE === 'rider';
