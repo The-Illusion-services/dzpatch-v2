@@ -1,7 +1,10 @@
-import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Tabs, router, usePathname } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/hooks/use-theme';
 
 type TabIconProps = {
@@ -24,9 +27,104 @@ function TabItem({ focused, name, focusedName }: TabIconProps) {
   );
 }
 
+// Screens where a bid alert would be redundant (customer is already in the flow)
+const BID_FLOW_SCREENS = [
+  '/(customer)/finding-rider',
+  '/(customer)/live-bidding',
+  '/(customer)/counter-offer',
+  '/(customer)/waiting-response',
+  '/(customer)/active-order-tracking',
+];
+
+function useBidAlerts() {
+  const { profile } = useAuthStore();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    // On mount: check if there's already a pending order with bids waiting
+    const checkExisting = async () => {
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('customer_id', profile.id)
+        .eq('status', 'pending')
+        .limit(5);
+
+      if (!orders || orders.length === 0) return;
+
+      for (const order of orders) {
+        const { count } = await supabase
+          .from('bids')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', order.id)
+          .eq('status', 'pending');
+
+        if (count && count > 0) {
+          const inFlow = BID_FLOW_SCREENS.some((s) => pathnameRef.current.startsWith(s));
+          if (!inFlow) {
+            Alert.alert(
+              '🛵 Rider Offer Waiting',
+              'A rider has placed a bid on your order.',
+              [
+                { text: 'View Offers', onPress: () => router.push({ pathname: '/(customer)/live-bidding', params: { orderId: order.id } } as any) },
+                { text: 'Later', style: 'cancel' },
+              ]
+            );
+          }
+          return; // Alert once max
+        }
+      }
+    };
+    checkExisting();
+
+    // Realtime: watch for new bids on this customer's pending orders
+    const channel = supabase
+      .channel(`customer-bid-alerts:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bids' },
+        async (payload) => {
+          const bid = payload.new as { order_id: string; status: string };
+          if (bid.status !== 'pending') return;
+
+          // Verify this bid is on one of the customer's orders
+          const { data: order } = await supabase
+            .from('orders')
+            .select('id')
+            .eq('id', bid.order_id)
+            .eq('customer_id', profile.id)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+          if (!order) return;
+
+          const inFlow = BID_FLOW_SCREENS.some((s) => pathnameRef.current.startsWith(s));
+          if (inFlow) return; // Already on a bid screen — no alert needed
+
+          Alert.alert(
+            '🛵 New Rider Offer',
+            'A rider has placed a bid on your order.',
+            [
+              { text: 'View Offers', onPress: () => router.push({ pathname: '/(customer)/live-bidding', params: { orderId: order.id } } as any) },
+              { text: 'Later', style: 'cancel' },
+            ]
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id]);
+}
+
 export default function CustomerLayout() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  useBidAlerts();
 
   return (
     <Tabs
