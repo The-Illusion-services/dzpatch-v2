@@ -1,6 +1,6 @@
 import { Tabs, router, usePathname } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
@@ -121,10 +121,79 @@ function useBidAlerts() {
   }, [profile?.id]);
 }
 
+// ── Persistent negotiation banner ──────────────────────────────────────────
+
+function useNegotiationBanner() {
+  const { profile } = useAuthStore();
+  const pathname = usePathname();
+  const [activeNegotiation, setActiveNegotiation] = useState<{ orderId: string; bidCount: number } | null>(null);
+
+  const inBidFlow = BID_FLOW_SCREENS.some((s) => pathname.startsWith(s));
+
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const checkBids = async () => {
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('customer_id', profile.id)
+        .eq('status', 'pending')
+        .limit(5);
+
+      if (!orders || orders.length === 0) { setActiveNegotiation(null); return; }
+
+      for (const order of orders) {
+        const { count } = await supabase
+          .from('bids')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', order.id)
+          .eq('status', 'pending');
+
+        if (count && count > 0) {
+          setActiveNegotiation({ orderId: order.id, bidCount: count });
+          return;
+        }
+      }
+      setActiveNegotiation(null);
+    };
+
+    checkBids();
+
+    const channel = supabase
+      .channel(`negotiation-banner:${profile.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bids' }, () => checkBids())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bids' }, () => checkBids())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => checkBids())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, pathname]);
+
+  return { activeNegotiation, showBanner: !!activeNegotiation && !inBidFlow };
+}
+
+function NegotiationBanner({ orderId, bidCount }: { orderId: string; bidCount: number }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Pressable
+      style={[styles.negotiationBanner, { top: insets.top + 8 }]}
+      onPress={() => router.push({ pathname: '/(customer)/live-bidding', params: { orderId } } as any)}
+    >
+      <View style={styles.negotiationBannerDot} />
+      <Text style={styles.negotiationBannerText}>
+        {bidCount} rider offer{bidCount !== 1 ? 's' : ''} waiting — tap to view
+      </Text>
+      <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
+    </Pressable>
+  );
+}
+
 export default function CustomerLayout() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   useBidAlerts();
+  const { activeNegotiation, showBanner } = useNegotiationBanner();
 
   return (
     <Tabs
@@ -190,6 +259,14 @@ export default function CustomerLayout() {
       <Tabs.Screen name="order-details" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
+
+    {/* Persistent negotiation banner — floats above all screens when bids are waiting */}
+    {showBanner && activeNegotiation && (
+      <NegotiationBanner
+        orderId={activeNegotiation.orderId}
+        bidCount={activeNegotiation.bidCount}
+      />
+    )}
   );
 }
 
@@ -215,5 +292,38 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
+  },
+
+  // Negotiation banner
+  negotiationBanner: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0040e0',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    shadowColor: '#0040e0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  negotiationBannerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    opacity: 0.9,
+  },
+  negotiationBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

@@ -67,22 +67,41 @@ export default function WaitingResponseScreen() {
   useEffect(() => {
     if (!orderId) return;
 
-    const navigate = (status: string) => {
-      if (status === 'matched') {
-        router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
-      } else if (status === 'cancelled') {
-        router.replace('/(customer)/' as any);
-      }
-    };
+    const goActive = () =>
+      router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+    const goHome = () =>
+      router.replace('/(customer)/' as any);
+    const goBidding = () =>
+      router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
 
-    // Poll every 4s as the primary mechanism (realtime RLS may block bid events)
     const poll = setInterval(async () => {
-      const { data } = await supabase
+      // Check order status
+      const { data: orderData } = await supabase
         .from('orders')
         .select('status')
         .eq('id', orderId)
         .single();
-      if (data) navigate((data as any).status);
+
+      if (orderData) {
+        const status = (orderData as any).status;
+        if (status === 'matched') { clearInterval(poll); goActive(); return; }
+        if (status === 'cancelled') { clearInterval(poll); goHome(); return; }
+      }
+
+      // Also check bids: if rider responded with a new pending bid (re-counter),
+      // go back to live-bidding so customer can see and respond
+      const { data: bids } = await supabase
+        .from('bids')
+        .select('id, status, amount')
+        .eq('order_id', orderId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (bids && (bids as any[]).length > 0) {
+        clearInterval(poll);
+        goBidding();
+      }
     }, 4000);
 
     const channel = supabase
@@ -90,7 +109,19 @@ export default function WaitingResponseScreen() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => { navigate((payload.new as any).status); }
+        (payload) => {
+          const status = (payload.new as any).status;
+          if (status === 'matched') goActive();
+          else if (status === 'cancelled') goHome();
+        }
+      )
+      // Also catch new bid inserts in realtime (rider re-counter)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
+        (payload) => {
+          if ((payload.new as any).status === 'pending') goBidding();
+        }
       )
       .subscribe();
 
