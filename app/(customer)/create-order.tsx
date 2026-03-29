@@ -53,6 +53,7 @@ export default function CreateOrderScreen() {
   const dropoffCoords = useRef<{ lat: number; lng: number } | null>(null);
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const [currentLocationLabel, setCurrentLocationLabel] = useState('My current location');
 
   const pickupRef  = useRef<GooglePlacesAutocompleteRef>(null);
@@ -88,6 +89,7 @@ export default function CreateOrderScreen() {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       setUserLocation(coords);
+      userLocationRef.current = coords;
       pickupCoords.current = coords;
 
       // Reverse geocode to get a readable address — fails gracefully on emulators
@@ -299,17 +301,32 @@ export default function CreateOrderScreen() {
                   <GooglePlacesAutocomplete
                     ref={pickupRef}
                     placeholder="Pick-up address"
-                    onPress={(data, details) => {
-                      const desc = data.description || (data as any).vicinity || currentLocationLabel;
+                    onPress={async (data, details) => {
+                      if ((data as any).isPredefinedPlace) {
+                        // Use ref so we always have the latest coords even in stale closures
+                        let coords = userLocationRef.current;
+                        if (!coords) {
+                          // GPS not resolved yet — fetch on demand (permission already granted)
+                          try {
+                            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                            coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+                            userLocationRef.current = coords;
+                            setUserLocation(coords);
+                          } catch {
+                            return; // Can't get location — do nothing
+                          }
+                        }
+                        pickupCoords.current = coords;
+                        setPickupAddress(currentLocationLabel);
+                        return;
+                      }
+                      const desc = data.description || (data as any).vicinity || '';
                       setPickupAddress(desc);
                       if (details?.geometry?.location) {
                         pickupCoords.current = {
                           lat: details.geometry.location.lat,
                           lng: details.geometry.location.lng,
                         };
-                      } else if ((data as any).isPredefinedPlace && userLocation) {
-                        pickupCoords.current = userLocation;
-                        setPickupAddress(currentLocationLabel);
                       }
                     }}
                     query={placesQuery}
@@ -323,11 +340,11 @@ export default function CreateOrderScreen() {
                       value: pickupAddress,
                       onChangeText: setPickupAddress,
                     }}
-                    predefinedPlaces={userLocation ? [{
+                    predefinedPlaces={[{
                       description: currentLocationLabel,
-                      geometry: { location: { lat: userLocation.lat, lng: userLocation.lng } },
+                      geometry: { location: { lat: userLocation?.lat ?? 0, lng: userLocation?.lng ?? 0 } },
                       isPredefinedPlace: true,
-                    } as any] : []}
+                    } as any]}
                     renderRow={(rowData) => {
                       const isPredefined = !!(rowData as any).isPredefinedPlace;
                       return (

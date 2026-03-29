@@ -84,26 +84,37 @@ export default function WaitingForCustomerScreen() {
         .limit(2);
 
       if (!bids || bids.length === 0) return;
-      const latest = (bids as any[])[0];
+      const allBids = bids as any[];
 
-      if (latest.status === 'accepted') {
+      // Check for accepted bid (could be any bid in the list)
+      const accepted = allBids.find((b) => b.status === 'accepted');
+      if (accepted) {
         clearInterval(poll);
         router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
-      } else if (latest.status === 'rejected' || latest.status === 'expired') {
+        return;
+      }
+
+      // Check for rejected/expired — all bids for this rider are done
+      const latest = allBids[0];
+      if (latest.status === 'rejected' || latest.status === 'expired') {
         clearInterval(poll);
         router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } });
-      } else if (latest.status === 'countered') {
+        return;
+      }
+
+      // Check if customer sent a counter: original bid is 'countered', counter bid is 'pending'
+      const counteredBid = allBids.find((b) => b.status === 'countered');
+      const counterBid = allBids.find((b) => b.status === 'pending');
+      if (counteredBid && counterBid) {
         clearInterval(poll);
-        // The counter bid is the most-recent pending bid
-        const counterBid = (bids as any[]).find((b) => b.status === 'pending') ?? bids[1];
         router.replace({
           pathname: '/(rider)/counter-offer' as any,
           params: {
             orderId,
-            originalBidId: latest.id,
-            counterBidId: counterBid?.id ?? '',
-            customerCounterAmount: String(counterBid?.amount ?? 0),
-            myOriginalAmount: String(latest.amount),
+            originalBidId: counteredBid.id,
+            counterBidId: counterBid.id,
+            customerCounterAmount: String(counterBid.amount),
+            myOriginalAmount: String(counteredBid.amount),
           },
         });
       }
