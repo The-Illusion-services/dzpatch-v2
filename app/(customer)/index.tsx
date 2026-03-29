@@ -29,10 +29,10 @@ const DUMMY_RIDERS = [
   { id: 'r5', latOffset: 0.001,  lngOffset: -0.008 },
 ];
 
-// Default center — Lagos Island (fallback if no location permission)
+// Default center — Calabar (fallback if no location permission)
 const DEFAULT_REGION = {
-  latitude: 6.4551,
-  longitude: 3.3841,
+  latitude: 5.9631,
+  longitude: 8.3271,
   latitudeDelta: 0.018,
   longitudeDelta: 0.018,
 };

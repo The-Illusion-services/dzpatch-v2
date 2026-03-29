@@ -25,7 +25,7 @@ const DUMMY_RIDERS = [
   { id: 'r4', startLatOffset: -0.025, startLngOffset: -0.020 },
 ];
 
-const DEFAULT_CENTER = { latitude: 6.4551, longitude: 3.3841 };
+const DEFAULT_CENTER = { latitude: 5.9631, longitude: 8.3271 };
 
 const MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },

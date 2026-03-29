@@ -18,7 +18,7 @@ interface OrderInfo {
   customer_id: string;
 }
 
-const LAGOS = { latitude: 6.5244, longitude: 3.3792 };
+const CALABAR = { latitude: 5.9631, longitude: 8.3271 };
 const DELTA_SM = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -123,11 +123,11 @@ export default function NavigateToPickupScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        initialRegion={{ ...LAGOS, ...DELTA_SM }}
+        initialRegion={{ ...CALABAR, ...DELTA_SM }}
         showsUserLocation
         showsMyLocationButton={false}
       >
-        <Marker coordinate={LAGOS} title="Pickup Location">
+        <Marker coordinate={CALABAR} title="Pickup Location">
           <View style={styles.markerWrap}>
             <Ionicons name="location" size={32} color="#0040e0" />
           </View>

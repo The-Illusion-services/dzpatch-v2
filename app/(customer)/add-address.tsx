@@ -83,8 +83,8 @@ export default function AddAddressScreen() {
     setError('');
     setLoading(true);
 
-    const lat = selectedCoords?.lat ?? userLocation?.lat ?? 6.4551;
-    const lng = selectedCoords?.lng ?? userLocation?.lng ?? 3.3841;
+    const lat = selectedCoords?.lat ?? userLocation?.lat ?? 5.9631;
+    const lng = selectedCoords?.lng ?? userLocation?.lng ?? 8.3271;
     const wkt = `SRID=4326;POINT(${lng} ${lat})`;
 
     try {

@@ -33,7 +33,7 @@ type Bid = {
   vehicle_type: string;
 };
 
-const DEFAULT_CENTER = { latitude: 6.4551, longitude: 3.3841 };
+const DEFAULT_CENTER = { latitude: 5.9631, longitude: 8.3271 };
 
 const MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#f5f7fa' }] },

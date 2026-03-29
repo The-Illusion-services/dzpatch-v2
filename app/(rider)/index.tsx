@@ -38,16 +38,16 @@ type NearbyOrder = {
   expires_at: string | null;
 };
 
-const LAGOS_REGION: Region = {
-  latitude: 6.5244,
-  longitude: 3.3792,
+const CALABAR_REGION: Region = {
+  latitude: 5.9631,
+  longitude: 8.3271,
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,
 };
 
 // Deterministic offset from order_id characters — stable across re-renders
 function pinCoordFromId(id: string, center: { lat: number; lng: number } | null) {
-  const base = center ?? { lat: LAGOS_REGION.latitude, lng: LAGOS_REGION.longitude };
+  const base = center ?? { lat: CALABAR_REGION.latitude, lng: CALABAR_REGION.longitude };
   const seed1 = (id.charCodeAt(0) + id.charCodeAt(4) + id.charCodeAt(8)) / 765;  // 0..1
   const seed2 = (id.charCodeAt(1) + id.charCodeAt(5) + id.charCodeAt(9)) / 765;
   return {
@@ -290,7 +290,7 @@ export default function RiderHomeScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        initialRegion={LAGOS_REGION}
+        initialRegion={CALABAR_REGION}
         showsUserLocation={isOnline}
         showsMyLocationButton={false}
         customMapStyle={mapStyle}

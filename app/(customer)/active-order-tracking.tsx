@@ -51,8 +51,8 @@ interface RiderProfile {
   vehicle_plate?: string;
 }
 
-// Default Lagos coordinates (Lekki)
-const LAGOS_DEFAULT: LatLng = { latitude: 6.4281, longitude: 3.4219 };
+// Default Calabar coordinates
+const LAGOS_DEFAULT: LatLng = { latitude: 5.9631, longitude: 8.3271 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 

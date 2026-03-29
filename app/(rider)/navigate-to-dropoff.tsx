@@ -21,7 +21,7 @@ interface CustomerInfo {
   phone: string;
 }
 
-const LAGOS_DROP = { latitude: 6.601, longitude: 3.351 };
+const CALABAR_DROP = { latitude: 5.9631, longitude: 8.3271 };
 const DELTA_SM = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -127,11 +127,11 @@ export default function NavigateToDropoffScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        initialRegion={{ ...LAGOS_DROP, ...DELTA_SM }}
+        initialRegion={{ ...CALABAR_DROP, ...DELTA_SM }}
         showsUserLocation
         showsMyLocationButton={false}
       >
-        <Marker coordinate={LAGOS_DROP} title="Drop-off Location">
+        <Marker coordinate={CALABAR_DROP} title="Drop-off Location">
           <View style={styles.markerWrap}>
             <View style={styles.dropMarker}>
               <Ionicons name="location" size={28} color="#401600" />
