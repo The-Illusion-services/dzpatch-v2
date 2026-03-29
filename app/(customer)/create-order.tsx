@@ -92,16 +92,22 @@ export default function CreateOrderScreen() {
       userLocationRef.current = coords;
       pickupCoords.current = coords;
 
-      // Reverse geocode to get a readable address — fails gracefully on emulators
+      // Reverse geocode using Google Geocoding API (more reliable than Expo's on Android)
       try {
-        const [place] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
-        if (place) {
-          const label = [place.street, place.district ?? place.subregion, place.city]
-            .filter(Boolean).join(', ');
-          if (label) setCurrentLocationLabel(label);
+        const resp = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${GOOGLE_API_KEY}&result_type=street_address|route|sublocality`
+        );
+        const json = await resp.json();
+        const result = json.results?.[0];
+        if (result?.formatted_address) {
+          // Strip the country suffix (e.g. ", Nigeria") for brevity
+          const label = result.formatted_address.replace(/,\s*Nigeria$/, '').trim();
+          setCurrentLocationLabel(label);
+          // If the user already tapped "Current Location", update their pickup address too
+          setPickupAddress((prev) => (prev === 'My current location' || prev === '') ? label : prev);
         }
       } catch {
-        // Service unavailable (emulator / no network) — keep default label
+        // Network unavailable — keep default label
       }
     })();
   }, []);
