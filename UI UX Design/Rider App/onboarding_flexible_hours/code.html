@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dzpatch Rider Onboarding - Flexible Hours</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#f7fafc",
+              "secondary-fixed": "#dde1ff",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#021c3a",
+              "surface-variant": "#e0e3e5",
+              "on-surface": "#181c1e",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "primary": "#000d22",
+              "outline-variant": "#c4c6cf",
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#ffdbcb",
+              "on-tertiary-fixed": "#341100",
+              "on-secondary-fixed": "#001356",
+              "tertiary-container": "#401600",
+              "surface-bright": "#f7fafc",
+              "primary-container": "#0a2342",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-highest": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "inverse-primary": "#b2c7ef",
+              "on-surface-variant": "#44474e",
+              "surface-container-high": "#e5e9eb",
+              "primary-fixed": "#d5e3ff",
+              "tertiary": "#1d0600",
+              "surface-container": "#ebeef0",
+              "on-primary-fixed-variant": "#324768",
+              "secondary-fixed-dim": "#b8c3ff",
+              "outline": "#74777e",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "secondary-container": "#2e5bff",
+              "inverse-surface": "#2d3133",
+              "secondary": "#0040e0",
+              "on-background": "#181c1e",
+              "on-secondary-container": "#efefff",
+              "on-primary-container": "#768baf",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary-container": "#e66100",
+              "background": "#f7fafc",
+              "on-secondary-fixed-variant": "#0035be",
+              "surface-dim": "#d7dadc"
+            },
+            fontFamily: {
+              "headline": ["Manrope", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .bg-glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden">
+<!-- Top Navigation Bar (Hidden for Onboarding focus, following suppression rule) -->
+<main class="relative h-screen w-full flex flex-col items-center justify-between px-6 py-12 md:px-12">
+<!-- Header Section -->
+<header class="w-full flex justify-between items-center z-10">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+</div>
+<span class="font-headline font-extrabold text-primary tracking-tight">Dzpatch</span>
+</div>
+<button class="text-on-surface-variant font-label font-semibold text-sm hover:text-primary transition-colors">
+                Skip
+            </button>
+</header>
+<!-- Kinetic Precision Canvas -->
+<div class="flex-1 w-full max-w-4xl flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20">
+<!-- Asymmetric Momentum Illustration -->
+<div class="relative w-full max-w-sm aspect-square flex items-center justify-center">
+<!-- Ambient Backdrop Shadow -->
+<div class="absolute inset-0 bg-secondary/5 rounded-full blur-3xl"></div>
+<!-- Main Illustration: The Kinetic Clock -->
+<div class="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-[1.5px] border-outline-variant/30 flex items-center justify-center">
+<!-- Central Hub -->
+<div class="w-4 h-4 bg-primary rounded-full z-20"></div>
+<!-- Decorative Time Segments (The Pulse) -->
+<div class="absolute inset-4 rounded-full border-4 border-dashed border-secondary/20 animate-spin-slow"></div>
+<!-- Activity Blocks (Bento-style visualization of "Flexible") -->
+<div class="absolute -top-4 right-10 p-4 bg-surface-container-lowest shadow-[0_32px_64px_-12px_rgba(0,13,34,0.06)] rounded-xl flex items-center gap-3">
+<span class="material-symbols-outlined text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">coffee</span>
+<div class="flex flex-col">
+<span class="text-[10px] font-label font-bold text-on-surface-variant uppercase tracking-widest">Personal</span>
+<span class="text-xs font-semibold text-primary">Coffee Break</span>
+</div>
+</div>
+<div class="absolute bottom-12 -left-8 p-4 bg-primary text-white rounded-xl flex items-center gap-3 shadow-xl">
+<span class="material-symbols-outlined text-secondary-fixed" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<div class="flex flex-col">
+<span class="text-[10px] font-label font-bold text-primary-fixed-dim uppercase tracking-widest">Active</span>
+<span class="text-xs font-semibold">Earn Now</span>
+</div>
+</div>
+<!-- Modern Stylized Clock Hand -->
+<div class="absolute h-1/2 w-1 bg-gradient-to-t from-primary to-secondary rounded-full origin-bottom -translate-y-1/2 rotate-[140deg]"></div>
+<div class="absolute h-[35%] w-1 bg-outline-variant rounded-full origin-bottom -translate-y-1/2 rotate-[45deg]"></div>
+</div>
+<!-- Supporting Imagery (Editorial Background Element) -->
+<div class="absolute -z-10 w-full h-full opacity-10">
+<img alt="Abstract representation of time and flow" class="w-full h-full object-cover rounded-full grayscale" data-alt="abstract grayscale close up of vintage mechanical clock gears with soft lighting and shallow depth of field" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0HrSYfSe01KTaTpSZQx1T3dfQ-js9Vbx8mCfnkEQyiBBY1EeKjSqylvlmbNAxNXBhtv7BLMupV-TA5IqHmpPFhcQH0jynUhNPb359WFQNIvYZXfqX5PiXp9OPYhVnoCKwKk0w0RZET5bhTPhGB5YmZeFtSHQ2IMhMjpekHF74IsXU0azYjHidF4238__mHCXUT4wkIrKxWcdmZQWmcxBLv8blue7D9EJmKrmnOLejb_pcAcJwgdixiM2BXM0c7DJ274pZT2wj7ttE"/>
+</div>
+</div>
+<!-- Content Hierarchy -->
+<div class="flex flex-col text-center md:text-left items-center md:items-start max-w-md">
+<div class="mb-4">
+<span class="inline-flex items-center px-3 py-1 bg-secondary-fixed text-on-secondary-fixed font-label font-bold text-[10px] uppercase tracking-widest rounded-full">
+                        Step 02 / 04
+                    </span>
+</div>
+<h1 class="font-headline font-extrabold text-4xl md:text-5xl text-primary leading-tight mb-6">
+                    Your time, <br/>
+<span class="text-secondary">your rules.</span>
+</h1>
+<p class="font-body text-on-surface-variant text-lg leading-relaxed mb-8">
+                    Orchestrate your day with absolute precision. Log in when you're ready, log out when you're done. No fixed shifts, just kinetic freedom.
+                </p>
+<!-- Data Bricks -->
+<div class="grid grid-cols-2 gap-4 w-full">
+<div class="p-4 bg-surface-container-low rounded-xl flex flex-col gap-1 border-b-2 border-secondary">
+<span class="text-[10px] font-label font-bold text-on-surface-variant uppercase tracking-widest">Availability</span>
+<span class="text-sm font-semibold text-primary">24/7 Access</span>
+</div>
+<div class="p-4 bg-surface-container-low rounded-xl flex flex-col gap-1">
+<span class="text-[10px] font-label font-bold text-on-surface-variant uppercase tracking-widest">Balance</span>
+<span class="text-sm font-semibold text-primary">Rider-First Flow</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Navigation -->
+<footer class="w-full flex items-center justify-between z-10">
+<!-- Progress Indicators -->
+<div class="flex gap-2">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-8 h-2 rounded-full bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+<button class="group flex items-center gap-3 bg-secondary hover:bg-on-secondary-fixed-variant text-white px-8 py-4 rounded-full font-headline font-bold text-lg shadow-lg transition-all active:scale-95">
+                Next
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</footer>
+</main>
+<!-- Visual Texture Overlay -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay">
+<svg viewbox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<filter id="noiseFilter">
+<feturbulence basefrequency="0.65" numoctaves="3" stitchtiles="stitch" type="fractalNoise"></feturbulence>
+</filter>
+<rect filter="url(#noiseFilter)" height="100%" width="100%"></rect>
+</svg>
+</div>
+</body></html>

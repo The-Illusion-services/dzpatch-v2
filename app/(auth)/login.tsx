@@ -16,8 +16,6 @@ import { Button, Input } from '@/components/ui';
 function navigateByRole(role: string | null) {
   switch (role) {
     case 'rider':         router.replace('/(rider)' as any); break;
-    case 'fleet_manager': router.replace('/(fleet)' as any); break;
-    case 'admin':         router.replace('/(admin)' as any); break;
     default:              router.replace('/(customer)' as any); break;
   }
 }

@@ -30,7 +30,7 @@ interface BankForm {
 
 export default function BankAccountSettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
+  const { riderId } = useAuthStore();
 
   const [form, setForm] = useState<BankForm>({
     bank_name: '',
@@ -40,20 +40,22 @@ export default function BankAccountSettingsScreen() {
   });
   const [saving, setSaving] = useState(false);
   const [hasExisting, setHasExisting] = useState(false);
+  const [existingBankAccountId, setExistingBankAccountId] = useState<string | null>(null);
 
   // ── Fetch existing bank account ────────────────────────────────────────────
 
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!riderId) return;
     supabase
       .from('rider_bank_accounts')
-      .select('bank_name, account_number, account_name, bank_code')
-      .eq('rider_id', profile.id)
+      .select('id, bank_name, account_number, account_name, bank_code')
+      .eq('rider_id', riderId)
       .eq('is_default', true)
       .single()
       .then(({ data }) => {
         if (data) {
           setHasExisting(true);
+          setExistingBankAccountId((data as any).id ?? null);
           setForm({
             bank_name: (data as any).bank_name ?? '',
             account_number: (data as any).account_number ?? '',
@@ -62,7 +64,7 @@ export default function BankAccountSettingsScreen() {
           });
         }
       });
-  }, [profile?.id]);
+  }, [riderId]);
 
   const update = (field: keyof BankForm, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -70,24 +72,39 @@ export default function BankAccountSettingsScreen() {
   // ── Save ───────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
-    if (!profile?.id) return;
+    if (!riderId) return;
     if (!form.bank_name.trim() || !form.account_number.trim() || !form.account_name.trim()) {
       Alert.alert('Required Fields', 'Please fill in bank name, account number, and account holder name.');
       return;
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('rider_bank_accounts')
-        .upsert({
-          rider_id: profile.id,
-          bank_name: form.bank_name.trim(),
-          bank_code: form.bank_code.trim() || null,
-          account_number: form.account_number.trim(),
-          account_name: form.account_name.trim(),
-          is_default: true,
-        } as any, { onConflict: 'rider_id' });
-      if (error) throw error;
+      if (existingBankAccountId) {
+        const { error } = await supabase
+          .from('rider_bank_accounts')
+          .update({
+            bank_name: form.bank_name.trim(),
+            bank_code: form.bank_code.trim(),
+            account_number: form.account_number.trim(),
+            account_name: form.account_name.trim(),
+            is_default: true,
+          } as any)
+          .eq('id', existingBankAccountId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('rider_bank_accounts')
+          .insert({
+            rider_id: riderId,
+            bank_name: form.bank_name.trim(),
+            bank_code: form.bank_code.trim(),
+            account_number: form.account_number.trim(),
+            account_name: form.account_name.trim(),
+            is_default: true,
+          } as any);
+        if (error) throw error;
+      }
+
       Alert.alert('Saved', 'Bank account updated successfully.', [
         { text: 'OK', onPress: () => router.back() },
       ]);

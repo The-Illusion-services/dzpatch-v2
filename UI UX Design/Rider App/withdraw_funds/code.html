@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container": "#ebeef0",
+              "on-tertiary-container": "#e66100",
+              "on-primary-fixed": "#021c3a",
+              "outline-variant": "#c4c6cf",
+              "outline": "#74777e",
+              "surface-container-highest": "#e0e3e5",
+              "surface-variant": "#e0e3e5",
+              "error": "#ba1a1a",
+              "on-tertiary": "#ffffff",
+              "primary-container": "#0a2342",
+              "background": "#f7fafc",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-primary-fixed-variant": "#324768",
+              "on-primary-container": "#768baf",
+              "surface-container-lowest": "#ffffff",
+              "inverse-primary": "#b2c7ef",
+              "on-surface": "#181c1e",
+              "on-error-container": "#93000a",
+              "inverse-on-surface": "#eef1f3",
+              "on-error": "#ffffff",
+              "on-secondary": "#ffffff",
+              "surface-container-high": "#e5e9eb",
+              "on-secondary-container": "#efefff",
+              "surface": "#f7fafc",
+              "on-surface-variant": "#44474e",
+              "on-primary": "#ffffff",
+              "surface-tint": "#4a5f81",
+              "on-background": "#181c1e",
+              "error-container": "#ffdad6",
+              "secondary": "#0040e0",
+              "surface-dim": "#d7dadc",
+              "tertiary": "#1d0600",
+              "primary": "#000d22",
+              "secondary-fixed": "#dde1ff",
+              "tertiary-fixed-dim": "#ffb692",
+              "secondary-fixed-dim": "#b8c3ff",
+              "tertiary-fixed": "#ffdbcb",
+              "primary-fixed": "#d5e3ff",
+              "on-tertiary-fixed": "#341100",
+              "inverse-surface": "#2d3133",
+              "tertiary-container": "#401600",
+              "on-secondary-fixed": "#001356",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "surface-container-low": "#f1f4f6",
+              "surface-bright": "#f7fafc",
+              "secondary-container": "#2e5bff",
+              "on-secondary-fixed-variant": "#0035be"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body { font-family: 'Inter', sans-serif; }
+      h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- Top Navigation -->
+<header class="sticky top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface hover:bg-surface-container-low p-2 rounded-full transition-colors">arrow_back</button>
+<h1 class="font-headline font-bold text-lg tracking-tight text-primary">Financials</h1>
+</div>
+<div class="h-10 w-10 rounded-full overflow-hidden ring-2 ring-primary-fixed">
+<img alt="Rider Profile" class="h-full w-full object-cover" data-alt="Professional profile portrait of a male delivery rider with a friendly expression in clear studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQTJDrl8vrNKAJqhS7Fp9Zn-v3nG9hpCnPNdkuGqt6R7PDQT-NeryrS0gHvRD0KcwyYELbd3gmsjcl5FIbTbVpS1_UjO00BCB4QSvOHRIw240utbY5-zgV817HTHwnVT8qJ8Bf4071xm-C0IFA9zCeJpBf-gbNDtMMwnWwKRCuLHwuNdfZFWvGCJA-O6WEgoAz24h6bMYnqIPiqO9PvCB_jvl3uXw8tPb0sHqEePMP8R0nuwg7O-Iu-tTAaXY8HI5pOXxR2hGcfWob"/>
+</div>
+</header>
+<main class="max-w-xl mx-auto px-6 py-8">
+<!-- Balance Summary Card: Bento Style -->
+<section class="mb-10">
+<div class="relative overflow-hidden rounded-xl bg-primary-container p-8 text-white shadow-lg">
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-secondary/20 rounded-full blur-3xl"></div>
+<div class="relative z-10">
+<span class="font-label text-on-primary-container text-[11px] uppercase tracking-widest font-semibold">Available for Withdrawal</span>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline text-4xl font-extrabold tracking-tight">$4,280.50</span>
+<span class="text-on-primary-container text-sm font-medium">USD</span>
+</div>
+<div class="mt-6 flex gap-4">
+<div class="bg-white/10 px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label text-xs">Verified Account</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Withdrawal Form -->
+<form class="space-y-8">
+<!-- Amount Input Section -->
+<div class="space-y-3">
+<label class="font-headline font-bold text-sm tracking-tight px-1">Withdrawal Amount</label>
+<div class="relative group">
+<div class="absolute left-6 top-1/2 -translate-y-1/2 font-headline font-extrabold text-2xl text-on-surface-variant group-focus-within:text-secondary transition-colors">$</div>
+<input class="w-full bg-surface-container-highest border-none rounded-xl py-6 pl-12 pr-6 text-2xl font-headline font-extrabold focus:ring-0 peer" placeholder="0.00" step="0.01" type="number"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] h-[2px] bg-outline-variant scale-x-0 peer-focus:scale-x-100 peer-focus:bg-secondary transition-transform duration-300"></div>
+</div>
+<div class="flex justify-between px-1">
+<span class="text-on-surface-variant text-xs font-label">Min: $50.00</span>
+<button class="text-secondary text-xs font-bold hover:underline" type="button">Withdraw Maximum</button>
+</div>
+</div>
+<!-- Bank Selector -->
+<div class="space-y-3">
+<label class="font-headline font-bold text-sm tracking-tight px-1">Destination Bank</label>
+<div class="grid grid-cols-1 gap-3">
+<label class="relative flex items-center p-4 bg-surface-container-lowest rounded-xl cursor-pointer ring-1 ring-inset ring-outline-variant hover:ring-secondary/50 transition-all group">
+<input checked="" class="hidden" name="bank" type="radio"/>
+<div class="h-10 w-10 flex items-center justify-center bg-surface-container-high rounded-lg text-primary mr-4">
+<span class="material-symbols-outlined">account_balance</span>
+</div>
+<div class="flex-1">
+<div class="font-headline font-bold text-sm">Chase Business Prime</div>
+<div class="text-on-surface-variant text-xs">**** 8829 • Checking</div>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-100" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</label>
+<label class="relative flex items-center p-4 bg-surface-container-low rounded-xl cursor-pointer opacity-70 hover:opacity-100 transition-all group">
+<input class="hidden" name="bank" type="radio"/>
+<div class="h-10 w-10 flex items-center justify-center bg-surface-container-high rounded-lg text-on-surface-variant mr-4">
+<span class="material-symbols-outlined">add</span>
+</div>
+<div class="flex-1">
+<div class="font-headline font-bold text-sm text-on-surface-variant">Add new account</div>
+</div>
+</label>
+</div>
+</div>
+<!-- Calculation Summary Area -->
+<div class="bg-surface-container-low rounded-2xl p-6 space-y-4">
+<div class="flex justify-between items-center pb-2">
+<span class="text-on-surface-variant text-sm font-medium">Transaction Fee</span>
+<div class="flex items-center gap-1.5">
+<span class="text-on-surface font-headline font-bold text-sm">$2.50</span>
+<span class="material-symbols-outlined text-xs text-on-tertiary-container cursor-help" title="Standard bank processing fee">info</span>
+</div>
+</div>
+<div class="h-px bg-outline-variant/30"></div>
+<div class="flex justify-between items-center pt-2">
+<span class="text-primary font-headline font-extrabold text-base">Final Payout</span>
+<span class="text-secondary font-headline font-extrabold text-xl tracking-tight">$0.00</span>
+</div>
+</div>
+<!-- Processing Notice -->
+<div class="flex gap-4 p-4 bg-blue-50/50 rounded-xl">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">info</span>
+<p class="text-xs text-on-primary-fixed-variant leading-relaxed">
+                    Funds are typically processed within <strong class="text-primary">1-3 business days</strong>. High-value withdrawals may undergo additional security verification.
+                </p>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-secondary text-white font-headline font-extrabold py-5 rounded-full shadow-lg hover:bg-secondary/90 transition-transform active:scale-95 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-lg">lock</span>
+                Confirm Withdrawal
+            </button>
+</form>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl border-t border-slate-100">
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 transition-transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="speed">speed</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 transition-transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-700 bg-blue-50 rounded-2xl py-2 px-4 transition-transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 transition-transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

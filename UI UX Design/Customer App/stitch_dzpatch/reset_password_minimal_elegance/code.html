@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reset Password | Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-tint": "#4a5f81",
+                        "surface-dim": "#d7dadc",
+                        "on-primary-container": "#768baf",
+                        "on-primary-fixed": "#021c3a",
+                        "background": "#f7fafc",
+                        "on-tertiary-fixed": "#341100",
+                        "tertiary": "#1d0600",
+                        "surface-bright": "#f7fafc",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed": "#dde1ff",
+                        "outline": "#74777e",
+                        "secondary-fixed-dim": "#b8c3ff",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#001356",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "on-primary": "#ffffff",
+                        "secondary": "#0040e0",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-surface": "#181c1e",
+                        "surface": "#f7fafc",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "primary": "#000d22",
+                        "tertiary-container": "#401600",
+                        "on-surface-variant": "#44474e",
+                        "surface-container-low": "#f1f4f6",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "on-secondary-container": "#efefff",
+                        "inverse-primary": "#b2c7ef",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c4c6cf",
+                        "secondary-container": "#2e5bff",
+                        "on-tertiary-container": "#e66100",
+                        "inverse-surface": "#2d3133",
+                        "primary-container": "#0a2342",
+                        "on-primary-fixed-variant": "#324768",
+                        "inverse-on-surface": "#eef1f3",
+                        "primary-fixed": "#d5e3ff",
+                        "on-background": "#181c1e",
+                        "surface-container-high": "#e5e9eb",
+                        "surface-container": "#ebeef0",
+                        "on-error-container": "#93000a",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Manrope', sans-serif;
+        }
+        .otp-input:focus {
+            border-bottom: 2px solid #e66100;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar - Shared Component -->
+<header class="bg-white/70 dark:bg-slate-950/70 backdrop-blur-md fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 w-full shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-4">
+<button class="text-blue-700 dark:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tighter brand-font">Dzpatch</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Security Center</span>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-6 pt-24 pb-12">
+<div class="w-full max-w-md">
+<!-- Header Section -->
+<div class="mb-10 text-center md:text-left">
+<h1 class="text-4xl font-extrabold tracking-tight text-primary mb-3">Reset Password</h1>
+<p class="text-on-surface-variant font-medium">Enter the code sent to your email and set your new credentials.</p>
+</div>
+<!-- Content Card (Bento-style Minimalist Layout) -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_32px_0_rgba(0,13,34,0.04)] border border-outline-variant/10">
+<form class="space-y-8">
+<!-- OTP Section -->
+<div class="space-y-4">
+<label class="block font-headline text-sm font-bold text-on-primary-fixed-variant uppercase tracking-widest">Verification Code</label>
+<div class="flex justify-between gap-2">
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="w-12 h-14 text-center text-xl font-bold bg-surface-container-highest border-none rounded-xl otp-input focus:ring-0 transition-all" maxlength="1" placeholder="•" type="text"/>
+</div>
+<p class="text-[11px] font-semibold text-secondary-container tracking-wide text-right cursor-pointer hover:underline">RESEND CODE</p>
+</div>
+<!-- Input Fields -->
+<div class="space-y-6">
+<div class="group">
+<label class="block font-headline text-sm font-bold text-on-primary-fixed-variant uppercase tracking-widest mb-2">New Password</label>
+<div class="relative">
+<input class="w-full h-14 px-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all placeholder:text-outline/50" placeholder="Minimum 8 characters" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant/50 cursor-pointer" data-icon="visibility">visibility</span>
+</div>
+</div>
+<div class="group">
+<label class="block font-headline text-sm font-bold text-on-primary-fixed-variant uppercase tracking-widest mb-2">Confirm Password</label>
+<div class="relative">
+<input class="w-full h-14 px-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all placeholder:text-outline/50" placeholder="Repeat new password" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant/50 cursor-pointer" data-icon="lock">lock</span>
+</div>
+</div>
+</div>
+<!-- Password Requirements (Micro-Bento) -->
+<div class="grid grid-cols-2 gap-3 p-4 bg-surface-container-low rounded-xl">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-container" data-icon="check_circle">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">8+ Characters</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline-variant" data-icon="circle">circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">One Symbol</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline-variant" data-icon="circle">circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">One Number</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-container" data-icon="check_circle">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">Case Sensitive</span>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-16 bg-secondary text-white font-headline font-bold text-lg rounded-xl shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group" type="submit">
+<span>Update Password</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+</div>
+<!-- Visual Support Element -->
+<div class="mt-8 flex items-center justify-center gap-6 opacity-40">
+<div class="h-[1px] flex-grow bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="encrypted">encrypted</span>
+<span class="text-[10px] font-bold uppercase tracking-[0.2em]">Secure Transit Protocol</span>
+</div>
+<div class="h-[1px] flex-grow bg-outline-variant"></div>
+</div>
+</div>
+</main>
+<!-- Visual Background Element -->
+<div class="fixed top-0 right-0 w-1/3 h-full -z-10 opacity-5 pointer-events-none overflow-hidden">
+<div class="absolute -top-24 -right-24 w-96 h-96 rounded-full border-[40px] border-secondary"></div>
+<div class="absolute top-1/2 -right-48 w-[500px] h-[500px] rounded-full border-[1px] border-primary"></div>
+</div>
+<!-- No BottomNavBar rendered as per "Destination Rule" (Transactional screen suppression) -->
+</body></html>

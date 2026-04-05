@@ -93,7 +93,7 @@ export default function EditVehicleScreen() {
     try {
       const { error } = await (supabase.from('riders') as any)
         .update({
-          vehicle_type: form.vehicle_type || null,
+          vehicle_type: form.vehicle_type ? form.vehicle_type.toLowerCase() : null,
           vehicle_make: form.vehicle_make || null,
           vehicle_model: form.vehicle_model || null,
           vehicle_year: form.vehicle_year ? parseInt(form.vehicle_year, 10) : null,
@@ -105,7 +105,8 @@ export default function EditVehicleScreen() {
       Alert.alert('Saved', 'Vehicle info updated. Changes may take up to 24 hours to verify.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch {
+    } catch (err) {
+      console.error('Error saving vehicle info:', err);
       Alert.alert('Error', 'Could not save vehicle info. Please try again.');
     } finally {
       setSaving(false);

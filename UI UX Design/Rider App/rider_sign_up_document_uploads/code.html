@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Identity &amp; Verification | Dzpatch Rider</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline-variant": "#c4c6cf",
+                        "inverse-on-surface": "#eef1f3",
+                        "secondary-container": "#2e5bff",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#4a5f81",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "secondary-fixed": "#dde1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#341100",
+                        "surface-container": "#ebeef0",
+                        "on-primary-container": "#768baf",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "primary": "#000d22",
+                        "on-tertiary-container": "#e66100",
+                        "background": "#f7fafc",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#021c3a",
+                        "on-secondary-container": "#efefff",
+                        "surface-container-low": "#f1f4f6",
+                        "surface-container-high": "#e5e9eb",
+                        "surface": "#f7fafc",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "secondary": "#0040e0",
+                        "surface-dim": "#d7dadc",
+                        "on-background": "#181c1e",
+                        "surface-bright": "#f7fafc",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#401600",
+                        "on-surface": "#181c1e",
+                        "inverse-primary": "#b2c7ef",
+                        "on-secondary-fixed": "#001356",
+                        "outline": "#74777e",
+                        "on-primary-fixed-variant": "#324768",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-surface-variant": "#44474e",
+                        "tertiary": "#1d0600",
+                        "primary-container": "#0a2342",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#d5e3ff",
+                        "secondary-fixed-dim": "#b8c3ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-header {
+            background: rgba(247, 250, 252, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-background min-h-screen">
+<!-- TopAppBar Navigation suppressed as per "Destination Rule" for Transactional/Onboarding pages -->
+<!-- Instead, we use a minimal persistent header for branding & context -->
+<header class="fixed top-0 w-full z-50 glass-header px-6 md:px-12 h-20 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-extrabold tracking-tighter text-primary">Dzpatch</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container">Progress</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-headline font-bold text-lg text-primary">Step 4 <span class="text-on-primary-container/40">of 5</span></span>
+</div>
+</div>
+</header>
+<main class="pt-32 pb-24 px-6 md:px-12 max-w-4xl mx-auto">
+<!-- Progress Bar (Kinetic Tracker) -->
+<div class="w-full h-1.5 bg-surface-container rounded-full mb-12 overflow-hidden">
+<div class="h-full w-4/5 bg-gradient-to-r from-secondary to-secondary-fixed rounded-full"></div>
+</div>
+<!-- Hero Section -->
+<section class="mb-12">
+<h1 class="text-4xl md:text-5xl font-extrabold text-primary tracking-tight mb-4">Identity &amp; Verification</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed">
+                Upload clear photos of your documents to verify your account. Our automated system will scan these for immediate processing.
+            </p>
+</section>
+<!-- Document Upload Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Driver's License Card -->
+<div class="group relative bg-surface-container-lowest p-8 rounded-xl border border-transparent hover:border-secondary/20 transition-all duration-300 shadow-sm">
+<div class="flex justify-between items-start mb-6">
+<div class="p-3 bg-surface-container-low rounded-xl text-primary">
+<span class="material-symbols-outlined text-3xl">badge</span>
+</div>
+<button class="bg-surface-container-high hover:bg-secondary hover:text-white text-primary p-3 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined">upload</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-primary mb-2">Driver's License</h3>
+<p class="text-sm text-on-surface-variant mb-6">Ensure all text is legible and the photo is not blurry or obscured by glare.</p>
+<div class="w-full aspect-video bg-surface-container-low rounded-xl flex items-center justify-center overflow-hidden border-2 border-dashed border-outline-variant/30">
+<img alt="Document placeholder" class="opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-500 object-cover w-full h-full" data-alt="Close up of a generic identification card resting on a clean white desk with soft side lighting and professional atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfT4FxjlkFKbkaHWU1Lm4gaZZD4QM35DznoFf_avWbPhJ_d_sq0mNLczXjgR7xllNXx_IJl42kXF-lAXEURFfUYBgPibyuWU_fwGK4CCRUsCjfcBgS14EOAm3wT1RQP05GAaZMXvaxCtARE8YRJViI2nhzt6pRReC8MNFGKJyvzi1RxpgaObyzXPrWdMDsaX429GyuEx_6MRill5Q1HFE0cQlAFPg2d5NEB8YmMzJPE5RpSsgiYEWhePAFRXeCjsYfR4pNSJIcsTNT"/>
+</div>
+</div>
+<!-- Vehicle Insurance Card -->
+<div class="group relative bg-surface-container-lowest p-8 rounded-xl border border-transparent hover:border-secondary/20 transition-all duration-300 shadow-sm">
+<div class="flex justify-between items-start mb-6">
+<div class="p-3 bg-surface-container-low rounded-xl text-primary">
+<span class="material-symbols-outlined text-3xl">policy</span>
+</div>
+<button class="bg-surface-container-high hover:bg-secondary hover:text-white text-primary p-3 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined">upload</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-primary mb-2">Vehicle Insurance</h3>
+<p class="text-sm text-on-surface-variant mb-6">Policy must be active and clearly state the vehicle registration number and expiration date.</p>
+<div class="w-full aspect-video bg-surface-container-low rounded-xl flex items-center justify-center overflow-hidden border-2 border-dashed border-outline-variant/30">
+<img alt="Insurance placeholder" class="opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-500 object-cover w-full h-full" data-alt="A formal insurance document with blue accents on a dark surface, shallow depth of field, sharp focus on headers" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0lbTmR30PWkStK0Cvp0wCo8Ily6YB57eLNHZcmkkd1DVm_PGhbV1RXosaaduEaxGtJHEXI9exbuMneaR-sQT_jntyg6iPFgziNNyDTxugurX6cCX9XPkq5ALALBHblq3YaW-p7jgd5IMzZVKxI-JohyZ_gHVWSVeyDQs7in2Eq01TzruPbiqpIUIe1goYHVuzEi5eKgLP1WWVEVC7zGnmgI55mZ-1gYowQ1mzDrHdICqPt8cT8dOM4zzB3_M2XAigK9HI5AXNU7kY"/>
+</div>
+</div>
+<!-- Plate Number Photo -->
+<div class="md:col-span-2 group relative bg-surface-container-lowest p-8 rounded-xl border border-transparent hover:border-secondary/20 transition-all duration-300 shadow-sm flex flex-col md:flex-row gap-8 items-center">
+<div class="w-full md:w-1/3 aspect-[4/3] bg-surface-container-low rounded-xl flex items-center justify-center overflow-hidden border-2 border-dashed border-outline-variant/30">
+<img alt="License plate placeholder" class="opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-500 object-cover w-full h-full" data-alt="Modern clean car license plate clearly visible in daylight with high contrast and sharp focus" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_x_fg9kW1K4Ppk6O5MSDndtA6Iv0x1DuG4hROSrbeBFsVbpiBpO45GJwmd9pMnpJHNFvnjGQeUpDu9sEnCfBK-bqsjYTn_GM6HfqvWfWYlfh7GDpEQ0hHP9glu-a0dUuL0VNVxb8T3dP86sRKK88x766pYExyDniGdU-lzXGhmG3m9hD3BsYEBeeHhnYlXwEspRxkFSvG8xQsVICNVCfJhN0iwBx63jMhw0AncvgdzcDXl1Fyk85-m4KCGWtWQwK8fNBXeiBzfZT8"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-surface-container-low rounded-xl text-primary">
+<span class="material-symbols-outlined text-3xl">directions_car</span>
+</div>
+<button class="bg-surface-container-high hover:bg-secondary hover:text-white text-primary p-3 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined">upload</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-primary mb-2">Plate Number Photo</h3>
+<p class="text-sm text-on-surface-variant mb-6">Take a clear photo of the rear of your vehicle where the license plate is fully visible and clean.</p>
+<div class="flex items-center gap-2 px-4 py-2 bg-tertiary-fixed rounded-full w-fit">
+<span class="material-symbols-outlined text-on-tertiary-fixed-variant text-sm" style="font-variation-settings: 'FILL' 1;">info</span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant">Required for entry</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Notification / Warning Box (Editorial Accent) -->
+<div class="mt-8 p-6 bg-surface-container-low rounded-2xl flex gap-6 items-start">
+<div class="bg-secondary-container text-white p-2 rounded-lg">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-primary mb-1">Encrypted Data Storage</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Your documents are processed via a secure SSL connection and stored in encrypted vaults. Access is limited to verification officers only.</p>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="mt-16 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-surface-container-high pt-10">
+<button class="flex items-center gap-2 text-on-surface-variant font-semibold hover:text-primary transition-colors px-6 py-3">
+<span class="material-symbols-outlined">arrow_back</span>
+                Back
+            </button>
+<button class="w-full md:w-auto px-12 py-4 bg-secondary text-white font-headline font-bold text-lg rounded-xl shadow-[0_12px_24px_-8px_rgba(0,64,224,0.3)] hover:shadow-[0_16px_32px_-8px_rgba(0,64,224,0.4)] active:scale-95 transition-all duration-200">
+                Submit for Review
+            </button>
+</div>
+</main>
+<!-- BottomNavBar Suppressed for Transactional/Focused Onboarding Task -->
+</body></html>

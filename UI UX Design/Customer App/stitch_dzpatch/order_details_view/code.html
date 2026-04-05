@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#ffffff",
+              "inverse-surface": "#2d3133",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary-fixed": "#021c3a",
+              "secondary-container": "#2e5bff",
+              "primary-fixed-dim": "#b2c7ef",
+              "primary-fixed": "#d5e3ff",
+              "outline": "#74777e",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-tertiary-fixed": "#341100",
+              "primary": "#000d22",
+              "error": "#ba1a1a",
+              "background": "#f7fafc",
+              "primary-container": "#0a2342",
+              "surface": "#f7fafc",
+              "on-secondary-fixed": "#001356",
+              "tertiary-fixed": "#ffdbcb",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-secondary": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "secondary": "#0040e0",
+              "tertiary": "#1d0600",
+              "on-background": "#181c1e",
+              "error-container": "#ffdad6",
+              "surface-container-low": "#f1f4f6",
+              "surface-container-high": "#e5e9eb",
+              "on-surface": "#181c1e",
+              "surface-bright": "#f7fafc",
+              "on-error": "#ffffff",
+              "on-surface-variant": "#44474e",
+              "surface-variant": "#e0e3e5",
+              "tertiary-container": "#401600",
+              "surface-tint": "#4a5f81",
+              "surface-container": "#ebeef0",
+              "on-error-container": "#93000a",
+              "inverse-primary": "#b2c7ef",
+              "outline-variant": "#c4c6cf",
+              "on-secondary-fixed-variant": "#0035be",
+              "secondary-fixed": "#dde1ff",
+              "on-tertiary": "#ffffff",
+              "inverse-on-surface": "#eef1f3",
+              "surface-dim": "#d7dadc",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary-fixed-variant": "#324768"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body antialiased">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl flex justify-between items-center px-6 h-16 shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface active:scale-95 duration-200">arrow_back</button>
+<h1 class="font-headline font-bold tracking-tight text-slate-900 text-lg">Order Details</h1>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label text-xs font-semibold uppercase tracking-widest text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full">ID: #LP-9921</span>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-3xl mx-auto space-y-6">
+<!-- Status Banner: The Kinetic Pulse -->
+<section class="relative overflow-hidden bg-primary-container rounded-xl p-6 text-on-primary shadow-xl">
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-secondary opacity-20 blur-3xl rounded-full"></div>
+<div class="relative z-10 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-secondary p-2 rounded-full">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<h2 class="font-headline font-extrabold text-2xl tracking-tight text-white">Order Delivered</h2>
+<p class="font-label text-on-primary-container text-sm">Arrived at destination on Oct 24, 14:32</p>
+</div>
+</div>
+<!-- Kinetic Tracker Implementation -->
+<div class="mt-2 space-y-2">
+<div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full w-full bg-gradient-to-r from-secondary to-secondary-fixed shadow-[0_0_8px_rgba(0,64,224,0.5)]"></div>
+</div>
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-on-primary-container">
+<span>Dispatched</span>
+<span>In Transit</span>
+<span class="text-white">Completed</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout for Details -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Rider Details Card -->
+<section class="bg-surface-container-lowest rounded-xl p-5 border-b-0 shadow-sm">
+<h3 class="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-4">Assigned Rider</h3>
+<div class="flex items-center gap-4">
+<div class="relative">
+<img alt="Rider Portrait" class="w-16 h-16 rounded-xl object-cover" data-alt="Professional portrait of a male courier rider" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTVlvccJawuBt1djHmWKZlOt40WX_clxudpgtEAc27sZveTQ9HrNNRfovi365HkxHJPp4r8sYebZW5acMDmj3z0U0WNAX_VjPxVhdlqgzHHLX6x89qLiuc5TSlX2p0yB8tscknHYHCEdDLiIZxHNjP1SLvK2NDvkMs_fNvihRrL3kMz-bEteRPKuJIK2eldk8mVQmXQiUgA2EhBrWuIU9x2va0D6KZGvOIVLninxBkPCOAXVufS2iKnr9Xy4D4sOcQ-PCBELuowELT"/>
+<div class="absolute -bottom-1 -right-1 bg-secondary text-white text-[10px] p-1 rounded-md">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<div>
+<p class="font-headline font-bold text-on-surface">Marcus Sterling</p>
+<p class="text-sm text-on-surface-variant">Freight Liner XL • <span class="text-primary font-medium">B-992-AK</span></p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-orange-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold text-on-surface">4.9</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-6">
+<button class="flex items-center justify-center gap-2 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm">call</span>
+                        Call Rider
+                    </button>
+<button class="flex items-center justify-center gap-2 py-3 px-4 bg-surface-container-high text-on-surface rounded-xl font-bold text-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+                        Text
+                    </button>
+</div>
+</section>
+<!-- Payment Breakdown -->
+<section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
+<h3 class="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-4">Payment Summary</h3>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<span class="text-sm text-on-surface-variant">Shipping Fee</span>
+<span class="text-sm font-medium text-on-surface">$24.50</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm text-on-surface-variant">Insurance</span>
+<span class="text-sm font-medium text-on-surface">$2.00</span>
+</div>
+<div class="pt-3 border-t border-dashed border-outline-variant flex justify-between items-center">
+<span class="font-headline font-bold text-on-surface">Total Amount</span>
+<span class="font-headline font-extrabold text-xl text-primary">$26.50</span>
+</div>
+<div class="mt-4 flex items-center gap-3 bg-surface-container-low p-3 rounded-lg">
+<span class="material-symbols-outlined text-secondary">payments</span>
+<div>
+<p class="text-[10px] font-bold uppercase text-on-surface-variant leading-none mb-1">Method</p>
+<p class="text-sm font-semibold text-on-surface">Visa ending in •••• 4412</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Route Card: Asymmetric Timeline -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-sm overflow-hidden relative">
+<h3 class="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-6">Delivery Route</h3>
+<div class="relative pl-8 space-y-10">
+<!-- Vertical Line -->
+<div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-secondary to-surface-container-high"></div>
+<!-- Pickup -->
+<div class="relative">
+<div class="absolute -left-[27px] top-1 w-4 h-4 rounded-full bg-white border-4 border-secondary ring-4 ring-secondary/10"></div>
+<div>
+<p class="text-[10px] font-extrabold uppercase text-secondary tracking-widest mb-1">Pickup</p>
+<h4 class="font-headline font-bold text-on-surface">Global Logistics Hub A1</h4>
+<p class="text-sm text-on-surface-variant mt-1">Industrial Area 4, Port Road, Warehouse 12</p>
+</div>
+</div>
+<!-- Map Snapshot Injection -->
+<div class="rounded-xl overflow-hidden h-32 relative group">
+<img alt="Map Route" class="w-full h-full object-cover filter brightness-90 contrast-125" data-alt="Abstract aerial map view of city streets with a blue delivery route line" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx8nYGT10IJNEZ9WpkvOZPCXPgQ0zu-kpdCgW9QUAp5Dyn5i3u6peRXQkE3mh1YnZodI9vDCJGwORXrlaQg_6RacJIOJ7BPjIzEdOtNthftAII50IhA3An--QjT_ESfM9MHuycLZgLPZXrM0LF9FrionBT0AhtEy7VZY7mpGr9FFfcMepJAHUvS65FJWmBBfKMMXPv49Gd5Qy-ILOYTt-O8SYin7V0Ic2bd48oruPv-f5VhJVLQg2vvQlWBWzQ0SMtQaEdQRcuaApb"/>
+<div class="absolute inset-0 bg-primary/20 flex items-center justify-center">
+<div class="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg">
+<span class="text-xs font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">navigation</span> 12.4 km total distance
+                            </span>
+</div>
+</div>
+</div>
+<!-- Dropoff -->
+<div class="relative">
+<div class="absolute -left-[27px] top-1 w-4 h-4 rounded-full bg-white border-4 border-surface-container-highest"></div>
+<div>
+<p class="text-[10px] font-extrabold uppercase text-on-surface-variant tracking-widest mb-1">Dropoff</p>
+<h4 class="font-headline font-bold text-on-surface">The Penthouse Suites</h4>
+<p class="text-sm text-on-surface-variant mt-1">442 Skyline Boulevard, Unit 12B, North District</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Actions -->
+<div class="pt-4 space-y-3">
+<button class="w-full py-4 text-sm font-bold text-on-tertiary-container bg-tertiary-fixed border border-on-tertiary-container/10 rounded-xl hover:bg-tertiary-fixed-dim transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">report_problem</span>
+                Report a Dispute
+            </button>
+<p class="text-center text-xs text-on-surface-variant px-12">
+                Need help with your delivery? Visit our <a class="text-secondary font-bold hover:underline" href="#">Support Center</a> or read our shipping policies.
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Filtered: Active "History") -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white dark:bg-slate-950 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,13,34,0.06)] tonal-shift bg-slate-50 dark:bg-slate-900">
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 transition-all">
+<span class="material-symbols-outlined mb-1">local_shipping</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Fleet</span>
+</div>
+<div class="flex flex-col items-center justify-center text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-xl px-4 py-2 transition-all">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 transition-all">
+<span class="material-symbols-outlined mb-1">leaderboard</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Insights</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 transition-all">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Profile</span>
+</div>
+</nav>
+</body></html>

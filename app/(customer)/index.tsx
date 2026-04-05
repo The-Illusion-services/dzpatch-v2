@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   Animated,
   Pressable,
@@ -20,7 +21,7 @@ import { Avatar, Card, SkeletonCard, StatusBadge } from '@/components/ui';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import type { Order } from '@/types/database';
 
-// Dummy rider positions — scaled for latitudeDelta 0.018
+// Dummy rider positions — shown when no active order, scaled for latitudeDelta 0.018
 const DUMMY_RIDERS = [
   { id: 'r1', latOffset: 0.004,  lngOffset: 0.005  },
   { id: 'r2', latOffset: -0.003, lngOffset: 0.007  },
@@ -28,6 +29,8 @@ const DUMMY_RIDERS = [
   { id: 'r4', latOffset: -0.005, lngOffset: -0.006 },
   { id: 'r5', latOffset: 0.001,  lngOffset: -0.008 },
 ];
+
+const ACTIVE_ORDER_STATUSES = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
 
 // Default center — Calabar (fallback if no location permission)
 const DEFAULT_REGION = {
@@ -44,7 +47,9 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [region, setRegion] = useState(DEFAULT_REGION);
+  const [riderLocation, setRiderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const mapRef = useRef<MapView>(null);
+  const ordersChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Animate rider markers slightly
   const riderAnims = useRef(DUMMY_RIDERS.map(() => new Animated.Value(0))).current;
@@ -84,11 +89,53 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  // ── Watch rider location when there's an active order ─────────────────────
+
+  useEffect(() => {
+    // Find the first active order that has a rider assigned
+    const activeOrder = activeOrders.find(
+      (o) => ACTIVE_ORDER_STATUSES.includes(o.status) && (o as any).rider_id
+    );
+
+    if (!activeOrder || !(activeOrder as any).rider_id) {
+      setRiderLocation(null);
+      return;
+    }
+
+    const riderId = (activeOrder as any).rider_id as string;
+
+    // Fetch initial position
+    supabase
+      .from('rider_locations')
+      .select('latitude, longitude')
+      .eq('rider_id', riderId)
+      .single()
+      .then(({ data }) => {
+        if (data) setRiderLocation({ latitude: (data as any).latitude, longitude: (data as any).longitude });
+      });
+
+    // Subscribe to live updates
+    const channel = supabase
+      .channel(`rider-loc-home:${riderId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'rider_locations',
+        filter: `rider_id=eq.${riderId}`,
+      }, (payload) => {
+        const row = payload.new as { latitude: number; longitude: number };
+        if (row?.latitude && row?.longitude) {
+          setRiderLocation({ latitude: row.latitude, longitude: row.longitude });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeOrders]);
+
   const fetchActiveOrders = async (userId: string) => {
     if (!userId) return;
     const { data } = await supabase
       .from('orders')
-      .select('id, status, created_at, pickup_address, dropoff_address, final_price')
+      .select('id, status, created_at, pickup_address, dropoff_address, final_price, rider_id')
       .eq('customer_id', userId)
       .not('status', 'in', '("completed","cancelled")')
       .order('created_at', { ascending: false })
@@ -104,6 +151,21 @@ export default function HomeScreen() {
       fetchActiveOrders(profile.id).finally(() => setLoading(false));
     }, [profile?.id])
   );
+
+  // Realtime: refresh active orders whenever any of this customer's orders change status
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`customer-orders-home:${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `customer_id=eq.${profile.id}` },
+        () => { fetchActiveOrders(profile.id!); }
+      )
+      .subscribe();
+    ordersChannelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id]);
 
   const onRefresh = async () => {
     if (!profile?.id) return;
@@ -164,28 +226,42 @@ export default function HomeScreen() {
             </View>
           </Marker>
 
-          {/* Dummy rider markers */}
-          {DUMMY_RIDERS.map((r) => (
+          {/* Live rider marker when order is active, else dummy riders */}
+          {riderLocation ? (
             <Marker
-              key={r.id}
-              coordinate={{
-                latitude:  region.latitude  + r.latOffset,
-                longitude: region.longitude + r.lngOffset,
-              }}
+              coordinate={riderLocation}
               anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+              tracksViewChanges
             >
-              <View style={styles.riderPin}>
+              <View style={styles.liveRiderPin}>
                 <Text style={styles.riderPinText}>🛵</Text>
               </View>
             </Marker>
-          ))}
+          ) : (
+            DUMMY_RIDERS.map((r) => (
+              <Marker
+                key={r.id}
+                coordinate={{
+                  latitude:  region.latitude  + r.latOffset,
+                  longitude: region.longitude + r.lngOffset,
+                }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={false}
+              >
+                <View style={styles.riderPin}>
+                  <Text style={styles.riderPinText}>🛵</Text>
+                </View>
+              </Marker>
+            ))
+          )}
         </MapView>
 
-        {/* Riders nearby pill */}
+        {/* Riders nearby / live tracking pill */}
         <View style={styles.mapPill}>
-          <View style={styles.mapPillDot} />
-          <Text style={styles.mapPillText}>5 riders nearby</Text>
+          <View style={[styles.mapPillDot, riderLocation ? styles.mapPillDotLive : undefined]} />
+          <Text style={styles.mapPillText}>
+            {riderLocation ? 'Your rider is en route' : '5 riders nearby'}
+          </Text>
         </View>
       </View>
 
@@ -392,7 +468,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0040e0',
   },
 
-  // Rider marker
+  // Rider marker (dummy)
   riderPin: {
     width: 38,
     height: 38,
@@ -407,6 +483,22 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1.5,
     borderColor: 'rgba(0,64,224,0.15)',
+  },
+  // Live rider marker — more prominent
+  liveRiderPin: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0040e0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2.5,
+    borderColor: '#0040e0',
   },
   riderPinText: { fontSize: 20 },
 
@@ -433,6 +525,9 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#22c55e',
+  },
+  mapPillDotLive: {
+    backgroundColor: '#0040e0',
   },
   mapPillText: {
     fontSize: Typography.xs,

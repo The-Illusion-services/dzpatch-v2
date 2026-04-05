@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Delivery in Progress - En Route</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#0035be",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "secondary-fixed": "#dde1ff",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#b2c7ef",
+              "primary-container": "#0a2342",
+              "error": "#ba1a1a",
+              "secondary-fixed-dim": "#b8c3ff",
+              "secondary-container": "#2e5bff",
+              "on-background": "#181c1e",
+              "on-primary-container": "#768baf",
+              "background": "#f7fafc",
+              "on-primary-fixed": "#021c3a",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-surface": "#181c1e",
+              "primary-fixed": "#d5e3ff",
+              "outline-variant": "#c4c6cf",
+              "on-surface-variant": "#44474e",
+              "surface-container": "#ebeef0",
+              "primary": "#000d22",
+              "on-error": "#ffffff",
+              "on-primary": "#ffffff",
+              "outline": "#74777e",
+              "surface-container-low": "#f1f4f6",
+              "on-secondary": "#ffffff",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6",
+              "surface": "#f7fafc",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "surface-variant": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "on-secondary-fixed": "#001356",
+              "inverse-surface": "#2d3133",
+              "on-tertiary-container": "#e66100",
+              "on-tertiary-fixed": "#341100",
+              "on-primary-fixed-variant": "#324768",
+              "tertiary-fixed": "#ffdbcb",
+              "on-secondary-container": "#efefff",
+              "surface-dim": "#d7dadc",
+              "surface-bright": "#f7fafc",
+              "tertiary": "#1d0600"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift-bg {
+            background-color: #f1f4f6;
+        }
+        .no-border {
+            border: none !important;
+        }
+        .tap-highlight-none {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface overflow-hidden">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="transition-all duration-300 ease-in-out active:scale-95 text-blue-700">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline font-bold text-lg tracking-tight text-blue-900">En Route</h1>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-bold tracking-wide uppercase">
+                Step 3 of 4
+            </span>
+</div>
+</nav>
+<!-- Main Map Canvas -->
+<main class="relative h-screen w-full pt-16 pb-24">
+<!-- Map Background -->
+<div class="absolute inset-0 z-0">
+<img alt="Detailed navigation map of Chicago urban area with blue route line highlighted" class="w-full h-full object-cover" data-alt="Modern satellite map view of Chicago downtown streets with a clean blue navigation route line and soft urban colors" data-location="Chicago" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtm5VOUmBWm47_wCvitah-ygB64rbvcvCjuzUKxBnV0F6RpsQ-fAUVyoRDEEl0F1QhZBoDFLxSD7f87RLueAHGCBSacy4utJwRWPNA7xiT4MsPolUV5gC_vzwrG_YVvvYXSK5DEGWX3-39ICBiFS04h8GwOC8FjHUcFMsjPExSPW7cr8jGxjHH8uDLlI_k7l8mYg-rNgGXQM3p6B8iU7sJXncRRuCIcIS48sWfZhK0yXb4y-Bp4yILvdjA1HWdyGYRmhemYyJe0VnD"/>
+<!-- Map Overlay for Legibility -->
+<div class="absolute inset-0 bg-blue-900/5 pointer-events-none"></div>
+</div>
+<!-- Floating UI Elements -->
+<div class="relative z-10 px-6 h-full flex flex-col justify-between pointer-events-none">
+<!-- Map Pin / User Indicator (Static Visual) -->
+<div class="flex-1 flex items-center justify-center">
+<div class="relative">
+<div class="absolute -inset-4 bg-secondary/20 rounded-full blur-xl"></div>
+<div class="w-8 h-8 bg-secondary rounded-full border-4 border-white shadow-lg flex items-center justify-center pointer-events-auto">
+<span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">navigation</span>
+</div>
+</div>
+</div>
+<!-- Bottom Information Card -->
+<div class="w-full max-w-md mx-auto mb-8 pointer-events-auto">
+<div class="bg-surface-container-lowest rounded-[2rem] p-6 shadow-[0_-4px_32px_rgba(0,13,34,0.08)] flex flex-col gap-6">
+<!-- Header Status -->
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<span class="font-label text-[10px] font-extrabold uppercase tracking-[0.2em] text-on-surface-variant/70">Next Destination</span>
+<h2 class="font-headline font-bold text-2xl text-primary leading-tight">Heading to Drop-off</h2>
+</div>
+<div class="bg-secondary-fixed text-on-secondary-fixed-variant px-4 py-2 rounded-2xl flex flex-col items-center">
+<span class="font-headline font-extrabold text-xl leading-none">12</span>
+<span class="font-label text-[10px] font-bold uppercase tracking-tighter">mins</span>
+</div>
+</div>
+<!-- Recipient & Address Detail -->
+<div class="bg-surface-container-low rounded-2xl p-4 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center">
+<img alt="Sarah Williams profile portrait" class="w-full h-full object-cover" data-alt="Professional headshot of Sarah Williams with a friendly smile on a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0g7rBenIBkK3Sju4FnjyZMk5LQO3csZjmZ7Wz8tuuE-sci-GzKp617LSLlAhkYdAww2QZmW40a_CzR2Zarwt3zPguuY8xvxXVNLltGJoMVI4Z55PgKBLiiiBgUUOIEkv9xX3_ij-mT2yniyosOCmyQFzkBcU3jj5PQVYPcAMkon3FY6qGG6iHo-y1yzen9Mvz5523xm8s353v8cvgdf-u4VWJvGyt9a8OtvBi1DFRd53tNWx8EAO5zCnaUZKNj5g9OA3zYNCNV33z"/>
+</div>
+<div class="flex-1">
+<div class="font-headline font-bold text-on-surface">Sarah Williams</div>
+<div class="font-body text-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">location_on</span>
+                                123 Michigan Ave, Chicago
+                            </div>
+</div>
+<button class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-secondary active:scale-90 transition-transform">
+<span class="material-symbols-outlined">call</span>
+</button>
+</div>
+<!-- Action Buttons -->
+<div class="grid grid-cols-1 gap-3">
+<button class="w-full bg-secondary text-white font-headline font-bold py-5 rounded-2xl shadow-lg shadow-secondary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">near_me</span>
+                            OPEN NAVIGATION
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Suppressed as per "focused journey" rule but included contextually for "Route" active state) -->
+<!-- The prompt implies a focused navigation screen, but for systemic adherence: -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl z-50">
+<a class="flex flex-col items-center justify-center bg-blue-600 text-white rounded-xl py-2 px-4 shadow-lg shadow-blue-200" href="#">
+<span class="material-symbols-outlined" data-icon="directions_run" style="font-variation-settings: 'FILL' 1;">directions_run</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Route</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Package</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

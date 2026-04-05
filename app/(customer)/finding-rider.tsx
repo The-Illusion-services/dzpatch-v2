@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import type { OrderStatus } from '@/types/database';
+import { useTheme } from '@/hooks/use-theme';
 
 // Dummy riders that "converge" toward the pickup marker
 const DUMMY_RIDERS = [
@@ -42,6 +43,8 @@ const MAP_STYLE = [
 
 export default function FindingRiderScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId, pickupAddress: paramPickup, dropoffAddress: paramDropoff, finalPrice: paramFinalPrice } = useLocalSearchParams<{
     orderId: string;
     pickupAddress?: string;
@@ -166,6 +169,29 @@ export default function FindingRiderScreen() {
 
     // Poll every 5s as fallback (realtime RLS may block delivery)
     const pollInterval = setInterval(async () => {
+      // Check order status first — might already be matched
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', orderId)
+        .single();
+
+      if (orderData) {
+        const st = (orderData as any).status;
+        if (st === 'matched') {
+          clearInterval(pollInterval);
+          if (navigatingRef.current) return;
+          navigatingRef.current = true;
+          router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+          return;
+        }
+        if (st === 'cancelled') {
+          clearInterval(pollInterval);
+          router.replace('/(customer)/' as any);
+          return;
+        }
+      }
+
       const { count } = await supabase
         .from('bids')
         .select('id', { count: 'exact' })
@@ -187,6 +213,8 @@ export default function FindingRiderScreen() {
           const updated = payload.new as any;
           setOrder((prev) => prev ? { ...prev, ...updated } : updated);
           if (updated.status === 'matched') {
+            if (navigatingRef.current) return;
+            navigatingRef.current = true;
             router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           }
         }
@@ -459,7 +487,8 @@ export default function FindingRiderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
 
   // Header
@@ -553,7 +582,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: Spacing[5],
@@ -569,7 +598,7 @@ const styles = StyleSheet.create({
   // Scan bar
   scanTrack: {
     height: 3,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.border,
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 4,
@@ -592,12 +621,12 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: Typography.xl,
     fontWeight: Typography.extrabold,
-    color: '#000D22',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
   },
   sheetSub: {
     fontSize: Typography.sm,
-    color: '#74777e',
+    color: colors.textSecondary,
   },
   viewerRow: {
     flexDirection: 'row',
@@ -637,7 +666,7 @@ const styles = StyleSheet.create({
 
   // Order card
   orderCard: {
-    backgroundColor: '#F7FAFC',
+    backgroundColor: colors.background,
     borderRadius: 16,
     padding: 14,
     gap: 8,
@@ -650,7 +679,7 @@ const styles = StyleSheet.create({
   orderDotFrom: {
     width: 10, height: 10, borderRadius: 5,
     borderWidth: 2, borderColor: '#0040e0',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     flexShrink: 0,
   },
   orderDotTo: {
@@ -660,14 +689,14 @@ const styles = StyleSheet.create({
   },
   orderConnector: {
     width: 1, height: 16,
-    backgroundColor: '#C4C6CF',
+    backgroundColor: colors.border,
     marginLeft: 4.5,
   },
   orderAddr: {
     flex: 1,
     fontSize: Typography.sm,
     fontWeight: Typography.medium,
-    color: '#000D22',
+    color: colors.textPrimary,
   },
   orderMeta: {
     flexDirection: 'row',
@@ -677,13 +706,13 @@ const styles = StyleSheet.create({
   },
   orderMetaBadge: {
     paddingHorizontal: 8, paddingVertical: 3,
-    backgroundColor: '#E8EAF0',
+    backgroundColor: colors.border,
     borderRadius: 999,
   },
   orderMetaBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#44474e',
+    color: colors.textSecondary,
     textTransform: 'capitalize',
   },
   orderPrice: {
@@ -698,12 +727,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     borderRadius: 16,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.background,
   },
   cancelBtnText: {
     fontSize: Typography.sm,
     fontWeight: Typography.bold,
-    color: '#44474e',
+    color: colors.textSecondary,
   },
 
   // Timer urgent state (last 60s)
@@ -730,11 +759,11 @@ const styles = StyleSheet.create({
   expiredTitle: {
     fontSize: Typography.lg,
     fontWeight: Typography.extrabold,
-    color: '#000D22',
+    color: colors.textPrimary,
   },
   expiredSub: {
     fontSize: Typography.sm,
-    color: '#74777e',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   retryBtn: {
@@ -748,4 +777,5 @@ const styles = StyleSheet.create({
     fontWeight: Typography.bold,
     color: '#FFFFFF',
   },
-});
+  }); // end makeStyles
+}

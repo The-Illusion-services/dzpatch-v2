@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dzpatch - Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#ffffff",
+              "on-primary-fixed-variant": "#324768",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-highest": "#e0e3e5",
+              "surface": "#f7fafc",
+              "on-tertiary-container": "#e66100",
+              "on-surface-variant": "#44474e",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container": "#ebeef0",
+              "on-error": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "outline-variant": "#c4c6cf",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "inverse-on-surface": "#eef1f3",
+              "primary-fixed": "#d5e3ff",
+              "on-primary-container": "#768baf",
+              "surface-container-lowest": "#ffffff",
+              "on-background": "#181c1e",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-error-container": "#93000a",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "tertiary-fixed": "#ffdbcb",
+              "background": "#f7fafc",
+              "surface-container-high": "#e5e9eb",
+              "error": "#ba1a1a",
+              "outline": "#74777e",
+              "secondary-fixed": "#dde1ff",
+              "inverse-surface": "#2d3133",
+              "surface-bright": "#f7fafc",
+              "tertiary": "#1d0600",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary-fixed": "#021c3a",
+              "on-surface": "#181c1e",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed": "#341100",
+              "primary-container": "#0a2342",
+              "tertiary-fixed-dim": "#ffb692",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-secondary-fixed": "#001356",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "surface-variant": "#e0e3e5",
+              "surface-dim": "#d7dadc"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-secondary-fixed">
+<main class="pt-12 pb-32 px-6 max-w-2xl mx-auto space-y-8">
+<!-- Merged Header Section -->
+<section class="flex justify-between items-center">
+<div>
+<h1 class="text-2xl font-extrabold text-primary tracking-tight">Welcome back, Alex</h1>
+<div class="flex items-center gap-1 text-secondary font-semibold mt-1">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="text-sm">San Francisco, CA</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling young man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNyHWfhnLmzUwpM6CIXG0iFk4iEmXBUeHaktgKNhmze_GRbokj6LaYCbVQHx46-VCwngtG4MwHPAbTOsRwONmM45yVFAuHyHnZ866BEOfOhXS-UlvVXzTiK0HEIn11zkj2-0uvuJ7kwru8jQ7wDrINwpLEfv4zWrrilgwdt346sK5nyFCgUYWkV4vc3-jF35ipPBfE1MKBrsde2y7q--kB1Pqg5e112DIuK8sr18gFXfZIyw8GH5M99v7DA6qQZtLhc-TS0tytlTfw"/>
+</div>
+</section>
+<!-- Refined Kinetic Central Anchor -->
+<section class="relative aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-primary-container flex flex-col items-center justify-center p-8 group shadow-2xl shadow-primary-container/20">
+<!-- Background Texture -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, #ffffff 1px, transparent 0); background-size: 24px 24px;"></div>
+<div class="relative z-10 text-center flex flex-col items-center">
+<!-- 3D Refined Box Visual -->
+<div class="w-40 h-40 mb-8 relative flex items-center justify-center">
+<div class="absolute inset-0 bg-secondary rounded-[2.5rem] shadow-2xl opacity-90"></div>
+<!-- Box Icon from Image 39 -->
+<div class="relative flex items-center justify-center transform group-hover:scale-110 transition-transform duration-700 ease-out">
+<svg class="w-24 h-24 text-white" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12 2.1L3 7v10l9 4.9 9-4.9V7l-9-4.9zM12 4.15l7.15 3.9L12 11.95l-7.15-3.9L12 4.15zM4.5 8.73l6.75 3.68v7.35l-6.75-3.68V8.73zm15 0v7.35l-6.75 3.68v-7.35l6.75-3.68z"></path>
+</svg>
+</div>
+</div>
+<h2 class="text-white text-3xl font-extrabold tracking-tight mb-3">Ready to move?</h2>
+<p class="text-on-primary-container/80 max-w-[240px] text-sm font-medium leading-relaxed">Professional delivery logistics at your fingertips.</p>
+</div>
+</section>
+<!-- Main Action Card -->
+<section class="bg-surface-container-lowest p-6 rounded-3xl shadow-[0_4px_20px_0_rgba(0,13,34,0.04)] border border-white">
+<button class="w-full flex items-center justify-between group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">send</span>
+</div>
+<div class="text-left">
+<h3 class="text-lg font-bold text-primary">Send a Package</h3>
+<p class="text-sm text-on-surface-variant">Instant pick-up anywhere</p>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined">arrow_forward</span>
+</div>
+</button>
+</section>
+<!-- Active Deliveries -->
+<section class="space-y-4">
+<div class="flex justify-between items-center px-2">
+<h3 class="text-xl font-bold tracking-tight">Active Deliveries</h3>
+<span class="text-secondary text-sm font-bold">See all</span>
+</div>
+<!-- Delivery Card -->
+<div class="bg-surface-container-low rounded-3xl p-6 space-y-6">
+<!-- Status & ID -->
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Heading to You</span>
+<p class="text-xs text-on-surface-variant font-medium">Order #DZ-88120</p>
+</div>
+<div class="text-right">
+<p class="text-lg font-bold text-primary tracking-tight">12 mins</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Estimated Arrival</p>
+</div>
+</div>
+<!-- Progress Tracker -->
+<div class="relative py-4">
+<div class="h-1 w-full bg-outline-variant/30 rounded-full overflow-hidden">
+<div class="h-full w-2/3 bg-gradient-to-r from-secondary to-secondary-fixed rounded-full shadow-[0_0_8px_rgba(0,64,224,0.4)]"></div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">store</span>
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">directions_bike</span>
+</div>
+<span class="material-symbols-outlined text-outline text-sm">home</span>
+</div>
+</div>
+<!-- Addresses -->
+<div class="space-y-4">
+<div class="flex gap-4">
+<div class="flex flex-col items-center gap-1 py-1">
+<div class="w-2 h-2 rounded-full border-2 border-secondary bg-white"></div>
+<div class="flex-1 w-[1px] bg-outline-variant border-dashed border-l"></div>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Pick-up</p>
+<p class="text-sm font-semibold text-primary">72 Skyview Lane</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-center py-1">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Drop-off</p>
+<p class="text-sm font-semibold text-primary">12 Industrial Way</p>
+</div>
+</div>
+</div>
+<!-- Rider Info -->
+<div class="pt-6 border-t border-outline-variant/20 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl overflow-hidden bg-surface-container">
+<img alt="John D. Profile" class="w-full h-full object-cover" data-alt="Professional delivery driver profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcap-NFTPY4xVgTMxEGOCRdNU6i7U9lrLzvU2aQmTOEpz2HFIaoLbHn5e-sA8o128l0tnHH5l3deyTSFIsRcQyfiIuGlCJglPsOLI382Q_URohwf093J1lk9nWw9DjG52CC-WkHb3qm8uM2CzqE97UFscFlqLMrIPwi0BoH-qAnTxdm5JnHdd_oDrvurqgFHUcbBz1WI9tLWXA8s1CtcBM5CX6TVLuag7eH-Kfrg95cmyoHltHQ-Id6AlqYEikmNaPS9keV0TGtB0z"/>
+</div>
+<div>
+<p class="text-sm font-bold text-primary leading-tight">John D.</p>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface-variant">4.8</span>
+<span class="mx-1 text-outline-variant">•</span>
+<span class="text-[11px] font-bold text-on-surface-variant uppercase">Bike</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">call</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-3 pb-8 px-4 bg-white rounded-t-3xl shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] border-t border-slate-100">
+<button class="flex flex-col items-center justify-center text-blue-600 font-bold active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Deliveries</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Wallet</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">person</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

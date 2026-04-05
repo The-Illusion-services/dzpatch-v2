@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Linking,
@@ -16,6 +16,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import type { Order } from '@/types/database';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Status timeline ──────────────────────────────────────────────────────────
 
@@ -58,12 +59,17 @@ const LAGOS_DEFAULT: LatLng = { latitude: 5.9631, longitude: 8.3271 };
 
 export default function ActiveOrderTrackingScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
   const [riderLocation, setRiderLocation] = useState<LatLng>(LAGOS_DEFAULT);
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
+  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
+  const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
+  const [staleSeconds, setStaleSeconds] = useState<number>(0);
   const mapRef = useRef<MapView>(null);
   const orderChannelRef = useRef<RealtimeChannel | null>(null);
   const locationChannelRef = useRef<RealtimeChannel | null>(null);
@@ -83,12 +89,19 @@ export default function ActiveOrderTrackingScreen() {
   // ── Fetch order ───────────────────────────────────────────────────────────
 
   const fetchOrder = useCallback(async (id: string) => {
-    const { data } = await supabase.from('orders').select('id, status, rider_id, final_price, dropoff_address, created_at, delivery_code').eq('id', id).single();
+    const { data } = await supabase
+      .from('orders')
+      .select('id, status, rider_id, final_price, dropoff_address, dropoff_lat, dropoff_lng, created_at, delivery_code, distance_km')
+      .eq('id', id)
+      .single();
     if (data) {
-      const o = data as { rider_id: string | null; status: string; [key: string]: any };
+      const o = data as { rider_id: string | null; status: string; distance_km?: number; [key: string]: any };
       setOrder(o as unknown as Order);
       if (o.dropoff_lat && o.dropoff_lng) {
         setDropoffLocation({ latitude: o.dropoff_lat, longitude: o.dropoff_lng });
+      }
+      if (o.distance_km) {
+        setEtaMinutes(Math.round((o.distance_km / 20) * 60));
       }
       if (o.rider_id) {
         fetchRider(o.rider_id);
@@ -135,21 +148,27 @@ export default function ActiveOrderTrackingScreen() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
-          const updated = payload.new as Order;
-          setOrder(updated);
+        async (payload) => {
+          // Re-fetch full row — payload.new is partial and may omit unchanged columns
+          const { data: fresh } = await supabase
+            .from('orders')
+            .select('id, status, rider_id, final_price, dropoff_address, dropoff_lat, dropoff_lng, created_at, delivery_code, distance_km')
+            .eq('id', orderId)
+            .single();
+          if (!fresh) return;
+          const updated = fresh as { rider_id: string | null; status: string; [key: string]: any };
+          setOrder(updated as unknown as Order);
           if (updated.rider_id) fetchRider(updated.rider_id);
           if (updated.status === 'delivered' || updated.status === 'completed') {
-            const createdAt = (order as any)?.created_at;
-            const deliveryMins = createdAt
-              ? Math.round((Date.now() - new Date(createdAt).getTime()) / 60000)
+            const deliveryMins = updated.created_at
+              ? Math.round((Date.now() - new Date(updated.created_at).getTime()) / 60000)
               : null;
             router.replace({
               pathname: '/(customer)/delivery-success',
               params: {
                 orderId,
-                finalPrice: String((updated as any).final_price ?? 0),
-                riderId: (updated as any).rider_id ?? '',
+                finalPrice: String(updated.final_price ?? 0),
+                riderId: updated.rider_id ?? '',
                 riderName: riderProfile?.full_name ?? '',
                 deliveryTime: deliveryMins ? `${deliveryMins} min` : undefined,
               },
@@ -182,6 +201,8 @@ export default function ActiveOrderTrackingScreen() {
         (payload) => {
           const newLoc: LatLng = { latitude: (payload.new as any).latitude, longitude: (payload.new as any).longitude };
           setRiderLocation(newLoc);
+          setLastLocationUpdate(new Date());
+          setStaleSeconds(0);
           mapRef.current?.animateCamera({ center: newLoc }, { duration: 800 });
         }
       )
@@ -193,6 +214,26 @@ export default function ActiveOrderTrackingScreen() {
   }, [order?.rider_id]);
 
   useAppStateChannels([orderChannelRef.current, locationChannelRef.current]);
+
+  // ── ETA countdown — decrement 1 min every 60s while in active statuses ────
+  useEffect(() => {
+    const activeStatuses = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit'];
+    if (!order || !activeStatuses.includes(order.status)) return;
+    const interval = setInterval(() => {
+      setEtaMinutes((prev) => (prev !== null && prev > 1 ? prev - 1 : prev));
+    }, 60000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.status]);
+
+  // ── Stale location ticker — increments every second after last update ────
+  useEffect(() => {
+    if (!lastLocationUpdate) return;
+    const tick = setInterval(() => {
+      setStaleSeconds(Math.floor((Date.now() - lastLocationUpdate.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [lastLocationUpdate]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -279,6 +320,12 @@ export default function ActiveOrderTrackingScreen() {
              order.status === 'in_transit'      ? '🚀 On the way' :
              order.status === 'delivered'       ? '✅ Delivered!' : '📍 Tracking...'}
           </Text>
+          {etaMinutes !== null && etaMinutes > 0 && ['matched', 'pickup_en_route', 'in_transit'].includes(order.status) && (
+            <Text style={styles.etaMinText}>Rider arrives in ~{etaMinutes} min</Text>
+          )}
+          {staleSeconds > 15 && (
+            <Text style={styles.staleText}>📡 Last update {staleSeconds}s ago</Text>
+          )}
         </View>
       </View>
 
@@ -341,12 +388,19 @@ export default function ActiveOrderTrackingScreen() {
           </View>
         )}
 
-        {/* Delivery code — visible once rider is in transit */}
-        {(order as any).delivery_code && ['in_transit', 'arrived_dropoff'].includes(order.status) && (
-          <View style={styles.deliveryCodeCard}>
+        {/* Delivery code — visible once rider is assigned, urgent at dropoff */}
+        {(order as any).delivery_code && ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'].includes(order.status) && (
+          <View style={[
+            styles.deliveryCodeCard,
+            order.status === 'arrived_dropoff' && styles.deliveryCodeCardUrgent,
+          ]}>
             <Text style={styles.deliveryCodeLabel}>DELIVERY CODE</Text>
             <Text style={styles.deliveryCodeValue}>{(order as any).delivery_code}</Text>
-            <Text style={styles.deliveryCodeHint}>Give this code to the rider when they arrive</Text>
+            <Text style={styles.deliveryCodeHint}>
+              {order.status === 'arrived_dropoff'
+                ? '⚠️ Rider is here — share this code now'
+                : 'Share this code only when the rider is in front of you'}
+            </Text>
           </View>
         )}
 
@@ -386,17 +440,18 @@ const mapStyle = [
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7FAFC' },
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[5],
     paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(196,198,207,0.2)',
+    borderBottomColor: colors.border,
     zIndex: 10,
   },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -405,7 +460,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Typography.lg,
     fontWeight: Typography.bold,
-    color: '#000D22',
+    color: colors.textPrimary,
     letterSpacing: -0.3,
     marginLeft: 8,
   },
@@ -476,27 +531,29 @@ const styles = StyleSheet.create({
     top: 12,
     left: 12,
     right: 12,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    shadowColor: '#000D22',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
     alignItems: 'center',
   },
-  etaPillText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#000D22' },
+  etaPillText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: colors.textPrimary },
+  etaMinText: { fontSize: Typography.xs, color: colors.textSecondary, marginTop: 2 },
+  staleText: { fontSize: Typography.xs, color: '#ba1a1a', marginTop: 2 },
 
   dashboard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: Spacing[5],
     paddingTop: 16,
     gap: 14,
-    shadowColor: '#000D22',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 20,
@@ -517,7 +574,7 @@ const styles = StyleSheet.create({
     left: '50%',
     width: 72,
     height: 2,
-    backgroundColor: '#E0E3E5',
+    backgroundColor: colors.border,
     zIndex: 0,
   },
   connectorDone: { backgroundColor: '#0040e0' },
@@ -525,7 +582,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E0E3E5',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -543,20 +600,20 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontSize: 9,
     fontWeight: Typography.bold,
-    color: '#74777e',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     textAlign: 'center',
     marginTop: 6,
   },
   stepLabelActive: { color: '#0040e0' },
-  stepLabelDone: { color: '#000D22' },
+  stepLabelDone: { color: colors.textPrimary },
 
   riderCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.background,
     borderRadius: 20,
     padding: 14,
   },
@@ -579,16 +636,16 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#16A34A',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.surface,
   },
-  riderName: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#000D22' },
-  riderSub: { fontSize: Typography.xs, color: '#44474e', marginTop: 2 },
+  riderName: { fontSize: Typography.md, fontWeight: Typography.bold, color: colors.textPrimary },
+  riderSub: { fontSize: Typography.xs, color: colors.textSecondary, marginTop: 2 },
   riderActions: { flexDirection: 'row', gap: 8 },
   callBtn: {
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -603,15 +660,15 @@ const styles = StyleSheet.create({
   actionIcon: { fontSize: 20 },
 
   waitingCard: {
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.background,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  waitingText: { fontSize: Typography.sm, color: '#44474e', fontWeight: Typography.semibold },
+  waitingText: { fontSize: Typography.sm, color: colors.textSecondary, fontWeight: Typography.semibold },
 
   footerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  orderId: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: '#74777e' },
+  orderId: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: colors.textSecondary },
   finalPrice: {
     flex: 1,
     fontSize: Typography.md,
@@ -638,4 +695,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs, color: 'rgba(255,255,255,0.55)',
     textAlign: 'center',
   },
-});
+  deliveryCodeCardUrgent: {
+    backgroundColor: '#1a3a00',
+    borderWidth: 2,
+    borderColor: '#4ade80',
+  },
+  }); // end makeStyles
+}

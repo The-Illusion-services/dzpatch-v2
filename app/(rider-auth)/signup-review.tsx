@@ -66,7 +66,7 @@ export default function SignupReviewScreen() {
         .from('riders')
         .insert({
           profile_id: user.id,
-          vehicle_type: store.vehicleType,
+          vehicle_type: store.vehicleType ? store.vehicleType.toLowerCase() : null,
           vehicle_plate: store.plateNumber,
           vehicle_make: store.vehicleMake,
           vehicle_model: store.vehicleModel,

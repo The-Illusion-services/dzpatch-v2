@@ -62,9 +62,16 @@ export default function SplashScreen() {
     const timer = setTimeout(() => {
       switch (role) {
         case 'rider': router.replace('/(rider)' as any); break;
-        case 'fleet_manager': router.replace('/(fleet)' as any); break;
-        case 'admin': router.replace('/(admin)' as any); break;
-        default: router.replace('/(customer)'); break;
+        default: {
+          // Guard: if profile has no name the signup was never completed — send to onboarding
+          const { profile } = useAuthStore.getState();
+          if (!profile?.full_name) {
+            router.replace('/(auth)/onboarding');
+          } else {
+            router.replace('/(customer)');
+          }
+          break;
+        }
       }
     }, 2000);
     return () => clearTimeout(timer);
@@ -247,4 +254,5 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#768baf',
   },
+});
 });

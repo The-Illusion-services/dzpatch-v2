@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wallet - Dzpatch</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-dim": "#d7dadc",
+              "surface-variant": "#e0e3e5",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "on-secondary-fixed": "#001356",
+              "tertiary-fixed-dim": "#ffb692",
+              "secondary-fixed-dim": "#b8c3ff",
+              "primary-container": "#0a2342",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed": "#341100",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary-fixed": "#021c3a",
+              "on-surface": "#181c1e",
+              "surface-bright": "#f7fafc",
+              "tertiary": "#1d0600",
+              "inverse-surface": "#2d3133",
+              "secondary-fixed": "#dde1ff",
+              "error": "#ba1a1a",
+              "outline": "#74777e",
+              "surface-container-high": "#e5e9eb",
+              "tertiary-fixed": "#ffdbcb",
+              "background": "#f7fafc",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "surface-container-lowest": "#ffffff",
+              "on-background": "#181c1e",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-error-container": "#93000a",
+              "primary-fixed": "#d5e3ff",
+              "on-primary-container": "#768baf",
+              "inverse-on-surface": "#eef1f3",
+              "outline-variant": "#c4c6cf",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#efefff",
+              "surface-container": "#ebeef0",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-tertiary-container": "#e66100",
+              "on-surface-variant": "#44474e",
+              "surface": "#f7fafc",
+              "surface-container-highest": "#e0e3e5",
+              "inverse-primary": "#b2c7ef",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed-variant": "#324768"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm shadow-blue-900/5 flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-blue-700 active:scale-95 duration-200" data-icon="menu">menu</button>
+<h1 class="font-['Manrope'] font-black text-2xl text-slate-900">Wallet</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Professional user profile avatar headshot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1cBMKSmKVrVIWWQ8k8jnU0BT1XT_hivXKFYPcmiwhhggxAw8jIMe_-D_LpipfSV6ta7X_aSw31U6rtdriiq0RB_5u9UAnE6DT9lviuOfh3DAFbhbgnvaXrAnA_kaixTgni7SeXPTFeERNLeMJAESTnpXmmzCNazg50Xe52wQY95XEarDI5n6pZeK4nkUQhMv_fDzEkY28yrFwmtdfDEjem4hhHB4as8FtRBFl6hwfZGw3aqvxNc1JwKQC0V0JmDHjRgvGkSkwxJQW"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto">
+<!-- Prominent Current Balance Card -->
+<section class="relative overflow-hidden rounded-[2rem] bg-primary p-8 text-on-primary shadow-2xl shadow-primary/20">
+<!-- Subtle Decorative Gradient -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-secondary/20 blur-[80px] -mr-32 -mt-32"></div>
+<div class="relative z-10">
+<p class="text-on-primary-container font-medium tracking-wider text-sm mb-2 opacity-80 uppercase">Available Balance</p>
+<h2 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-8">₦142,850.00</h2>
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="flex-1 bg-secondary text-white py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-secondary-container transition-all active:scale-95 duration-200 shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                        Fund Wallet
+                    </button>
+<button class="flex-1 border border-on-primary/20 bg-white/5 backdrop-blur-sm text-white py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+                        Withdraw
+                    </button>
+</div>
+</div>
+</section>
+<!-- Filters Section -->
+<section class="mt-12">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-primary">Transactions</h3>
+<button class="material-symbols-outlined text-on-surface-variant" data-icon="tune">tune</button>
+</div>
+<div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+<button class="px-6 py-2.5 rounded-full bg-primary text-white text-sm font-semibold whitespace-nowrap">All</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container text-on-surface-variant text-sm font-semibold hover:bg-surface-container-high transition-colors whitespace-nowrap">Income</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container text-on-surface-variant text-sm font-semibold hover:bg-surface-container-high transition-colors whitespace-nowrap">Spending</button>
+<button class="px-6 py-2.5 rounded-full bg-surface-container text-on-surface-variant text-sm font-semibold hover:bg-surface-container-high transition-colors whitespace-nowrap">Pending</button>
+</div>
+</section>
+<!-- Recent Transactions List -->
+<section class="mt-8 space-y-4">
+<!-- Item 1 -->
+<div class="bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between hover:bg-surface-container transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="north_east">north_east</span>
+</div>
+<div>
+<p class="font-bold text-primary group-hover:text-secondary transition-colors">Wallet Funding</p>
+<p class="text-sm text-on-surface-variant">Oct 24, 2023 • 14:30</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-green-600 font-['Manrope'] text-lg">+₦50,000.00</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Success</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between hover:bg-surface-container transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="south_west">south_west</span>
+</div>
+<div>
+<p class="font-bold text-primary group-hover:text-secondary transition-colors">Delivery #DZ-8829</p>
+<p class="text-sm text-on-surface-variant">Oct 23, 2023 • 09:12</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-red-600 font-['Manrope'] text-lg">-₦4,200.00</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Success</p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between hover:bg-surface-container transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="south_west">south_west</span>
+</div>
+<div>
+<p class="font-bold text-primary group-hover:text-secondary transition-colors">Delivery #DZ-8750</p>
+<p class="text-sm text-on-surface-variant">Oct 22, 2023 • 18:45</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-red-600 font-['Manrope'] text-lg">-₦2,850.00</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Success</p>
+</div>
+</div>
+<!-- Item 4 (Urgent/Delayed Context) -->
+<div class="bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between hover:bg-surface-container transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="history">history</span>
+</div>
+<div>
+<p class="font-bold text-primary group-hover:text-secondary transition-colors">Withdrawal to Bank</p>
+<p class="text-sm text-on-surface-variant">Oct 21, 2023 • 11:20</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-on-surface font-['Manrope'] text-lg">-₦25,000.00</p>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-tertiary-container">Processing</p>
+</div>
+</div>
+</section>
+<!-- View All Button -->
+<button class="w-full mt-8 py-4 text-secondary font-bold hover:bg-secondary/5 rounded-xl transition-all uppercase tracking-widest text-xs">
+            View Statement History
+        </button>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl">
+<a class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-['Manrope'] font-semibold text-[11px] tracking-wide uppercase mt-1">Fleet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="package_2">package_2</span>
+<span class="font-['Manrope'] font-semibold text-[11px] tracking-wide uppercase mt-1">Shipments</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-blue-50 text-blue-700 rounded-2xl px-5 py-2 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="font-['Manrope'] font-semibold text-[11px] tracking-wide uppercase mt-1">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Manrope'] font-semibold text-[11px] tracking-wide uppercase mt-1">Profile</span>
+</a>
+</nav>
+<!-- Floating Action Button (Only on Home/Dashboard, but keeping logic consistent) -->
+<!-- Suppression rule applied: Wallet screen usually doesn't need the primary FAB unless it's the core flow -->
+</body></html>

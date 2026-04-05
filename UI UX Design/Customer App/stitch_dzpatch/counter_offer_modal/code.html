@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Counter-Offer | Delivery Bidding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#0035be",
+              "on-surface": "#181c1e",
+              "on-background": "#181c1e",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "surface-variant": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-container-high": "#e5e9eb",
+              "surface-tint": "#4a5f81",
+              "surface-container-low": "#f1f4f6",
+              "primary": "#000d22",
+              "error": "#ba1a1a",
+              "tertiary-container": "#401600",
+              "surface-dim": "#d7dadc",
+              "primary-container": "#0a2342",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#ebeef0",
+              "on-tertiary": "#ffffff",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-tertiary-fixed": "#341100",
+              "surface": "#f7fafc",
+              "on-error-container": "#93000a",
+              "inverse-on-surface": "#eef1f3",
+              "secondary-container": "#2e5bff",
+              "tertiary": "#1d0600",
+              "surface-container-highest": "#e0e3e5",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-primary": "#ffffff",
+              "on-tertiary-container": "#e66100",
+              "secondary": "#0040e0",
+              "outline-variant": "#c4c6cf",
+              "on-secondary-container": "#efefff",
+              "on-primary-fixed": "#021c3a",
+              "on-secondary-fixed": "#001356",
+              "background": "#f7fafc",
+              "on-surface-variant": "#44474e",
+              "on-primary-fixed-variant": "#324768",
+              "secondary-fixed": "#dde1ff",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d5e3ff",
+              "inverse-surface": "#2d3133",
+              "inverse-primary": "#b2c7ef",
+              "on-primary-container": "#768baf",
+              "tertiary-fixed": "#ffdbcb",
+              "outline": "#74777e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md shadow-sm shadow-[#000d22]/5">
+<div class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#0040e0] active:scale-95 transition-transform" data-icon="arrow_back">arrow_back</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-[#0040e0]">Delivery Bidding</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#0040e0] active:scale-95 transition-transform" data-icon="more_vert">more_vert</button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto min-h-screen">
+<!-- Bidding Pool Background Context -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-40 select-none pointer-events-none">
+<!-- Mock Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border-none">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="" data-alt="Rider profile placeholder avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVw_Az4W7NUqEOyF7Q_WgzvvTON-MNnh167WWEPq5BmgaidBCtrHWorsKjGLD5suQg_16piBR2Gmnz7sEbZ02MzpYbCqaVDdzGYOC9tgoys0dgauEO4Ne53n_9W-g5ywKxVN2An-eh5pVVyivDJ2U5a1rRb_AETLHNpyb3S3ugiqnp7zwpUTmOxStRQikgQZcEWkikYiPSGyybdYMYOt22HxJHNyvI2wsyn1R27isTSx0sAr761HoXg5au8KhVdF6f044txb-e3FEt"/>
+</div>
+<div>
+<div class="font-headline font-bold text-primary">Marcus J.</div>
+<div class="text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span> 4.9 (2.1k deliveries)
+                            </div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline font-extrabold text-secondary text-xl">$14.50</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-wider">Original Bid</div>
+</div>
+</div>
+</div>
+<!-- Mock Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border-none">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="" data-alt="Rider profile placeholder avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIQGh0UBtLICXOxfqgKVHSk_WeW9A04kSHuoI0Dhs_HB4I24L3_27BK9BfnyaGfWGtvPCeDy16U58I3g6LBOtqaMqhhufYpXHdXA6VwM4m0ut0YXfjDK_R5Z9LiNSQVbK2Qu7p5kwl5uetnOar3--_tQe0NOZHtIsuvNJEVyuQg5kDL20TkQOqUyACEtOy3yrvLqr-94JNfn27IjxtyEp3x4YdQA-cxA2vJ54GDXX9bwDxqjpeTMd-lwmu905484BHRZVtIaN6yoBc"/>
+</div>
+<div>
+<div class="font-headline font-bold text-primary">Sarah L.</div>
+<div class="text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span> 4.8 (850 deliveries)
+                            </div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline font-extrabold text-secondary text-xl">$16.00</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-wider">Original Bid</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Overlay for Modal -->
+<div class="fixed inset-0 z-[60] bg-primary/20 backdrop-blur-sm flex items-center justify-center p-6">
+<!-- Counter-Offer Modal -->
+<div class="bg-surface-container-lowest w-full max-w-md rounded-[2rem] shadow-[0_32px_64px_-12px_rgba(0,13,34,0.14)] overflow-hidden flex flex-col">
+<!-- Modal Header -->
+<div class="px-8 pt-10 pb-6 text-center">
+<div class="w-16 h-16 bg-secondary/5 text-secondary rounded-full flex items-center justify-center mx-auto mb-6">
+<span class="material-symbols-outlined text-3xl" data-icon="payments">payments</span>
+</div>
+<h2 class="font-headline font-extrabold text-2xl text-primary tracking-tight mb-2">Counter-Offer</h2>
+<p class="text-on-surface-variant text-sm leading-relaxed max-w-[280px] mx-auto">Suggest a new price for your delivery from <span class="font-bold text-primary">Marcus J.</span></p>
+</div>
+<!-- Modal Content -->
+<div class="px-8 pb-10 space-y-8">
+<!-- Context Comparison -->
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
+<div class="space-y-1">
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Rider Bid</span>
+<div class="font-headline font-extrabold text-primary text-lg">$14.50</div>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant/30"></div>
+<div class="space-y-1 text-right">
+<span class="text-[10px] uppercase tracking-widest text-secondary font-bold">Your Counter</span>
+<div class="font-headline font-extrabold text-secondary text-lg">Suggesting...</div>
+</div>
+</div>
+<!-- Input Field -->
+<div class="relative group">
+<label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 ml-1">New Delivery Price ($)</label>
+<div class="relative">
+<span class="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-headline font-bold text-on-surface-variant">$</span>
+<input class="w-full h-16 pl-12 pr-6 bg-surface-container-highest border-none rounded-xl text-2xl font-headline font-extrabold text-primary focus:ring-0 focus:outline-none placeholder:text-outline-variant transition-all" placeholder="12.00" step="0.50" type="number"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] h-[2px] bg-tertiary-fixed opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+</div>
+<p class="mt-3 text-[11px] text-on-surface-variant flex items-center gap-2 px-1">
+<span class="material-symbols-outlined text-sm" data-icon="info">info</span>
+                            Minimum counter-offer must be within 20% of original bid.
+                        </p>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-3">
+<button class="w-full h-14 bg-secondary text-on-secondary rounded-xl font-headline font-bold text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-secondary/20">
+                            Submit Counter-Offer
+                        </button>
+<button class="w-full h-14 bg-transparent text-on-primary-fixed-variant hover:bg-surface-container-high rounded-xl font-headline font-bold text-sm uppercase tracking-widest transition-all">
+                            Cancel
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white dark:bg-[#000d22] border-t border-[#f1f4f6] dark:border-[#0a2342] shadow-[0_-4px_20px_rgba(0,13,34,0.06)] z-50 rounded-t-[2rem]">
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] dark:text-[#4a5f81]/60 hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Deliveries</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#0040e0] dark:text-[#0040e0] font-bold active:translate-y-0.5 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="gavel" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Bids</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] dark:text-[#4a5f81]/60 hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Wallet</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] dark:text-[#4a5f81]/60 hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+</body></html>

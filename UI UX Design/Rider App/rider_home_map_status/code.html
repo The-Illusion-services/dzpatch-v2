@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-container": "#768baf",
+              "inverse-surface": "#2d3133",
+              "tertiary": "#1d0600",
+              "on-primary-fixed-variant": "#324768",
+              "on-background": "#181c1e",
+              "on-surface-variant": "#44474e",
+              "surface-variant": "#e0e3e5",
+              "inverse-primary": "#b2c7ef",
+              "tertiary-fixed-dim": "#ffb692",
+              "error-container": "#ffdad6",
+              "surface-container-lowest": "#ffffff",
+              "surface-dim": "#d7dadc",
+              "secondary-fixed": "#dde1ff",
+              "on-surface": "#181c1e",
+              "on-primary": "#ffffff",
+              "on-error-container": "#93000a",
+              "primary": "#000d22",
+              "on-secondary-container": "#efefff",
+              "secondary-fixed-dim": "#b8c3ff",
+              "primary-fixed-dim": "#b2c7ef",
+              "outline": "#74777e",
+              "outline-variant": "#c4c6cf",
+              "on-tertiary-fixed": "#341100",
+              "on-secondary-fixed": "#001356",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "surface-container": "#ebeef0",
+              "background": "#f7fafc",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "on-primary-fixed": "#021c3a",
+              "primary-container": "#0a2342",
+              "secondary-container": "#2e5bff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "tertiary-fixed": "#ffdbcb",
+              "on-tertiary-container": "#e66100",
+              "error": "#ba1a1a",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-secondary": "#ffffff",
+              "surface-tint": "#4a5f81",
+              "surface-container-highest": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "surface": "#f7fafc",
+              "primary-fixed": "#d5e3ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .map-gradient-overlay {
+            background: linear-gradient(180deg, rgba(0, 13, 34, 0.08) 0%, rgba(247, 250, 252, 0) 20%, rgba(247, 250, 252, 0) 80%, rgba(247, 250, 252, 1) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface antialiased overflow-hidden">
+<!-- Top AppBar (Shared Component Logic) -->
+<header class="bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl fixed top-0 w-full z-50 shadow-sm dark:shadow-none">
+<div class="flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="transition-all duration-300 ease-in-out active:scale-95 text-blue-700 p-2 rounded-full hover:bg-slate-100/50">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="text-xl font-extrabold tracking-tighter text-slate-900 font-headline">OmniRoute</h1>
+</div>
+<!-- Online Toggle (Prominent & Elegant) -->
+<div class="absolute left-1/2 -translate-x-1/2 flex items-center bg-surface-container-lowest border border-outline-variant/20 rounded-full px-1.5 py-1.5 shadow-sm">
+<button class="flex items-center gap-2 bg-secondary px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide transition-all active:scale-95 shadow-lg shadow-secondary/20">
+<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                    ONLINE
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-full text-on-surface-variant text-xs font-bold tracking-wide transition-all hover:text-secondary">
+                    OFFLINE
+                </button>
+</div>
+<div class="flex items-center gap-3">
+<!-- Unobtrusive Active Orders Counter -->
+<div class="hidden md:flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full mr-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="assignment">assignment</span>
+<span class="font-headline text-xs font-bold">3 ACTIVE</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm">
+<img alt="Driver Profile" data-alt="professional headshot of a delivery professional in a clean blue uniform, friendly expression, natural outdoor light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHLjJ3FtevC1hubHv2WG7Kq91GBvGJYPdyzm2uH12PMGODm9ByxFDTuwB9LcrlsZ8k5nIb_jYy3ghVIBbSkpZNqAT_mC2aorVFL4iiXfXLYnOjB-JCPtFGOfIT_2RqFk8UtrHltN1YSOVuSqsWlYKz1o2lHZwIcqXQQKPka_-K-1FAPiYUdJD0pfzazsiQPekYADLMleaDlm3B8QMSqHE4MDL75Mj2JpZZAPScMYoFTpkVWVoXx3P0y2jOOPMvBwcHtoKKtrDWno98"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area (Full Screen Map) -->
+<main class="relative w-full h-screen pt-16 pb-20 overflow-hidden">
+<!-- Interactive Map Background -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover grayscale-[0.2] contrast-[1.1]" data-alt="detailed street map layout with soft colors, blue transit lines, and clean urban topography" data-location="Chicago" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqaJZYF1hGV8LP7PlqQ57J3UOyyniyFqzFkNez-gQ55FkJfDrmkQIWnQnwbWlqmsF-rDoqqPTIb2HsUzdl60ebBKpzFlVRpa6hDMVFCO8v5seSw2U1Q5sNqgN0PJRKeTuqPJUf5LjRn0VtUAsv3FSk7OTPlLNZKsshX8MqY-RKnIIHQYyckJsahbHB-FiRnaJxbOe1-qemtx8_vy12Bvb8ash0O5a2bNggA1dXsSJkSkEoF3gxAI05u4UoD0EaNxHsWVfwpkMpH-ua"/>
+<div class="absolute inset-0 map-gradient-overlay pointer-events-none"></div>
+</div>
+<!-- Floating Job Pins & UI Overlays -->
+<div class="relative z-10 w-full h-full p-6">
+<!-- Job Pin 1 -->
+<div class="absolute top-[30%] left-[25%] group cursor-pointer">
+<div class="bg-secondary text-white p-3 rounded-2xl rounded-bl-none shadow-xl shadow-secondary/30 flex items-center gap-3 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<div class="flex flex-col leading-tight">
+<span class="text-[10px] font-bold opacity-80 uppercase tracking-widest font-label">Express</span>
+<span class="text-sm font-bold font-headline">$14.50</span>
+</div>
+</div>
+<div class="w-4 h-4 bg-secondary rounded-full border-2 border-white absolute -bottom-2 -left-2 shadow-sm"></div>
+</div>
+<!-- Job Pin 2 -->
+<div class="absolute top-[55%] left-[65%] group cursor-pointer">
+<div class="bg-primary text-white p-3 rounded-2xl rounded-bl-none shadow-xl shadow-primary/30 flex items-center gap-3 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+<div class="flex flex-col leading-tight">
+<span class="text-[10px] font-bold opacity-80 uppercase tracking-widest font-label">Grocery</span>
+<span class="text-sm font-bold font-headline">$22.00</span>
+</div>
+</div>
+<div class="w-4 h-4 bg-primary rounded-full border-2 border-white absolute -bottom-2 -left-2 shadow-sm"></div>
+</div>
+<!-- Active Order Status Card (Task-Focused Overlay) -->
+<div class="absolute bottom-10 left-6 right-6 md:left-auto md:right-10 md:w-96">
+<div class="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-6 shadow-2xl border border-white/50">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" data-icon="route">route</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest font-label">Current Task</p>
+<h3 class="text-lg font-bold font-headline text-primary">Heading to Pickup</h3>
+</div>
+</div>
+<div class="bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">
+                            8 mins
+                        </div>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-4">
+<div class="flex flex-col items-center gap-1 py-1">
+<div class="w-2.5 h-2.5 rounded-full bg-secondary"></div>
+<div class="w-0.5 h-8 bg-surface-container-highest"></div>
+<div class="w-2.5 h-2.5 rounded-full border-2 border-outline"></div>
+</div>
+<div class="flex-1 space-y-4">
+<div>
+<p class="text-xs text-on-surface-variant font-medium">Pickup point</p>
+<p class="text-sm font-bold text-on-surface">Whole Foods Market, 1550 N Kingsbury St</p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant font-medium">Delivery destination</p>
+<p class="text-sm font-bold text-on-surface">433 W Van Buren St, Unit 402</p>
+</div>
+</div>
+</div>
+<button class="w-full bg-secondary text-white font-bold py-4 rounded-2xl shadow-lg shadow-secondary/20 transition-all active:scale-[0.98] hover:bg-secondary/90 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="navigation">navigation</span>
+                            OPEN NAVIGATION
+                        </button>
+</div>
+</div>
+</div>
+<!-- Map Controls Overlay -->
+<div class="absolute top-4 right-6 flex flex-col gap-3">
+<button class="w-12 h-12 bg-white rounded-2xl shadow-lg flex items-center justify-center text-primary active:scale-90 transition-all">
+<span class="material-symbols-outlined" data-icon="my_location" style="font-variation-settings: 'FILL' 1;">my_location</span>
+</button>
+<button class="w-12 h-12 bg-white rounded-2xl shadow-lg flex items-center justify-center text-primary active:scale-90 transition-all">
+<span class="material-symbols-outlined" data-icon="layers">layers</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component Logic) -->
+<nav class="bg-white dark:bg-slate-950 fixed bottom-0 w-full rounded-t-3xl z-50 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,13,34,0.06)]">
+<div class="flex justify-around items-center h-20 px-4 pb-safe w-full">
+<!-- Explorer (Active for Home Map) -->
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl px-4 py-1.5 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="explore" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Explorer</span>
+</a>
+<!-- Earnings -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500 dark:hover:text-blue-300" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Earnings</span>
+</a>
+<!-- Schedule -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500 dark:hover:text-blue-300" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Schedule</span>
+</a>
+<!-- Account -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500 dark:hover:text-blue-300" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Account</span>
+</a>
+</div>
+</nav>
+<!-- Floating Action Button Logic - Suppressed per focus journey rules unless specifically for "New Job" -->
+<!-- Since map pins handle job discovery, FAB is omitted for clarity as per "Contextual FAB Suppression" -->
+</body></html>

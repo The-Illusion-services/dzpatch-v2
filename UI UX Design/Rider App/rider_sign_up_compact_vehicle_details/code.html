@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vehicle Specifications | Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline-variant": "#c4c6cf",
+              "inverse-on-surface": "#eef1f3",
+              "secondary-container": "#2e5bff",
+              "error-container": "#ffdad6",
+              "surface-tint": "#4a5f81",
+              "tertiary-fixed": "#ffdbcb",
+              "on-secondary-fixed-variant": "#0035be",
+              "secondary-fixed": "#dde1ff",
+              "on-tertiary": "#ffffff",
+              "on-tertiary-fixed": "#341100",
+              "surface-container": "#ebeef0",
+              "on-primary-container": "#768baf",
+              "on-primary": "#ffffff",
+              "primary-fixed-dim": "#b2c7ef",
+              "primary": "#000d22",
+              "on-tertiary-container": "#e66100",
+              "background": "#f7fafc",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-variant": "#e0e3e5",
+              "surface-container-lowest": "#ffffff",
+              "on-primary-fixed": "#021c3a",
+              "on-secondary-container": "#efefff",
+              "surface-container-low": "#f1f4f6",
+              "surface-container-high": "#e5e9eb",
+              "surface": "#f7fafc",
+              "on-secondary": "#ffffff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "secondary": "#0040e0",
+              "surface-dim": "#d7dadc",
+              "on-background": "#181c1e",
+              "surface-bright": "#f7fafc",
+              "on-error": "#ffffff",
+              "tertiary-container": "#401600",
+              "on-surface": "#181c1e",
+              "inverse-primary": "#b2c7ef",
+              "on-secondary-fixed": "#001356",
+              "outline": "#74777e",
+              "on-primary-fixed-variant": "#324768",
+              "surface-container-highest": "#e0e3e5",
+              "on-surface-variant": "#44474e",
+              "tertiary": "#1d0600",
+              "primary-container": "#0a2342",
+              "inverse-surface": "#2d3133",
+              "primary-fixed": "#d5e3ff",
+              "secondary-fixed-dim": "#b8c3ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<header class="fixed top-0 w-full z-50 bg-slate-50/70 backdrop-blur-xl flex items-center justify-between px-6 h-14">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-200/50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary text-xl">arrow_back</span>
+</button>
+<span class="text-lg font-extrabold tracking-tighter text-[#000d22] font-headline">Dzpatch</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline">Step 2 of 5</span>
+<div class="w-16 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="w-2/5 h-full bg-secondary rounded-full"></div>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-8 px-5 max-w-lg mx-auto">
+<!-- Content Header -->
+<section class="mb-8">
+<h1 class="font-headline font-extrabold text-3xl leading-tight tracking-tight text-primary mb-2">
+            Vehicle Specifications
+        </h1>
+<p class="text-on-surface-variant text-base leading-relaxed max-w-xs">
+            Tell us about the vehicle you'll be using for deliveries.
+        </p>
+</section>
+<!-- Form Section -->
+<div class="space-y-6">
+<!-- Compact Vehicle Type Selection -->
+<div class="grid grid-cols-3 gap-3">
+<label class="relative group cursor-pointer">
+<input checked="" class="peer sr-only" name="vehicle_type" type="radio"/>
+<div class="py-3 px-2 bg-surface-container-low rounded-lg border-2 border-transparent peer-checked:border-secondary peer-checked:bg-white transition-all flex flex-col items-center gap-1.5">
+<span class="material-symbols-outlined text-xl text-on-primary-container">motorcycle</span>
+<span class="font-headline font-bold text-[10px] uppercase tracking-wider">Motorcycle</span>
+</div>
+</label>
+<label class="relative group cursor-pointer">
+<input class="peer sr-only" name="vehicle_type" type="radio"/>
+<div class="py-3 px-2 bg-surface-container-low rounded-lg border-2 border-transparent peer-checked:border-secondary peer-checked:bg-white transition-all flex flex-col items-center gap-1.5">
+<span class="material-symbols-outlined text-xl text-on-primary-container">directions_car</span>
+<span class="font-headline font-bold text-[10px] uppercase tracking-wider">Car</span>
+</div>
+</label>
+<label class="relative group cursor-pointer">
+<input class="peer sr-only" name="vehicle_type" type="radio"/>
+<div class="py-3 px-2 bg-surface-container-low rounded-lg border-2 border-transparent peer-checked:border-secondary peer-checked:bg-white transition-all flex flex-col items-center gap-1.5">
+<span class="material-symbols-outlined text-xl text-on-primary-container">pedal_bike</span>
+<span class="font-headline font-bold text-[10px] uppercase tracking-wider">Bicycle</span>
+</div>
+</label>
+</div>
+<!-- Detail Grid -->
+<div class="bg-surface-container-low rounded-xl p-6 space-y-5">
+<div class="grid grid-cols-2 gap-4">
+<!-- Make -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline px-1">Make</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-3 text-sm text-on-surface placeholder:text-outline focus:ring-0 peer transition-all" placeholder="e.g. Honda" type="text"/>
+<div class="absolute bottom-0 left-0 w-0 h-0.5 bg-tertiary-fixed peer-focus:w-full transition-all duration-300"></div>
+</div>
+</div>
+<!-- Model -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline px-1">Model</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-3 text-sm text-on-surface placeholder:text-outline focus:ring-0 peer transition-all" placeholder="e.g. CBR 250R" type="text"/>
+<div class="absolute bottom-0 left-0 w-0 h-0.5 bg-tertiary-fixed peer-focus:w-full transition-all duration-300"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<!-- Year -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline px-1">Year</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-3 text-sm text-on-surface placeholder:text-outline focus:ring-0 peer transition-all" placeholder="2024" type="number"/>
+<div class="absolute bottom-0 left-0 w-0 h-0.5 bg-tertiary-fixed peer-focus:w-full transition-all duration-300"></div>
+</div>
+</div>
+<!-- Plate Number -->
+<div class="flex flex-col col-span-2 gap-1.5">
+<label class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline px-1">Plate Number</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-3 text-sm text-on-surface placeholder:text-outline focus:ring-0 peer transition-all" placeholder="ABC-1234" type="text"/>
+<div class="absolute bottom-0 left-0 w-0 h-0.5 bg-tertiary-fixed peer-focus:w-full transition-all duration-300"></div>
+</div>
+</div>
+</div>
+<!-- Color Selection -->
+<div class="flex flex-col gap-3">
+<label class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant font-headline px-1">Vehicle Color</label>
+<div class="flex flex-wrap gap-2.5">
+<button class="w-8 h-8 rounded-full bg-[#000000] ring-offset-2 ring-2 ring-secondary shadow-md"></button>
+<button class="w-8 h-8 rounded-full bg-[#ffffff] border border-surface-container-highest"></button>
+<button class="w-8 h-8 rounded-full bg-[#ff0000]"></button>
+<button class="w-8 h-8 rounded-full bg-[#0040e0]"></button>
+<button class="w-8 h-8 rounded-full bg-[#4a5568]"></button>
+<button class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-on-surface-variant">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Condensed Safety Section -->
+<aside class="relative overflow-hidden bg-primary-container rounded-xl p-5 text-on-secondary-container">
+<div class="relative z-10 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary-fixed text-xl">verified_user</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-sm mb-0.5">Safety &amp; Verification</h4>
+<p class="text-[11px] text-on-primary-container/80 leading-snug">
+                        Accurate details ensure insurance validity and help customer ID.
+                    </p>
+</div>
+</div>
+</aside>
+<!-- Navigation Actions -->
+<div class="flex items-center justify-between pt-4">
+<button class="px-6 py-3 text-on-primary-fixed-variant font-headline font-bold text-[12px] tracking-tight hover:bg-surface-container transition-colors rounded-lg">
+                Back
+            </button>
+<button class="px-10 py-3 bg-secondary text-white font-headline font-extrabold text-[12px] tracking-widest uppercase rounded-lg hover:shadow-[0_8px_30px_rgb(0,64,224,0.3)] transition-all active:scale-95 duration-200">
+                Next
+            </button>
+</div>
+</div>
+</main>
+<!-- Visual Anchor Background -->
+<div class="fixed inset-0 -z-10 pointer-events-none">
+<div class="absolute top-0 right-0 w-[400px] h-[400px] bg-secondary-fixed/5 rounded-full blur-[100px] -mr-48 -mt-48"></div>
+<div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-tertiary-fixed/10 rounded-full blur-[100px] -ml-48 -mb-48"></div>
+</div>
+</body></html>

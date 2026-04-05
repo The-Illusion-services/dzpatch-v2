@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bidding Terminal - Counter-Offer</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-container": "#401600",
+              "on-surface-variant": "#44474e",
+              "on-primary-fixed": "#021c3a",
+              "surface-bright": "#f7fafc",
+              "error-container": "#ffdad6",
+              "secondary-container": "#2e5bff",
+              "surface-container-low": "#f1f4f6",
+              "primary-container": "#0a2342",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-secondary-container": "#efefff",
+              "inverse-surface": "#2d3133",
+              "on-error": "#ffffff",
+              "outline": "#74777e",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container-highest": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "tertiary": "#1d0600",
+              "on-secondary-fixed-variant": "#0035be",
+              "outline-variant": "#c4c6cf",
+              "on-secondary-fixed": "#001356",
+              "on-tertiary-fixed": "#341100",
+              "surface-dim": "#d7dadc",
+              "on-error-container": "#93000a",
+              "inverse-primary": "#b2c7ef",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "on-primary": "#ffffff",
+              "on-background": "#181c1e",
+              "background": "#f7fafc",
+              "surface-container": "#ebeef0",
+              "secondary-fixed": "#dde1ff",
+              "inverse-on-surface": "#eef1f3",
+              "error": "#ba1a1a",
+              "secondary": "#0040e0",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface": "#f7fafc",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-high": "#e5e9eb",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#d5e3ff",
+              "surface-variant": "#e0e3e5",
+              "on-primary-fixed-variant": "#324768",
+              "primary": "#000d22",
+              "on-surface": "#181c1e",
+              "tertiary-fixed": "#ffdbcb"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-background selection:bg-secondary/20 min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 w-full bg-slate-50/70 dark:bg-slate-950/70 backdrop-blur-md shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-4">
+<button class="hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-95 duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-700 dark:text-blue-500" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-slate-900 dark:text-slate-50">Bidding Terminal</h1>
+</div>
+<button class="hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-95 duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-700 dark:text-blue-500" data-icon="more_vert">more_vert</span>
+</button>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-xl mx-auto">
+<!-- Order Summary Glass Card -->
+<section class="mb-8 p-6 bg-surface-container-lowest rounded-xl shadow-sm border-none relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+<div class="flex justify-between items-start mb-6">
+<div>
+<p class="font-label text-on-surface-variant text-[10px] uppercase tracking-widest mb-1">Original Price</p>
+<h2 class="font-headline font-extrabold text-3xl text-primary">₦4,500</h2>
+</div>
+<div class="bg-primary px-3 py-1 rounded-full">
+<p class="font-label text-white text-[10px] font-bold">L-4920-X</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="near_me">near_me</span>
+</div>
+<div>
+<p class="font-label text-[11px] text-on-surface-variant">Pick-up</p>
+<p class="font-body text-sm font-semibold">Victoria Island, Lagos</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="location_on">location_on</span>
+</div>
+<div>
+<p class="font-label text-[11px] text-on-surface-variant">Drop-off</p>
+<p class="font-body text-sm font-semibold">Lekki Phase 1, Lagos</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bidding Engine -->
+<section class="space-y-8">
+<div class="text-center">
+<label class="font-headline font-bold text-lg text-primary block mb-2" for="bid-input">Set Your Bid</label>
+<p class="font-body text-sm text-on-surface-variant">Your counter-offer will be sent to the client instantly.</p>
+</div>
+<!-- Numeric Input Section -->
+<div class="relative group">
+<div class="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-headline font-black text-4xl opacity-40">₦</div>
+<input class="w-full bg-surface-container-highest border-none h-24 rounded-xl px-16 text-center font-headline font-black text-4xl text-primary focus:ring-0 transition-all border-b-2 border-transparent focus:border-tertiary-fixed outline-none" id="bid-input" placeholder="4,500" type="number"/>
+</div>
+<!-- Market Suggestions (Bento Style) -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl">
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Market Rate</p>
+<p class="font-headline font-bold text-lg text-primary">₦4,200 - ₦4,800</p>
+</div>
+<div class="bg-primary-container p-4 rounded-xl">
+<p class="font-label text-[10px] uppercase tracking-widest text-on-primary-container mb-1">Success Rate</p>
+<div class="flex items-center gap-2">
+<p class="font-headline font-bold text-lg text-white">94%</p>
+<span class="material-symbols-outlined text-on-tertiary-container text-sm" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+</div>
+<!-- Quick Bid Chips -->
+<div class="flex gap-2 overflow-x-auto no-scrollbar py-2">
+<button class="shrink-0 px-6 py-2 rounded-full border border-outline-variant font-label text-xs font-semibold hover:bg-secondary/5 hover:border-secondary transition-colors">+₦100</button>
+<button class="shrink-0 px-6 py-2 rounded-full border border-outline-variant font-label text-xs font-semibold hover:bg-secondary/5 hover:border-secondary transition-colors">+₦200</button>
+<button class="shrink-0 px-6 py-2 rounded-full border border-outline-variant font-label text-xs font-semibold hover:bg-secondary/5 hover:border-secondary transition-colors">+₦500</button>
+<button class="shrink-0 px-6 py-2 rounded-full border border-outline-variant font-label text-xs font-semibold hover:bg-secondary/5 hover:border-secondary transition-colors">Market Average</button>
+</div>
+<!-- Action Button -->
+<button class="w-full bg-secondary text-white font-headline font-bold py-5 rounded-xl shadow-lg shadow-secondary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+<span>Submit Bid</span>
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+<!-- Status Indicator -->
+<div class="flex items-center justify-center gap-2 py-4 px-6 bg-tertiary-container/10 rounded-full border border-tertiary-container/5">
+<span class="w-2 h-2 rounded-full bg-on-tertiary-container"></span>
+<p class="font-label text-xs text-on-tertiary-container font-medium">Bidding closes in 04:52 minutes</p>
+</div>
+</section>
+</main>
+<!-- Map Visualization (Asymmetric Background Element) -->
+<div class="fixed inset-0 -z-10 opacity-30 pointer-events-none">
+<img alt="Minimalist urban street map with simplified line paths and clean aesthetic" class="w-full h-full object-cover grayscale brightness-150 contrast-75" data-alt="Top-down perspective of a minimalist city map with light gray streets and soft blue accent lines" data-location="Lagos, Nigeria" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfA1p_LjJQL5_gHn6XHSh5oHV1Xe5CXYfO1eU0w5K1W2g4vfdkGh3eocb4NW4aDsLr26CR-dtLQ5FBEe3WmdBbzKVTAxuVwQCINgV8Trt3TEASHf5cdqt8gtkNXHTMmhVYU5ROqQ-7j5DAEEIO2-agZSiFD0t-1aaczGjXIzVpbW7pfHI59EW-j3r96wiM4diG8KJFPIXSpq8YAlWDkg8kOICCQsFxiPIFi_rEg0Mi3_UZOGemPcM1RUi6Gbqk8XQABe7KGndY7jtP"/>
+<div class="absolute inset-0 bg-gradient-to-b from-surface via-transparent to-surface"></div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white dark:bg-slate-900 shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl border-t border-slate-100 dark:border-slate-800">
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl py-2 px-4 transition-transform active:translate-y-0.5" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="gavel" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest">Bids</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:text-blue-500 dark:hover:text-blue-300 transition-transform active:translate-y-0.5" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="local_shipping">local_shipping</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest">Active</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:text-blue-500 dark:hover:text-blue-300 transition-transform active:translate-y-0.5" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="history">history</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:text-blue-500 dark:hover:text-blue-300 transition-transform active:translate-y-0.5" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+</body></html>

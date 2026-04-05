@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { buildWalletGuard } from '@/lib/sprint4-ux';
 import { useAuthStore } from '@/store/auth.store';
 import { useAppDataStore } from '@/store/app-data.store';
 import { Spacing, Typography } from '@/constants/theme';
@@ -73,6 +74,7 @@ export default function CreateOrderScreen() {
   const [pricingRule, setPricingRule] = useState<PricingRule | null>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [serviceFee,  setServiceFee]  = useState(0);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const [savedAddresses, setSavedAddresses] = useState<{ label: string; address: string; lat: number; lng: number }[]>([]);
 
@@ -161,6 +163,19 @@ export default function CreateOrderScreen() {
       });
   }, [profile?.id]);
 
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase
+      .from('wallets')
+      .select('balance')
+      .eq('owner_id', profile.id)
+      .eq('owner_type', 'customer')
+      .maybeSingle()
+      .then(({ data }) => {
+        setWalletBalance(typeof data?.balance === 'number' ? data.balance : 0);
+      });
+  }, [profile?.id]);
+
   // ─── Recalculate price ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -170,7 +185,15 @@ export default function CreateOrderScreen() {
       setServiceFee(0);
       return;
     }
-    const estimatedKm = 5; // replaced with real distance in RPC; use 5km estimate for preview
+    // Haversine distance between pickup and dropoff (matches backend RPC formula)
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const R = 6371; // Earth radius km
+    const dLat = toRad(dropoffCoords.current.lat - pickupCoords.current.lat);
+    const dLng = toRad(dropoffCoords.current.lng - pickupCoords.current.lng);
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(pickupCoords.current.lat)) * Math.cos(toRad(dropoffCoords.current.lat)) *
+      Math.sin(dLng / 2) ** 2;
+    const estimatedKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const multiplier  = SIZE_MULTIPLIER[selectedSize];
     const raw = (pricingRule.base_rate + estimatedKm * pricingRule.per_km_rate) * pricingRule.surge_multiplier;
     const price = Math.max(pricingRule.min_price, raw) * multiplier;
@@ -183,6 +206,11 @@ export default function CreateOrderScreen() {
     () => deliveryFee + serviceFee - discount,
     [deliveryFee, serviceFee, discount]
   );
+  const walletGuard = useMemo(
+    () => buildWalletGuard(walletBalance, total),
+    [walletBalance, total]
+  );
+  const walletNeedsTopUp = paymentMethod === 'wallet' && total > 0 && !walletGuard.hasEnoughBalance;
 
   // ─── Apply promo ──────────────────────────────────────────────────────────
 
@@ -218,6 +246,10 @@ export default function CreateOrderScreen() {
     if (!recipientPhone.trim()) { setError('Enter recipient phone'); return; }
     if (!pickupCoords.current)  { setError('Select pick-up from the suggestions'); return; }
     if (!dropoffCoords.current) { setError('Select drop-off from the suggestions'); return; }
+    if (paymentMethod === 'wallet' && total > 0 && !walletGuard.hasEnoughBalance) {
+      setError(`Insufficient wallet balance. Top up ₦${walletGuard.shortfall.toLocaleString()} or switch to cash.`);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -233,6 +265,7 @@ export default function CreateOrderScreen() {
         p_dropoff_contact_phone: recipientPhone.trim(),
         p_package_size:          selectedSize,
         p_category_id:           null,
+        p_suggested_price:       deliveryFee,
         p_payment_method:        paymentMethod,
         ...(promoApplied ? { p_promo_code: promoCode.trim().toUpperCase() } : {}),
       } as any);
@@ -254,7 +287,7 @@ export default function CreateOrderScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [profile, pickupAddress, dropoffAddress, recipientName, recipientPhone, selectedSize, paymentMethod, promoApplied, promoCode]);
+  }, [profile, pickupAddress, dropoffAddress, recipientName, recipientPhone, selectedSize, paymentMethod, promoApplied, promoCode, total, walletGuard]);
 
   // ─── Places query ─────────────────────────────────────────────────────────
 
@@ -513,6 +546,30 @@ export default function CreateOrderScreen() {
                   <Text style={[styles.payNote, paymentMethod === 'wallet' && styles.payNoteActive]}>Pay now</Text>
                 </Pressable>
               </View>
+              {paymentMethod === 'wallet' && (
+                <View style={[styles.walletStatusCard, walletNeedsTopUp && styles.walletStatusCardWarning]}>
+                  <View style={styles.walletStatusHeader}>
+                    <Ionicons
+                      name={walletNeedsTopUp ? 'alert-circle-outline' : 'wallet-outline'}
+                      size={16}
+                      color={walletNeedsTopUp ? '#ba1a1a' : '#0040e0'}
+                    />
+                    <Text style={[styles.walletStatusTitle, walletNeedsTopUp && styles.walletStatusTitleWarning]}>
+                      Wallet balance: ₦{(walletBalance ?? 0).toLocaleString()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.walletStatusText, walletNeedsTopUp && styles.walletStatusTextWarning]}>
+                    {walletNeedsTopUp
+                      ? `Short by ₦${walletGuard.shortfall.toLocaleString()}. Top up before requesting a rider, or switch to cash.`
+                      : 'You have enough balance for this order total.'}
+                  </Text>
+                  {walletNeedsTopUp && (
+                    <Pressable style={styles.walletTopUpBtn} onPress={() => router.push('/(customer)/fund-wallet' as any)}>
+                      <Text style={styles.walletTopUpText}>Top Up Wallet</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* ── Promo ────────────────────────────────────────────────── */}
@@ -554,9 +611,9 @@ export default function CreateOrderScreen() {
           }
         </View>
         <Pressable
-          style={[styles.findRiderBtn, submitting && { opacity: 0.6 }]}
+          style={[styles.findRiderBtn, (submitting || walletNeedsTopUp) && { opacity: 0.6 }]}
           onPress={handleFindRider}
-          disabled={submitting}
+          disabled={submitting || walletNeedsTopUp}
         >
           {submitting
             ? <ActivityIndicator color="#FFFFFF" size="small" />
@@ -736,6 +793,49 @@ const styles = StyleSheet.create({
   payLabelActive: { color: '#0040e0' },
   payNote: { fontSize: 10, color: '#74777e' },
   payNoteActive: { color: '#0040e0', opacity: 0.7 },
+  walletStatusCard: {
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 12,
+    backgroundColor: '#EEF2FF',
+    gap: 8,
+  },
+  walletStatusCardWarning: {
+    backgroundColor: '#FFF4F4',
+  },
+  walletStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  walletStatusTitle: {
+    fontSize: Typography.sm,
+    fontWeight: '700',
+    color: '#0040e0',
+  },
+  walletStatusTitleWarning: {
+    color: '#ba1a1a',
+  },
+  walletStatusText: {
+    fontSize: Typography.xs,
+    color: '#44474e',
+    lineHeight: 18,
+  },
+  walletStatusTextWarning: {
+    color: '#8c1d18',
+  },
+  walletTopUpBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: '#0040e0',
+  },
+  walletTopUpText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 
   // Promo
   promoToggle: { paddingVertical: 4 },

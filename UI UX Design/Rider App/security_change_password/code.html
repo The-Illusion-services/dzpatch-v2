@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dzpatch Rider - Change Password</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-on-surface": "#eef1f3",
+              "tertiary-container": "#401600",
+              "surface-dim": "#d7dadc",
+              "surface": "#f7fafc",
+              "primary-container": "#0a2342",
+              "on-error": "#ffffff",
+              "on-surface": "#181c1e",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6",
+              "surface-container": "#ebeef0",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-tertiary-fixed": "#341100",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#768baf",
+              "on-secondary-container": "#efefff",
+              "on-tertiary-container": "#e66100",
+              "surface-container-highest": "#e0e3e5",
+              "error": "#ba1a1a",
+              "tertiary-fixed": "#ffdbcb",
+              "secondary-fixed": "#dde1ff",
+              "surface-bright": "#f7fafc",
+              "secondary": "#0040e0",
+              "outline": "#74777e",
+              "surface-container-high": "#e5e9eb",
+              "on-tertiary": "#ffffff",
+              "on-secondary": "#ffffff",
+              "background": "#f7fafc",
+              "surface-variant": "#e0e3e5",
+              "inverse-surface": "#2d3133",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-background": "#181c1e",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-primary-fixed": "#021c3a",
+              "tertiary-fixed-dim": "#ffb692",
+              "primary-fixed": "#d5e3ff",
+              "on-secondary-fixed": "#001356",
+              "secondary-container": "#2e5bff",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#c4c6cf",
+              "tertiary": "#1d0600",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-primary-fixed-variant": "#324768",
+              "on-surface-variant": "#44474e",
+              "primary": "#000d22"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tap-highlight-none { -webkit-tap-highlight-color: transparent; }
+        .smooth-slide-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface">
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm h-16 flex items-center justify-between px-6">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 duration-200 text-blue-700 hover:bg-slate-50 p-2 rounded-xl transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline font-bold text-lg tracking-tight text-on-surface">Rider Security</h1>
+</div>
+<button class="active:scale-95 duration-200 text-blue-700 hover:bg-slate-50 p-2 rounded-xl transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-32 px-6 max-w-lg mx-auto min-h-screen">
+<!-- Editorial Header Section -->
+<section class="mb-10">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary mb-4">
+<span class="material-symbols-outlined text-[18px]" data-icon="lock_reset">lock_reset</span>
+<span class="text-[11px] font-bold uppercase tracking-wider font-label">Account Security</span>
+</div>
+<h2 class="font-headline text-[2.75rem] font-extrabold leading-tight tracking-tight text-primary mb-2">Change Password</h2>
+<p class="text-on-surface-variant font-body leading-relaxed max-w-[90%]">Ensure your account stays secure by choosing a strong, unique password that you don't use elsewhere.</p>
+</section>
+<!-- Asymmetric Momentum Layout for Forms -->
+<section class="space-y-8">
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,13,34,0.04)]">
+<form class="space-y-6">
+<!-- Input Group: Current Password -->
+<div class="relative group">
+<label class="block font-label text-[11px] font-semibold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Current Password</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-primary font-medium transition-all group-focus-within:bg-white" placeholder="••••••••" type="password"/>
+<div class="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary transition-all duration-300 group-focus-within:w-full"></div>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-secondary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Input Group: New Password -->
+<div class="relative group">
+<label class="block font-label text-[11px] font-semibold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">New Password</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-primary font-medium transition-all group-focus-within:bg-white" placeholder="••••••••" type="password"/>
+<div class="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary transition-all duration-300 group-focus-within:w-full"></div>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-secondary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Input Group: Confirm Password -->
+<div class="relative group">
+<label class="block font-label text-[11px] font-semibold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Confirm New Password</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-primary font-medium transition-all group-focus-within:bg-white" placeholder="••••••••" type="password"/>
+<div class="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary transition-all duration-300 group-focus-within:w-full"></div>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-secondary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Action Zone -->
+<div class="pt-4">
+<button class="w-full h-14 bg-secondary text-white font-headline font-bold rounded-xl active:scale-[0.98] transition-all hover:bg-blue-600 shadow-lg shadow-blue-500/20" type="submit">
+                            Update Password
+                        </button>
+</div>
+</form>
+</div>
+<!-- Security Tip Card -->
+<div class="bg-surface-container-low p-6 rounded-[1.25rem] flex items-start gap-4">
+<div class="bg-tertiary-container/10 p-3 rounded-full">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="verified_user">verified_user</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-primary mb-1">Strong Password Tips</h4>
+<ul class="text-sm text-on-surface-variant space-y-1 list-disc ml-4 font-body">
+<li>At least 12 characters long</li>
+<li>Include numbers and symbols</li>
+<li>Avoid personal information (dates, names)</li>
+</ul>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell (Suppress for specific screens if needed, but included per JSON instructions) -->
+<!-- The user is in "Security" context, so we map the active state to "Security" -->
+<nav class="fixed bottom-0 w-full z-50 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] h-20 px-4 pb-safe flex justify-around items-center border-t border-slate-100">
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 transition-all tap-highlight-none active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 transition-all tap-highlight-none active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-700 font-bold bg-blue-50 rounded-xl px-3 py-1 tap-highlight-none active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="shieled_person">shield_person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Security</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 transition-all tap-highlight-none active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Chat</span>
+</a>
+</nav>
+<!-- Visual Polish: Decorative Gradient Background Element -->
+<div class="fixed top-0 right-0 -z-10 w-[500px] h-[500px] opacity-20 pointer-events-none">
+<div class="w-full h-full rounded-full blur-[120px]" style="background: radial-gradient(circle, #0040e0 0%, transparent 70%);"></div>
+</div>
+</body></html>

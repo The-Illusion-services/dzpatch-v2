@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Live Bidding Pool - Delivery Bidding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#0035be",
+              "on-surface": "#181c1e",
+              "on-background": "#181c1e",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "surface-variant": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-container-high": "#e5e9eb",
+              "surface-tint": "#4a5f81",
+              "surface-container-low": "#f1f4f6",
+              "primary": "#000d22",
+              "error": "#ba1a1a",
+              "tertiary-container": "#401600",
+              "surface-dim": "#d7dadc",
+              "primary-container": "#0a2342",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#ebeef0",
+              "on-tertiary": "#ffffff",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-tertiary-fixed": "#341100",
+              "surface": "#f7fafc",
+              "on-error-container": "#93000a",
+              "inverse-on-surface": "#eef1f3",
+              "secondary-container": "#2e5bff",
+              "tertiary": "#1d0600",
+              "surface-container-highest": "#e0e3e5",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-primary": "#ffffff",
+              "on-tertiary-container": "#e66100",
+              "secondary": "#0040e0",
+              "outline-variant": "#c4c6cf",
+              "on-secondary-container": "#efefff",
+              "on-primary-fixed": "#021c3a",
+              "on-secondary-fixed": "#001356",
+              "background": "#f7fafc",
+              "on-surface-variant": "#44474e",
+              "on-primary-fixed-variant": "#324768",
+              "secondary-fixed": "#dde1ff",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d5e3ff",
+              "inverse-surface": "#2d3133",
+              "inverse-primary": "#b2c7ef",
+              "on-primary-container": "#768baf",
+              "tertiary-fixed": "#ffdbcb",
+              "outline": "#74777e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f7fafc;
+      }
+      h1, h2, h3, .font-headline {
+        font-family: 'Manrope', sans-serif;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm shadow-[#000d22]/5">
+<div class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform text-[#0040e0] flex items-center justify-center">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-[#0040e0]">Delivery Bidding</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-['Manrope'] font-black text-[#000d22] text-xl uppercase tracking-tighter">Bids</span>
+<button class="active:scale-95 transition-transform text-[#4a5f81] p-1 rounded-full hover:bg-slate-100 duration-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-24 pb-32 px-6 max-w-5xl mx-auto">
+<!-- Live Bidding Header & Timer -->
+<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-2">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 text-secondary rounded-full font-label text-xs font-bold uppercase tracking-widest">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+                    Live Pool
+                </div>
+<h2 class="text-4xl font-extrabold tracking-tight text-primary">Incoming Offers</h2>
+<p class="text-on-surface-variant max-w-md">Review real-time bids for your delivery from Brooklyn to Manhattan.</p>
+</div>
+<!-- Timer Component -->
+<div class="bg-primary text-white p-4 rounded-xl shadow-lg flex items-center gap-4 min-w-[200px]">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-secondary">timer</span>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-primary-container font-bold">Expires In</p>
+<p class="text-2xl font-black font-headline tracking-tighter">01:54</p>
+</div>
+</div>
+</header>
+<!-- Bidding Grid (Asymmetric Momentum) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Main Offer (Featured) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Rider Offer Card 1 -->
+<article class="bg-surface-container-lowest p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow group border border-transparent hover:border-secondary/10">
+<div class="flex flex-col md:flex-row gap-8">
+<div class="relative">
+<img alt="Rider Profile" class="w-24 h-24 rounded-xl object-cover" data-alt="Professional male delivery rider portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEyvtmgo6_ztLfIMqZbUyX5YBwgWGU55NIcXuwIho3vUJdu9hSBunk0I4DvjhtYwUq0oOTAUIXs53z-wvNFSoSaZUaRJlc5klgxfsocZ6aEbIpxT8KNSKRYRo84llSO-U0xyvm08rrwe0vjbMqQIHzDV8VLEinoHeGSGEDIhTQ9jXyk8j2MgSFIsmLlDMCYt6OcmUnmUauqgBVTRTx9djqBlQftCrKXE8Y822Se_yRgpWlygCzEbYg2eVnRliQtpdK_XaMxCu9iAZd"/>
+<div class="absolute -bottom-2 -right-2 bg-secondary text-white p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-sm">electric_moped</span>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-2xl font-bold text-primary">Marco Rossi</h3>
+<div class="flex items-center gap-1 mt-1 text-on-surface-variant font-medium text-sm">
+<span class="material-symbols-outlined text-amber-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9</span>
+<span class="mx-1">•</span>
+<span>1.2 miles away</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Bid Amount</p>
+<p class="text-4xl font-black text-secondary tracking-tighter">$14.50</p>
+</div>
+</div>
+<div class="flex flex-wrap gap-3 py-4 border-t border-surface-container">
+<div class="bg-surface-container-low px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">schedule</span>
+<span class="text-sm font-semibold">ETA: 12 min</span>
+</div>
+<div class="bg-surface-container-low px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">verified</span>
+<span class="text-sm font-semibold">Gold Tier</span>
+</div>
+</div>
+<div class="flex items-center gap-3 pt-2">
+<button class="flex-1 bg-secondary text-white py-4 rounded-xl font-bold active:scale-95 transition-transform">Accept Offer</button>
+<button class="px-6 py-4 rounded-xl font-bold text-secondary border-2 border-secondary/10 hover:bg-secondary/5 transition-colors active:scale-95">Negotiate</button>
+<button class="p-4 rounded-xl text-on-surface-variant hover:text-error hover:bg-error/5 transition-colors active:scale-95">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+</div>
+</article>
+<!-- Rider Offer Card 2 -->
+<article class="bg-surface-container-lowest p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow group border border-transparent hover:border-secondary/10">
+<div class="flex flex-col md:flex-row gap-8">
+<div class="relative">
+<img alt="Rider Profile" class="w-24 h-24 rounded-xl object-cover" data-alt="Professional female delivery rider portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmJCg6ZQhsAO1CqmPIIWJxoKZFdWxlBaiOJVigc_3Q-lV4uWhbPQY11gW9yzMSfa_C2EmUyBYJx9MmTl-YrHB_FLEYJQMWzMAUUvRuZpoO2rXuvsX8WUCSmxvOiQ1kyURx5KTN554ap3PazV8ud6I58z9fAFEB1h0LxHkMktmiDZ3DMQGXBD6wlSHPvxDLw991HA7SO2FTbFcTzC-zrPpNteAcaOwy5E-MRo80DBH5kJzx9fV-k8Q0N2lgej3Ghwaj3xZn9qNjXlOR"/>
+<div class="absolute -bottom-2 -right-2 bg-secondary text-white p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-sm">directions_car</span>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-2xl font-bold text-primary">Sarah Jenkins</h3>
+<div class="flex items-center gap-1 mt-1 text-on-surface-variant font-medium text-sm">
+<span class="material-symbols-outlined text-amber-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.8</span>
+<span class="mx-1">•</span>
+<span>2.5 miles away</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Bid Amount</p>
+<p class="text-4xl font-black text-secondary tracking-tighter">$12.00</p>
+</div>
+</div>
+<div class="flex flex-wrap gap-3 py-4 border-t border-surface-container">
+<div class="bg-surface-container-low px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">schedule</span>
+<span class="text-sm font-semibold">ETA: 18 min</span>
+</div>
+<div class="bg-tertiary-fixed px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-on-tertiary-fixed-variant text-lg">local_fire_department</span>
+<span class="text-sm font-bold text-on-tertiary-fixed-variant">Best Value</span>
+</div>
+</div>
+<div class="flex items-center gap-3 pt-2">
+<button class="flex-1 bg-secondary text-white py-4 rounded-xl font-bold active:scale-95 transition-transform">Accept Offer</button>
+<button class="px-6 py-4 rounded-xl font-bold text-secondary border-2 border-secondary/10 hover:bg-secondary/5 transition-colors active:scale-95">Negotiate</button>
+<button class="p-4 rounded-xl text-on-surface-variant hover:text-error hover:bg-error/5 transition-colors active:scale-95">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+</div>
+</article>
+</div>
+<!-- Side Utility / Stats (Asymmetric layout) -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Delivery Summary "Data Brick" -->
+<div class="bg-primary-container p-6 rounded-2xl text-white">
+<h4 class="font-headline font-bold text-on-primary-container text-sm uppercase tracking-widest mb-4">Request Detail</h4>
+<div class="space-y-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+<div>
+<p class="text-xs text-on-primary-container">Pickup</p>
+<p class="text-sm font-medium">85 Broad St, New York</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-on-tertiary-container mt-1">flag</span>
+<div>
+<p class="text-xs text-on-primary-container">Drop-off</p>
+<p class="text-sm font-medium">102 N 6th St, Brooklyn</p>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-6 border-t border-white/10">
+<div class="flex justify-between items-center">
+<span class="text-sm text-on-primary-container">Your Target Price</span>
+<span class="text-xl font-bold">$13.50</span>
+</div>
+</div>
+</div>
+<!-- Recent Activity Feed -->
+<div class="bg-surface-container-low p-6 rounded-2xl">
+<h4 class="font-headline font-bold text-primary text-sm uppercase tracking-widest mb-4">Live Activity</h4>
+<div class="space-y-4">
+<div class="flex gap-3 items-center">
+<div class="h-2 w-2 rounded-full bg-secondary"></div>
+<p class="text-xs font-medium"><span class="font-bold">Ahmed K.</span> joined the pool</p>
+</div>
+<div class="flex gap-3 items-center">
+<div class="h-2 w-2 rounded-full bg-tertiary-container"></div>
+<p class="text-xs font-medium text-on-surface-variant"><span class="font-bold">Leo M.</span> withdrew bid</p>
+</div>
+<div class="flex gap-3 items-center opacity-50">
+<div class="h-2 w-2 rounded-full bg-slate-400"></div>
+<p class="text-xs font-medium text-on-surface-variant">Searching for more riders...</p>
+</div>
+</div>
+</div>
+<!-- Map Preview (Contextual) -->
+<div class="h-48 rounded-2xl overflow-hidden relative">
+<img alt="Mini Map" class="w-full h-full object-cover grayscale opacity-80" data-alt="Simplified city street map graphic" data-location="New York" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTJojxT7ySqdT_qK2BCZh4Lj9-PKUsnbt6TLC63BUWPCklB5M3UTeGhqUpTFOoUnj21DQh34S60Uof9p6UWDHPFoLR3ouVr3vlflfKeEoCs1qhtD9NpYTWxV1PcuTEOuL5Td2y7ps1qr2dzJZnZh475G7PRPFgIEI-GurI54SN032an_68uauScXb8OuuT0nySzG-Tm3IV6SiS_pnPngjrTuNGDLyjAOjydIAcwLfQ9ft1vzJs3P08xtNHseixqiCBG3kkRdfrX3ze"/>
+<div class="absolute inset-0 bg-secondary/5"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+<div class="bg-secondary p-2 rounded-full shadow-lg ring-4 ring-white/20">
+<span class="material-symbols-outlined text-white text-sm">navigation</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 rounded-t-[2rem] bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] border-t border-[#f1f4f6]">
+<div class="flex justify-around items-center px-4 pb-6 pt-3">
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Deliveries</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#0040e0] font-bold active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Bids</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Wallet</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#4a5f81] hover:text-[#0040e0] transition-all active:translate-y-0.5 duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] font-medium text-[11px] uppercase tracking-widest">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

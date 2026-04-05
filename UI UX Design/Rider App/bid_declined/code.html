@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bid Declined | Bidding Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-container": "#401600",
+              "on-surface-variant": "#44474e",
+              "on-primary-fixed": "#021c3a",
+              "surface-bright": "#f7fafc",
+              "error-container": "#ffdad6",
+              "secondary-container": "#2e5bff",
+              "surface-container-low": "#f1f4f6",
+              "primary-container": "#0a2342",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-secondary-container": "#efefff",
+              "inverse-surface": "#2d3133",
+              "on-error": "#ffffff",
+              "outline": "#74777e",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container-highest": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "tertiary": "#1d0600",
+              "on-secondary-fixed-variant": "#0035be",
+              "outline-variant": "#c4c6cf",
+              "on-secondary-fixed": "#001356",
+              "on-tertiary-fixed": "#341100",
+              "surface-dim": "#d7dadc",
+              "on-error-container": "#93000a",
+              "inverse-primary": "#b2c7ef",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "on-primary": "#ffffff",
+              "on-background": "#181c1e",
+              "background": "#f7fafc",
+              "surface-container": "#ebeef0",
+              "secondary-fixed": "#dde1ff",
+              "inverse-on-surface": "#eef1f3",
+              "error": "#ba1a1a",
+              "secondary": "#0040e0",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface": "#f7fafc",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-high": "#e5e9eb",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#d5e3ff",
+              "surface-variant": "#e0e3e5",
+              "on-primary-fixed-variant": "#324768",
+              "primary": "#000d22",
+              "on-surface": "#181c1e",
+              "tertiary-fixed": "#ffdbcb"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        background-color: #f7fafc;
+        font-family: 'Inter', sans-serif;
+        color: #181c1e;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface selection:bg-secondary/20 min-h-screen flex flex-col">
+<!-- TopAppBar Mapping -->
+<header class="fixed top-0 w-full z-50 bg-slate-50/70 backdrop-blur-md flex items-center justify-between px-6 h-16 w-full shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-4">
+<button class="text-blue-700 hover:bg-slate-200/50 transition-colors active:scale-95 duration-200 p-2 rounded-xl">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-blue-700">Bidding Terminal</h1>
+</div>
+<button class="text-blue-700 hover:bg-slate-200/50 transition-colors active:scale-95 duration-200 p-2 rounded-xl">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<!-- Main Content: Task Focused (No Nav Shell per rules for transactional/feedback screens) -->
+<main class="flex-grow flex items-center justify-center px-6 pt-20 pb-12">
+<div class="max-w-md w-full text-center">
+<!-- Hero Visual: Asymmetric Layout with Glassmorphism -->
+<div class="relative mb-12">
+<div class="absolute inset-0 bg-secondary/5 blur-[100px] rounded-full"></div>
+<!-- Feedback Icon Section -->
+<div class="relative flex justify-center">
+<div class="w-24 h-24 bg-surface-container-lowest border border-outline-variant/10 shadow-2xl shadow-primary/5 rounded-[2rem] flex items-center justify-center mb-8 rotate-3">
+<div class="w-16 h-16 bg-error-container/30 rounded-2xl flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 0;">cancel</span>
+</div>
+</div>
+<!-- Small Kinetic Accents -->
+<div class="absolute -top-4 right-1/4 w-3 h-3 bg-secondary rounded-full opacity-20"></div>
+<div class="absolute bottom-4 left-1/4 w-2 h-2 bg-tertiary-fixed rounded-full"></div>
+</div>
+<h2 class="font-headline font-extrabold text-4xl tracking-tight text-primary mb-4">Bid Declined</h2>
+<p class="font-body text-on-surface-variant leading-relaxed text-lg px-4">
+                    The customer chose another rider or rejected your offer. Don't worry, there are other orders nearby!
+                </p>
+</div>
+<!-- Bento-style Info Grid -->
+<div class="grid grid-cols-2 gap-4 mb-10 text-left">
+<div class="bg-surface-container-low p-5 rounded-2xl border-l-4 border-on-tertiary-container">
+<span class="block font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Status</span>
+<span class="font-headline font-bold text-on-tertiary-container">REJECTED</span>
+</div>
+<div class="bg-surface-container-low p-5 rounded-2xl border-l-4 border-secondary">
+<span class="block font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Market Activity</span>
+<span class="font-headline font-bold text-secondary">HIGH</span>
+</div>
+</div>
+<!-- Data Brick: Alternative Map/Area Preview -->
+<div class="bg-surface-container-low rounded-[2rem] p-4 mb-10 overflow-hidden relative">
+<div class="flex items-center justify-between mb-4 px-2">
+<h3 class="font-headline font-bold text-sm text-primary">Live Demand Near You</h3>
+<span class="flex items-center gap-1 bg-surface-container-lowest px-3 py-1 rounded-full shadow-sm">
+<span class="w-2 h-2 bg-secondary rounded-full animate-pulse"></span>
+<span class="text-[10px] font-bold text-secondary">LIVE</span>
+</span>
+</div>
+<div class="aspect-video w-full rounded-2xl overflow-hidden bg-surface-container-high relative group">
+<img alt="City Logistics Map" class="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 transition-all duration-700" data-alt="Modern dark-themed digital map interface showing heat map density of delivery requests in a metropolitan area" data-location="New York" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzLKXYRuDkwfAUB6yqeZA-iirAXz8Tg9fcB9eiGjMK6VxEgdF-zKE7BeF0fIhuA6Vr60Vvo5GGKOrJ4K3rC7EBTv_gxwYgUCWv0uY9vpJeyLlsrLAkU4UnDTRMWdD9HJVBIvwDqN8vmhQY1-sJSKn1x6FSAJG9wvqIOH7QgryJ8__lDPrKTyt6b4iKzb7gH_JRFADPIuIqTjcxE1oPLq4Ge30f_egRDiKV1gR-Y3UlkXYDiXxaiIwGd24b418CeyuDARBlRaTUWZGb"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<!-- Floating Map Card -->
+<div class="absolute bottom-4 left-4 right-4 bg-surface-container-lowest/80 backdrop-blur-md p-3 rounded-xl flex items-center gap-3 border border-white/20">
+<div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm" data-icon="local_shipping">local_shipping</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-primary tracking-tight">UPTOWN HUB</p>
+<p class="text-[12px] text-on-surface-variant">+12 New Orders</p>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-secondary" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="flex flex-col gap-4">
+<button class="w-full bg-secondary hover:bg-blue-700 text-white font-headline font-bold py-5 rounded-full shadow-lg shadow-secondary/20 transition-all active:scale-95 text-lg">
+                    Back to Home
+                </button>
+<button class="w-full py-4 text-on-primary-fixed-variant font-label font-bold text-sm uppercase tracking-widest hover:bg-surface-container-high rounded-full transition-colors">
+                    View Market Heatmap
+                </button>
+</div>
+</div>
+</main>
+<!-- Contextual Footer Message -->
+<footer class="p-8 text-center">
+<p class="text-on-surface-variant font-label text-[11px] uppercase tracking-widest opacity-60">
+            Powered by Bidding Terminal Precision Engine © 2024
+        </p>
+</footer>
+<!-- BottomNavBar (Suppressed for focused feedback journey as per rules) -->
+<!-- Removed to prioritize the Canvas and the specific Back to Home action -->
+</body></html>

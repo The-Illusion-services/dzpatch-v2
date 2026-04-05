@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-variant": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "on-secondary-fixed": "#001356",
+              "surface-container-low": "#f1f4f6",
+              "on-secondary": "#ffffff",
+              "on-error-container": "#93000a",
+              "outline": "#74777e",
+              "surface": "#f7fafc",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "error-container": "#ffdad6",
+              "surface-dim": "#d7dadc",
+              "surface-bright": "#f7fafc",
+              "on-secondary-container": "#efefff",
+              "tertiary": "#1d0600",
+              "on-tertiary-container": "#e66100",
+              "inverse-surface": "#2d3133",
+              "tertiary-fixed": "#ffdbcb",
+              "on-tertiary-fixed": "#341100",
+              "on-primary-fixed-variant": "#324768",
+              "primary-fixed-dim": "#b2c7ef",
+              "primary-container": "#0a2342",
+              "error": "#ba1a1a",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "on-secondary-fixed-variant": "#0035be",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "secondary-fixed": "#dde1ff",
+              "outline-variant": "#c4c6cf",
+              "on-surface-variant": "#44474e",
+              "on-error": "#ffffff",
+              "on-primary": "#ffffff",
+              "surface-container": "#ebeef0",
+              "primary": "#000d22",
+              "on-primary-container": "#768baf",
+              "background": "#f7fafc",
+              "secondary-fixed-dim": "#b8c3ff",
+              "secondary-container": "#2e5bff",
+              "on-background": "#181c1e",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-surface": "#181c1e",
+              "primary-fixed": "#d5e3ff",
+              "on-primary-fixed": "#021c3a"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-40 bg-white/70 backdrop-blur-md shadow-sm flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 duration-150 hover:bg-slate-50 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined text-blue-700">arrow_back</span>
+</button>
+<h1 class="font-manrope font-extrabold text-slate-900 text-lg tracking-tight">Driver Portal</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/20">
+<img alt="Driver Profile Photo" class="w-full h-full object-cover" data-alt="Professional headshot of a smiling driver in a modern, brightly lit interior setting with neutral tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDag1dY0q6wQDk2MB4q-klwHYeJNKMmEFiXCM4ML2yK19KBrffsvaMCDifzWvZI8i1FcoX-hIcFcsqGdYpLkft6MUGf4rL0Vyc5Yje0e2_B4BetuCZADU1K4DMS0lyB4zlNlY-OlSQYkMqazYibicj5gJygVuF_m-eyr5pIADfGZwibUGAajPvJlLXxxqX1G3QFEp2J5gHhUQ3A_fNT5HH7jFbKtIulSM_EubPNiQLQxaOsSsXBbd9aik8HDf1RN5pMRC5T6nyyTBYH"/>
+</div>
+</div>
+</header>
+<main class="max-w-4xl mx-auto px-6 py-12 pb-32">
+<!-- Page Header -->
+<div class="mb-12">
+<h2 class="text-4xl font-headline font-extrabold text-primary tracking-tight mb-2">Documents</h2>
+<p class="text-on-surface-variant font-body text-lg max-w-xl">Keep your credentials up to date to ensure uninterrupted access to the platform.</p>
+</div>
+<!-- Documents Bento Grid / List -->
+<div class="space-y-6">
+<!-- Document Card: Driver's License -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden flex flex-col md:flex-row items-stretch transition-all duration-200 border-l-4 border-secondary">
+<div class="w-full md:w-48 h-40 md:h-auto bg-surface-container-high relative overflow-hidden shrink-0">
+<img alt="Document Preview" class="w-full h-full object-cover opacity-80 grayscale-[0.5]" data-alt="Close up of a generic government identification card on a clean white surface with professional lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCouXsgzpdVgzOHzWkpkikhM53m0Fmu07zuhraBYolIKf_fFzAXzulIlAyvn2ZZXGlljHMMWH7fuB-VeK1jBLjG01Z2zvU6Nf7q9KPFC0Mua0pSd3837IA4yhMPKzsrwooShj8M3jcbp1QcMSkPK6Kuy_3oRG_AfrtiVnqeEnnMLGftMD5H5KTC15xOmG4VLcPSCnajEDE7zn3ky-rGRwxh9y9XEAfLdnpOVWrO2PrluWG9gEp_N9MdpLZk2H_hbPvWt0L8ggPEvyIX"/>
+<div class="absolute inset-0 bg-primary/10"></div>
+</div>
+<div class="p-8 flex flex-col justify-center flex-grow">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-[10px] uppercase tracking-widest font-bold text-secondary mb-1 block">Identification</span>
+<h3 class="text-2xl font-headline font-bold text-primary">Driver's License</h3>
+</div>
+<div class="flex items-center gap-2 bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-xs font-label font-semibold uppercase tracking-wider">Verified</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-body mb-6">Expiry Date: Oct 24, 2026</p>
+<div class="flex gap-4">
+<button class="bg-secondary text-on-secondary px-6 py-2.5 rounded-xl font-label font-semibold text-sm hover:opacity-90 active:scale-95 transition-all">
+                            Reupload
+                        </button>
+<button class="text-on-primary-fixed-variant px-6 py-2.5 font-label font-semibold text-sm hover:bg-surface-container-high rounded-xl transition-all">
+                            View Full Size
+                        </button>
+</div>
+</div>
+</div>
+<!-- Document Card: Vehicle Insurance -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden flex flex-col md:flex-row items-stretch transition-all duration-200 border-l-4 border-tertiary-container">
+<div class="w-full md:w-48 h-40 md:h-auto bg-surface-container-high relative overflow-hidden shrink-0">
+<img alt="Document Preview" class="w-full h-full object-cover opacity-80 grayscale-[0.5]" data-alt="Official insurance documents on a desk with a pen, shallow depth of field, blue and white color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArFqzgCOOXE_DciVRl1ABsSFcFD89mxJK2OsPlfpvvGAxefIl0ZN22XX-L0tmvCmkvOmVwKcT6VTvwRRyebrMzWzQ7XH39ApzTgGsgrbn9c-yi5XxJ7eR_rZ1YB5QHOe9T9xZWmil1J01IrtCzgY_Xj2JaHhcLMk0vvy04irS85py2JjjtTQqPkVQWG6qCHlm2A_ZDS-X32YPdW-FRUoLoTdTlRLB0Zf4XPZAACfJBuqbtAc4u-XSKATT5birmt9XzD3xSkHlpZBAa"/>
+<div class="absolute inset-0 bg-primary/10"></div>
+</div>
+<div class="p-8 flex flex-col justify-center flex-grow">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-[10px] uppercase tracking-widest font-bold text-on-tertiary-container mb-1 block">Legal &amp; Safety</span>
+<h3 class="text-2xl font-headline font-bold text-primary">Vehicle Insurance</h3>
+</div>
+<div class="flex items-center gap-2 bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-xs font-label font-semibold uppercase tracking-wider">Pending</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-body mb-6">Submitted: 2 days ago • Review in progress</p>
+<div class="flex gap-4">
+<button class="bg-secondary text-on-secondary px-6 py-2.5 rounded-xl font-label font-semibold text-sm hover:opacity-90 active:scale-95 transition-all">
+                            Reupload
+                        </button>
+<button class="text-on-primary-fixed-variant px-6 py-2.5 font-label font-semibold text-sm hover:bg-surface-container-high rounded-xl transition-all">
+                            View Full Size
+                        </button>
+</div>
+</div>
+</div>
+<!-- Document Card: Plate Photo -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden flex flex-col md:flex-row items-stretch transition-all duration-200 border-l-4 border-error">
+<div class="w-full md:w-48 h-40 md:h-auto bg-surface-container-high relative overflow-hidden shrink-0">
+<img alt="Document Preview" class="w-full h-full object-cover opacity-80 grayscale-[0.5]" data-alt="Macro photo of a clean silver vehicle license plate, sharp focus on characters, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEXDarp_yMZGmQsJSJbvd4R9UHX8h5JLL0YZkQp28P5obvcfc-zIK_w8uIu87kN0YRY7kT7dpOR-ZtWuAMc5UBseauJ4HT4fcwLJdXS0mG0g28a2bPKEyTu3lmZzbaxIC7juyHF1zzwDq6IO7KRAc1huLI3WGSxHgHlDT4gFwLIh-oyfADoH40449iyDBVyOT9y2jqeafiqPAge-hOXWeDq9GYYCMudK1KMmvs23IKqIARgU4YPXs0hWgEEdvnQU9izfKoopj8JgHv"/>
+<div class="absolute inset-0 bg-primary/10"></div>
+</div>
+<div class="p-8 flex flex-col justify-center flex-grow">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="text-[10px] uppercase tracking-widest font-bold text-error mb-1 block">Vehicle Detail</span>
+<h3 class="text-2xl font-headline font-bold text-primary">Plate Photo</h3>
+</div>
+<div class="flex items-center gap-2 bg-error-container text-on-error-container px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm">error</span>
+<span class="text-xs font-label font-semibold uppercase tracking-wider">Expired</span>
+</div>
+</div>
+<p class="text-error text-sm font-body mb-6">This document expired on Jan 15, 2024. Please update immediately.</p>
+<div class="flex gap-4">
+<button class="bg-secondary text-on-secondary px-6 py-2.5 rounded-xl font-label font-semibold text-sm hover:opacity-90 active:scale-95 transition-all">
+                            Reupload
+                        </button>
+<button class="text-on-primary-fixed-variant px-6 py-2.5 font-label font-semibold text-sm hover:bg-surface-container-high rounded-xl transition-all">
+                            View Full Size
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Help Section -->
+<div class="mt-16 p-8 bg-primary-container rounded-xl flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">contact_support</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-white text-lg">Need help with verification?</h4>
+<p class="text-on-primary-container text-sm">Our support team is available 24/7 to assist with your documents.</p>
+</div>
+</div>
+<button class="bg-white text-primary font-label font-bold px-6 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+                Contact Support
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] md:hidden">
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Earnings</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Profile</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-blue-600 scale-110 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Settings</span>
+</div>
+</nav>
+</body></html>

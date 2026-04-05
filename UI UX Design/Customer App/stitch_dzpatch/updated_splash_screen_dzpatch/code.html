@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "surface-variant": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-background": "#181c1e",
+              "on-surface": "#181c1e",
+              "primary": "#000d22",
+              "surface-container-low": "#f1f4f6",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-container-high": "#e5e9eb",
+              "surface-tint": "#4a5f81",
+              "surface-dim": "#d7dadc",
+              "primary-container": "#0a2342",
+              "error": "#ba1a1a",
+              "tertiary-container": "#401600",
+              "on-tertiary-fixed": "#341100",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-error-container": "#93000a",
+              "inverse-on-surface": "#eef1f3",
+              "surface": "#f7fafc",
+              "secondary-container": "#2e5bff",
+              "tertiary": "#1d0600",
+              "surface-container": "#ebeef0",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-tertiary-container": "#e66100",
+              "surface-container-highest": "#e0e3e5",
+              "on-secondary-container": "#efefff",
+              "on-primary-fixed": "#021c3a",
+              "secondary": "#0040e0",
+              "outline-variant": "#c4c6cf",
+              "on-primary-fixed-variant": "#324768",
+              "secondary-fixed": "#dde1ff",
+              "on-error": "#ffffff",
+              "on-secondary-fixed": "#001356",
+              "background": "#f7fafc",
+              "on-surface-variant": "#44474e",
+              "tertiary-fixed": "#ffdbcb",
+              "outline": "#74777e",
+              "inverse-surface": "#2d3133",
+              "primary-fixed": "#d5e3ff",
+              "inverse-primary": "#b2c7ef",
+              "on-primary-container": "#768baf"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes subtle-slide {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(200%); }
+        }
+        .loading-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .loading-shimmer::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(221, 225, 255, 0.2), transparent);
+            animation: subtle-slide 1.5s infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-primary font-body text-on-primary antialiased overflow-hidden">
+<!-- Splash Screen Container -->
+<main class="relative min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-primary via-primary to-primary-container">
+<!-- Background Pattern Overlay -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" data-alt="Subtle geometric dot pattern for texture" style="background-image: radial-gradient(circle at 2px 2px, #dde1ff 1px, transparent 0); background-size: 40px 40px;">
+</div>
+<!-- Central Identity Cluster -->
+<div class="relative z-10 flex flex-col items-center gap-12 animate-pulse-soft">
+<!-- Stylized Logo Component -->
+<div class="relative group">
+<!-- Outer Ring -->
+<div class="absolute -inset-8 bg-secondary/20 rounded-full blur-2xl group-hover:bg-secondary/30 transition-all duration-700"></div>
+<!-- Main Logo Mark -->
+<div class="relative flex items-center justify-center w-32 h-32 bg-secondary rounded-xl shadow-[0_0_50px_rgba(0,64,224,0.3)]">
+<div class="flex flex-col items-center justify-center">
+<!-- Custom 'K' Construction using Material Symbols Logic -->
+<span class="material-symbols-outlined text-white text-7xl font-light select-none" data-icon="electric_bolt" style="font-variation-settings: 'FILL' 1;">electric_bolt</span>
+</div>
+<!-- Absolute Overlays for Motion Feeling -->
+<div class="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+<div class="h-1 w-6 bg-secondary-fixed rounded-full opacity-60"></div>
+<div class="h-1 w-10 bg-secondary-fixed rounded-full"></div>
+<div class="h-1 w-4 bg-secondary-fixed rounded-full opacity-40"></div>
+</div>
+</div>
+</div>
+<!-- Typography Brand Anchor -->
+<div class="flex flex-col items-center">
+<h1 class="font-headline font-black text-5xl text-white tracking-[0.15em]">Dzpatch</h1>
+<p class="font-label text-on-primary-container text-xs uppercase tracking-[0.4em] mt-3 font-semibold">
+                    Precision Logistics
+                </p>
+</div>
+</div>
+<!-- Footer / Loading Indicator Area -->
+<div class="absolute bottom-16 left-0 right-0 flex flex-col items-center gap-6">
+<!-- Kinetic Progress Bar -->
+<div class="w-48 h-1 bg-primary-container rounded-full overflow-hidden">
+<div class="h-full w-1/3 bg-gradient-to-r from-secondary to-secondary-fixed rounded-full loading-shimmer"></div>
+</div>
+<!-- Trust Indicators -->
+<div class="flex items-center gap-4 opacity-40">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified_user">verified_user</span>
+<span class="text-[10px] font-semibold uppercase tracking-widest">Secure Node</span>
+</div>
+<div class="w-1 h-1 bg-on-primary-container rounded-full"></div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="speed">speed</span>
+<span class="text-[10px] font-semibold uppercase tracking-widest">Real-time</span>
+</div>
+</div>
+</div>
+<!-- Ambient Glow Elements -->
+<div class="absolute top-0 left-1/4 w-96 h-96 bg-secondary/10 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary-container/5 blur-[120px] rounded-full pointer-events-none"></div>
+</main>
+<!-- Invisible Metadata for Accessibility -->
+<div class="sr-only">Dzpatch App Splash Screen. Loading your delivery dashboard. Secured by global logistics network.</div>
+</body></html>

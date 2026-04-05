@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "on-primary": "#ffffff",
+                "inverse-surface": "#2d3133",
+                "surface-container-lowest": "#ffffff",
+                "on-tertiary-container": "#e66100",
+                "on-primary-container": "#768baf",
+                "surface-container-highest": "#e0e3e5",
+                "on-primary-fixed": "#021c3a",
+                "secondary-container": "#2e5bff",
+                "primary-fixed-dim": "#b2c7ef",
+                "primary-fixed": "#d5e3ff",
+                "outline": "#74777e",
+                "tertiary-fixed-dim": "#ffb692",
+                "on-tertiary-fixed": "#341100",
+                "primary": "#000d22",
+                "error": "#ba1a1a",
+                "background": "#f7fafc",
+                "primary-container": "#0a2342",
+                "surface": "#f7fafc",
+                "on-secondary-fixed": "#001356",
+                "tertiary-fixed": "#ffdbcb",
+                "secondary-fixed-dim": "#b8c3ff",
+                "on-secondary": "#ffffff",
+                "on-secondary-container": "#efefff",
+                "secondary": "#0040e0",
+                "tertiary": "#1d0600",
+                "on-background": "#181c1e",
+                "error-container": "#ffdad6",
+                "surface-container-low": "#f1f4f6",
+                "surface-container-high": "#e5e9eb",
+                "on-surface": "#181c1e",
+                "surface-bright": "#f7fafc",
+                "on-error": "#ffffff",
+                "on-surface-variant": "#44474e",
+                "surface-variant": "#e0e3e5",
+                "tertiary-container": "#401600",
+                "surface-tint": "#4a5f81",
+                "surface-container": "#ebeef0",
+                "on-error-container": "#93000a",
+                "inverse-primary": "#b2c7ef",
+                "outline-variant": "#c4c6cf",
+                "on-secondary-fixed-variant": "#0035be",
+                "secondary-fixed": "#dde1ff",
+                "on-tertiary": "#ffffff",
+                "inverse-on-surface": "#eef1f3",
+                "surface-dim": "#d7dadc",
+                "on-tertiary-fixed-variant": "#7a3000",
+                "on-primary-fixed-variant": "#324768"
+              },
+              fontFamily: {
+                "headline": ["Manrope"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm shadow-blue-900/5 flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-slate-900 active:scale-95 duration-200">menu</button>
+<h1 class="text-xl font-extrabold tracking-tighter text-slate-900">Logistics Pulse</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="Professional user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAcPuwkQaakeNxehXz9aJPnobIWzflb0TiRshxnnlAHfQ7w_FEJu9x95vrAl7vVIrENx-m216-lPUEtDt7N8JIj2uVA8PMNOlqkTF7z65eEHFz5WxWKCRKhgyS3cgqUD18bVkhGq2n3GTSN8uENrZb7DPk8nfN6sYP6hrp5eTNmyIeEY-bTyZqO6mvrFJV7ODZk60s_RHfYaoVCN0nzejV2UG2gbtRDtN6IQy6dszeu5or82s6jgZeJlHIAzmuPTPm6jIW3ooT0ykF"/>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto space-y-12">
+<!-- Search & Filter Section -->
+<section class="space-y-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-bold font-headline tracking-tight text-primary">Order History</h2>
+<p class="text-on-surface-variant text-sm mt-1">Track and manage your logistical flow</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface-container-high px-4 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-slate-200 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                        Filters
+                    </button>
+<button class="bg-secondary px-6 py-2 rounded-xl text-sm font-bold text-on-secondary hover:opacity-90 active:scale-95 transition-all">
+                        New Shipment
+                    </button>
+</div>
+</div>
+<!-- Search Bar (Kinetic Precision Style) -->
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full bg-surface-container-highest border-none rounded-xl py-4 pl-12 pr-4 text-on-surface placeholder:text-outline focus:ring-0 focus:bg-white shadow-sm transition-all focus:shadow-md" placeholder="Search by ID, location, or date..." type="text"/>
+<div class="absolute bottom-0 left-0 w-0 h-0.5 bg-secondary transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</section>
+<!-- Orders List -->
+<section class="space-y-4">
+<!-- Order Card 1: Delivered -->
+<div class="bg-surface-container-lowest p-6 rounded-xl transition-all hover:translate-y-[-2px] hover:shadow-xl hover:shadow-primary/5 cursor-pointer">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex-1 space-y-4">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 bg-surface-container-high text-primary font-bold text-[10px] tracking-widest uppercase rounded-full">DZ-8829-QX</span>
+<span class="px-3 py-1 bg-green-100 text-green-700 font-bold text-[10px] tracking-widest uppercase rounded-full">Delivered</span>
+<span class="text-xs text-on-surface-variant ml-auto md:ml-0">Oct 24, 2023</span>
+</div>
+<div class="flex items-start gap-4">
+<!-- Visual Timeline -->
+<div class="flex flex-col items-center pt-1.5">
+<div class="w-2.5 h-2.5 rounded-full border-2 border-secondary bg-white"></div>
+<div class="w-0.5 h-8 bg-surface-container-high my-1"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-secondary"></div>
+</div>
+<div class="space-y-3">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Pickup</p>
+<p class="text-sm font-semibold text-primary">Global Distribution Center, Berlin</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Dropoff</p>
+<p class="text-sm font-semibold text-primary">Harbor Terminal 4, Hamburg</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-row md:flex-col justify-between items-end">
+<div class="text-right">
+<p class="text-2xl font-bold font-headline text-primary">$1,240.00</p>
+<p class="text-xs text-on-surface-variant">Standard Freight</p>
+</div>
+<button class="material-symbols-outlined text-outline hover:text-secondary transition-colors">chevron_right</button>
+</div>
+</div>
+</div>
+<!-- Order Card 2: In Transit -->
+<div class="bg-surface-container-lowest p-6 rounded-xl transition-all hover:translate-y-[-2px] hover:shadow-xl hover:shadow-primary/5 cursor-pointer">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex-1 space-y-4">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 bg-surface-container-high text-primary font-bold text-[10px] tracking-widest uppercase rounded-full">BK-4412-MT</span>
+<span class="px-3 py-1 bg-blue-100 text-blue-700 font-bold text-[10px] tracking-widest uppercase rounded-full">In Transit</span>
+<span class="text-xs text-on-surface-variant ml-auto md:ml-0">Oct 26, 2023</span>
+</div>
+<div class="flex items-start gap-4">
+<div class="flex flex-col items-center pt-1.5">
+<div class="w-2.5 h-2.5 rounded-full border-2 border-secondary bg-white"></div>
+<div class="w-0.5 h-8 bg-secondary/20 my-1"></div>
+<div class="w-2.5 h-2.5 rounded-full border-2 border-outline-variant bg-white"></div>
+</div>
+<div class="space-y-3">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Pickup</p>
+<p class="text-sm font-semibold text-primary">Innovation Lab, Munich</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Dropoff</p>
+<p class="text-sm font-semibold text-primary">Tech Hub North, Stockholm</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-row md:flex-col justify-between items-end">
+<div class="text-right">
+<p class="text-2xl font-bold font-headline text-primary">$4,890.50</p>
+<p class="text-xs text-on-surface-variant">Express Air</p>
+</div>
+<button class="material-symbols-outlined text-outline hover:text-secondary transition-colors">chevron_right</button>
+</div>
+</div>
+</div>
+<!-- Order Card 3: Delayed (Orange Accent) -->
+<div class="bg-surface-container-lowest p-6 rounded-xl transition-all hover:translate-y-[-2px] hover:shadow-xl hover:shadow-primary/5 cursor-pointer border-l-4 border-on-tertiary-container">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex-1 space-y-4">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 bg-surface-container-high text-primary font-bold text-[10px] tracking-widest uppercase rounded-full">RT-9021-LP</span>
+<span class="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant font-bold text-[10px] tracking-widest uppercase rounded-full">Delayed</span>
+<span class="text-xs text-on-surface-variant ml-auto md:ml-0">Oct 22, 2023</span>
+</div>
+<div class="flex items-start gap-4">
+<div class="flex flex-col items-center pt-1.5">
+<div class="w-2.5 h-2.5 rounded-full border-2 border-on-tertiary-container bg-white"></div>
+<div class="w-0.5 h-8 bg-tertiary-container/30 my-1"></div>
+<div class="w-2.5 h-2.5 rounded-full border-2 border-outline-variant bg-white"></div>
+</div>
+<div class="space-y-3">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Pickup</p>
+<p class="text-sm font-semibold text-primary">Logistics Park East, Lyon</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-tighter">Dropoff</p>
+<p class="text-sm font-semibold text-primary">Central Depot, Paris</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-row md:flex-col justify-between items-end">
+<div class="text-right">
+<p class="text-2xl font-bold font-headline text-primary">$850.00</p>
+<p class="text-xs text-on-tertiary-container font-semibold">Action Required</p>
+</div>
+<button class="material-symbols-outlined text-outline hover:text-secondary transition-colors">chevron_right</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Business Insights Upsell Banner -->
+<section class="relative overflow-hidden rounded-3xl bg-primary-container text-white p-8 md:p-12">
+<div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-secondary/20 to-transparent pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+<div class="space-y-4 max-w-xl">
+<span class="px-3 py-1 bg-secondary text-white font-bold text-[10px] tracking-[0.2em] uppercase rounded-full">New Feature</span>
+<h3 class="text-3xl font-bold font-headline leading-tight">Unlock Predictive Intelligence with Business Insights</h3>
+<p class="text-on-primary-container text-lg">Reduce shipping delays by up to 24% using our new AI-driven route optimization dashboard.</p>
+<div class="flex gap-4 pt-2">
+<button class="bg-white text-primary px-8 py-3 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors">Explore Pro</button>
+<button class="bg-transparent border border-on-primary-container text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors">Learn More</button>
+</div>
+</div>
+<div class="hidden lg:block w-64 h-64 bg-secondary/10 rounded-full border border-secondary/20 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-8xl text-secondary/40" style="font-variation-settings: 'FILL' 1;">insights</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl border-t border-slate-100 md:hidden">
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-blue-500 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">local_shipping</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Fleet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-700 bg-blue-50 rounded-xl px-4 py-2 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-blue-500 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">leaderboard</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-blue-500 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+<!-- Web Version Side Navigation Placeholder (Hidden on Mobile) -->
+<div class="hidden md:flex fixed left-0 top-16 bottom-0 w-20 bg-white border-r border-slate-100 flex-col items-center py-8 gap-8">
+<button class="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-secondary transition-all">
+<span class="material-symbols-outlined">local_shipping</span>
+</button>
+<button class="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-secondary transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+</button>
+<button class="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-secondary transition-all">
+<span class="material-symbols-outlined">leaderboard</span>
+</button>
+<button class="mt-auto w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-secondary transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</body></html>

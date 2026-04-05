@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Verify Access | Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-tint": "#4a5f81",
+                        "surface-dim": "#d7dadc",
+                        "on-primary-container": "#768baf",
+                        "on-primary-fixed": "#021c3a",
+                        "background": "#f7fafc",
+                        "on-tertiary-fixed": "#341100",
+                        "tertiary": "#1d0600",
+                        "surface-bright": "#f7fafc",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed": "#dde1ff",
+                        "outline": "#74777e",
+                        "secondary-fixed-dim": "#b8c3ff",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#001356",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "on-primary": "#ffffff",
+                        "secondary": "#0040e0",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-surface": "#181c1e",
+                        "surface": "#f7fafc",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "primary": "#000d22",
+                        "tertiary-container": "#401600",
+                        "on-surface-variant": "#44474e",
+                        "surface-container-low": "#f1f4f6",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "on-secondary-container": "#efefff",
+                        "inverse-primary": "#b2c7ef",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c4c6cf",
+                        "secondary-container": "#2e5bff",
+                        "on-tertiary-container": "#e66100",
+                        "inverse-surface": "#2d3133",
+                        "primary-container": "#0a2342",
+                        "on-primary-fixed-variant": "#324768",
+                        "inverse-on-surface": "#eef1f3",
+                        "primary-fixed": "#d5e3ff",
+                        "on-background": "#181c1e",
+                        "surface-container-high": "#e5e9eb",
+                        "surface-container": "#ebeef0",
+                        "on-error-container": "#93000a",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        input:focus + div {
+            transform: scaleX(1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface antialiased">
+<!-- Top Navigation Bar -->
+<header class="bg-white/70 backdrop-blur-md fixed top-0 w-full z-50 shadow-sm shadow-blue-900/5 flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-slate-100 transition-colors active:scale-95 duration-200 text-blue-700">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-2xl font-black text-slate-900 tracking-tighter font-headline">Dzpatch</span>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<span class="text-slate-500 font-semibold text-sm uppercase tracking-wider font-label">Support</span>
+</div>
+</header>
+<main class="min-h-screen flex items-center justify-center px-6 pt-16">
+<div class="w-full max-w-lg">
+<!-- Asymmetric Momentum Layout -->
+<div class="flex flex-col gap-12">
+<!-- Headline Section -->
+<div class="space-y-4">
+<div class="inline-flex items-center px-3 py-1 bg-secondary-fixed text-on-secondary-fixed-variant rounded-full">
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] font-label">Security Protocol</span>
+</div>
+<h1 class="font-headline font-extrabold text-4xl md:text-5xl text-primary tracking-tight leading-none">
+                        Verify your <br/>identity.
+                    </h1>
+<p class="text-on-surface-variant font-body text-lg max-w-sm">
+                        We've sent a 6-digit verification code to <span class="text-primary font-semibold">m***@dzpatch.com</span>
+</p>
+</div>
+<!-- OTP Input Grid -->
+<div class="space-y-8">
+<div class="flex gap-3 md:gap-4 justify-between">
+<!-- Input 1 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+<!-- Input 2 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+<!-- Input 3 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+<!-- Input 4 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+<!-- Input 5 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+<!-- Input 6 -->
+<div class="relative group flex-1">
+<input class="w-full h-16 md:h-20 text-center text-3xl font-headline font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 transition-all text-primary" maxlength="1" placeholder="·" type="text"/>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 transition-transform duration-300 rounded-b-xl origin-center"></div>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<button class="w-full bg-secondary text-on-secondary h-16 rounded-xl font-headline font-bold text-lg hover:shadow-lg hover:shadow-secondary/20 transition-all active:scale-[0.98]">
+                            Confirm Access
+                        </button>
+<div class="flex items-center justify-between px-2">
+<div class="flex items-center gap-2 text-on-surface-variant font-medium text-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span>Code expires in <span class="text-primary font-bold">01:54</span></span>
+</div>
+<button class="text-on-primary-fixed-variant hover:text-secondary font-bold text-sm tracking-tight transition-colors">
+                                Resend Code
+                            </button>
+</div>
+</div>
+</div>
+<!-- Subtle Decorative Element (Glass Card Background) -->
+<div class="mt-8 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 flex items-start gap-4">
+<div class="bg-primary-container p-2 rounded-full">
+<span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="info">info</span>
+</div>
+<div class="space-y-1">
+<p class="text-xs font-bold text-primary uppercase tracking-widest font-label">Security Tip</p>
+<p class="text-sm text-on-surface-variant leading-relaxed">Dzpatch will never ask for your verification code via call or text. Keep this code private to secure your fleet data.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Decoration (Asymmetric Gradient) -->
+<div class="fixed bottom-0 left-0 w-full h-1 pointer-events-none">
+<div class="h-full w-full bg-gradient-to-r from-secondary via-primary to-tertiary-container opacity-20"></div>
+</div>
+<!-- Background Accent -->
+<div class="fixed -bottom-40 -right-40 w-96 h-96 bg-secondary/5 rounded-full blur-[100px] z-[-1]"></div>
+<div class="fixed top-20 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-[80px] z-[-1]"></div>
+</body></html>

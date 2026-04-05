@@ -21,7 +21,8 @@ export default function WaitingForCustomerScreen() {
   const insets = useSafeAreaInsets();
   const { orderId, bidAmount } = useLocalSearchParams<{ orderId: string; bidAmount: string }>();
   const { riderId } = useAuthStore();
-  const [elapsed, setElapsed] = useState(0);
+  const [remaining, setRemaining] = useState(300);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
   // ── Radar pulse animation ──────────────────────────────────────────────────
@@ -55,17 +56,23 @@ export default function WaitingForCustomerScreen() {
     opacity: anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0.6, 0] }),
   });
 
-  // ── Elapsed timer ──────────────────────────────────────────────────────────
+  // ── Countdown timer ────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
+    if (!expiresAt) return;
+    const syncRemaining = () => {
+      const next = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setRemaining(next);
+    };
+    syncRemaining();
+    const interval = setInterval(syncRemaining, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [expiresAt]);
 
-  const formatElapsed = () => {
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  const formatRemaining = () => {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   // ── Realtime bid status subscription + poll fallback ─────────────────────
@@ -73,11 +80,50 @@ export default function WaitingForCustomerScreen() {
   useEffect(() => {
     if (!orderId || !riderId) return;
 
+    supabase
+      .from('bids')
+      .select('expires_at')
+      .eq('order_id', orderId)
+      .eq('rider_id', riderId)
+      .in('status', ['pending', 'countered'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data?.expires_at) {
+          setExpiresAt(data.expires_at as string);
+        }
+      });
+
     // Poll every 5s — realtime RLS may block bid UPDATE events
     const poll = setInterval(async () => {
+      // Check order status first (catches customer cancellation or match)
+      const { data: orderRow } = await supabase
+        .from('orders')
+        .select('status, cancellation_reason, rider_id')
+        .eq('id', orderId)
+        .single();
+        
+      if (orderRow) {
+        const status = (orderRow as any).status;
+        if (status === 'cancelled') {
+          clearInterval(poll);
+          router.replace({
+            pathname: '/(rider)/bid-declined' as any,
+            params: { orderId, cancellationReason: (orderRow as any).cancellation_reason ?? 'Customer cancelled the order' },
+          });
+          return;
+        }
+        if (status === 'matched' && (orderRow as any).rider_id === riderId) {
+          clearInterval(poll);
+          router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
+          return;
+        }
+      }
+
       const { data: bids } = await supabase
         .from('bids')
-        .select('id, status, amount')
+        .select('id, status, amount, expires_at, negotiation_round')
         .eq('order_id', orderId)
         .eq('rider_id', riderId)
         .order('created_at', { ascending: false })
@@ -85,6 +131,9 @@ export default function WaitingForCustomerScreen() {
 
       if (!bids || bids.length === 0) return;
       const allBids = bids as any[];
+      if (allBids[0]?.expires_at) {
+        setExpiresAt(allBids[0].expires_at);
+      }
 
       // Check for accepted bid (could be any bid in the list)
       const accepted = allBids.find((b) => b.status === 'accepted');
@@ -115,6 +164,7 @@ export default function WaitingForCustomerScreen() {
             counterBidId: counterBid.id,
             customerCounterAmount: String(counterBid.amount),
             myOriginalAmount: String(counteredBid.amount),
+            negotiationRound: String((counterBid as any).negotiation_round ?? 2),
           },
         });
       }
@@ -133,6 +183,9 @@ export default function WaitingForCustomerScreen() {
         async (payload) => {
           const bid = payload.new as { id: string; status: string; rider_id: string; amount: number };
           if (bid.rider_id !== riderId) return;
+          if ((payload.new as any).expires_at) {
+            setExpiresAt((payload.new as any).expires_at as string);
+          }
 
           if (bid.status === 'accepted') {
             router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
@@ -157,6 +210,7 @@ export default function WaitingForCustomerScreen() {
                 counterBidId: (counterBid as any)?.id ?? '',
                 customerCounterAmount: String((counterBid as any)?.amount ?? 0),
                 myOriginalAmount: String(bid.amount),
+                negotiationRound: String((counterBid as any)?.negotiation_round ?? 2),
               },
             });
           }
@@ -180,7 +234,11 @@ export default function WaitingForCustomerScreen() {
               params: { orderId },
             });
           } else if (order.status === 'cancelled') {
-            router.replace({ pathname: '/(rider)/' as any });
+            const reason = (payload.new as any).cancellation_reason as string | null;
+            router.replace({
+              pathname: '/(rider)/bid-declined' as any,
+              params: { orderId, cancellationReason: reason ?? 'Customer cancelled the order' },
+            });
           }
         }
       )
@@ -207,7 +265,7 @@ export default function WaitingForCustomerScreen() {
             .from('bids')
             .select('id')
             .eq('order_id', orderId)
-            .eq('rider_id', riderId)
+            .eq('rider_id', riderId!)
             .in('status', ['pending', 'countered'])
             .order('created_at', { ascending: false })
             .limit(1)
@@ -231,7 +289,6 @@ export default function WaitingForCustomerScreen() {
   };
 
   const amount = bidAmount ? parseInt(bidAmount, 10) : 0;
-  const progress = Math.min((elapsed / 120) * 100, 100); // 2 min max
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -259,8 +316,8 @@ export default function WaitingForCustomerScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Ionicons name="time-outline" size={14} color="#74777e" />
-            <Text style={styles.statValue}>{formatElapsed()}</Text>
-            <Text style={styles.statLabel}>Waiting</Text>
+            <Text style={styles.statValue}>{formatRemaining()}</Text>
+            <Text style={styles.statLabel}>Remaining</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -270,11 +327,13 @@ export default function WaitingForCustomerScreen() {
           </View>
         </View>
 
-        {/* Progress bar */}
+        {/* Progress bar — drains from full to empty as time runs out */}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressBar, { width: `${progress}%` }]} />
+          <View style={[styles.progressBar, { width: `${(remaining / 300) * 100}%` }]} />
         </View>
-        <Text style={styles.progressLabel}>Bid window closes in {Math.max(0, 120 - elapsed)}s</Text>
+        <Text style={styles.progressLabel}>
+          {remaining > 0 ? `Bid window closes in ${formatRemaining()}` : 'Bid window expired'}
+        </Text>
 
         <Pressable style={styles.cancelBtn} onPress={handleCancel} disabled={cancelling}>
           <Ionicons name="close-circle-outline" size={16} color="#ba1a1a" />

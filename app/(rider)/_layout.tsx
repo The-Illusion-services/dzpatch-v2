@@ -124,7 +124,12 @@ export default function RiderLayout() {
   // In dev bypass mode, skip the KYC gate — no real profile exists
   const isDevBypass = __DEV__ && process.env.EXPO_PUBLIC_DEV_ROLE === 'rider';
 
-  // If rider not approved yet, keep them in pending
+  // Not logged in at all — send to auth
+  if (!isDevBypass && !profile) {
+    return <Redirect href={'/(rider-auth)/splash' as any} />;
+  }
+
+  // Logged in but not yet approved — hold in pending
   if (!isDevBypass && profile?.kyc_status !== 'approved') {
     return <Redirect href={'/(rider-auth)/pending-approval' as any} />;
   }

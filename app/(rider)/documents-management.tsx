@@ -45,7 +45,7 @@ const STATUS_CONFIG: Record<DocStatus, { icon: string; color: string; bg: string
 
 export default function DocumentsManagementScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
+  const { profile, riderId } = useAuthStore();
 
   const [documents, setDocuments] = useState<RiderDocument[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -53,21 +53,21 @@ export default function DocumentsManagementScreen() {
   // ── Fetch documents ────────────────────────────────────────────────────────
 
   const fetchDocuments = useCallback(async () => {
-    if (!profile?.id) return;
+    if (!riderId) return;
     const { data } = await supabase
       .from('rider_documents')
       .select('id, document_type, status, document_url, created_at')
-      .eq('rider_id', profile.id)
+      .eq('rider_id', riderId)
       .order('created_at', { ascending: false });
     if (data) setDocuments(data as RiderDocument[]);
-  }, [profile?.id]);
+  }, [riderId]);
 
-  useEffect(() => { fetchDocuments(); }, [profile?.id, fetchDocuments]);
+  useEffect(() => { fetchDocuments(); }, [riderId, fetchDocuments]);
 
   // ── Upload document ────────────────────────────────────────────────────────
 
   const handleUpload = async (documentType: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || !riderId) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Photo library access is needed to upload documents.');
@@ -85,7 +85,7 @@ export default function DocumentsManagementScreen() {
     try {
       const asset = result.assets[0];
       const fileName = `${documentType}-${Date.now()}.jpg`;
-      const path = `rider-docs/${profile.id}/${fileName}`;
+      const path = `rider-docs/${profile.id}/documents/${documentType}/${fileName}`;
 
       const { data: uploadData, error: uploadErr } = await supabase.storage
         .from('documents')
@@ -96,20 +96,39 @@ export default function DocumentsManagementScreen() {
         } as unknown as Blob, { upsert: true });
 
       if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(uploadData.path);
-
-      // Upsert document record (conflict on rider_id + document_type unique constraint)
-      const { error: upsertErr } = await supabase
+      const { data: existingDoc, error: existingDocError } = await supabase
         .from('rider_documents')
-        .upsert({
-          rider_id: profile.id,
-          document_type: documentType,
-          status: 'pending',
-          document_url: urlData.publicUrl,
-        } as any, { onConflict: 'rider_id,document_type' });
+        .select('id')
+        .eq('rider_id', riderId)
+        .eq('document_type', documentType)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (upsertErr) throw upsertErr;
+      if (existingDocError) throw existingDocError;
+
+      if (existingDoc?.id) {
+        const { error: updateErr } = await supabase
+          .from('rider_documents')
+          .update({
+            status: 'pending',
+            document_url: uploadData.path,
+          } as any)
+          .eq('id', existingDoc.id);
+
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from('rider_documents')
+          .insert({
+            rider_id: riderId,
+            document_type: documentType,
+            status: 'pending',
+            document_url: uploadData.path,
+          } as any);
+
+        if (insertErr) throw insertErr;
+      }
 
       Alert.alert('Uploaded!', 'Your document has been submitted for review.');
       await fetchDocuments();

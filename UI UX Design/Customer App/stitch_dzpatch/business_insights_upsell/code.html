@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Insights - Upgrade</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdbcb",
+              "secondary-container": "#2e5bff",
+              "tertiary": "#1d0600",
+              "error": "#ba1a1a",
+              "surface-container": "#ebeef0",
+              "surface-container-high": "#e5e9eb",
+              "on-tertiary-container": "#e66100",
+              "on-error": "#ffffff",
+              "on-secondary-fixed": "#001356",
+              "on-primary-fixed-variant": "#324768",
+              "on-error-container": "#93000a",
+              "outline": "#74777e",
+              "surface-container-lowest": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#efefff",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-secondary": "#ffffff",
+              "background": "#f7fafc",
+              "on-surface": "#181c1e",
+              "surface-dim": "#d7dadc",
+              "primary-fixed": "#d5e3ff",
+              "on-surface-variant": "#44474e",
+              "on-background": "#181c1e",
+              "surface-tint": "#4a5f81",
+              "on-secondary-fixed-variant": "#0035be",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary": "#ffffff",
+              "surface": "#f7fafc",
+              "secondary": "#0040e0",
+              "primary-container": "#0a2342",
+              "primary": "#000d22",
+              "inverse-surface": "#2d3133",
+              "on-primary-fixed": "#021c3a",
+              "inverse-primary": "#b2c7ef",
+              "tertiary-container": "#401600",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-variant": "#e0e3e5",
+              "surface-container-low": "#f1f4f6",
+              "surface-bright": "#f7fafc",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary": "#ffffff",
+              "secondary-fixed": "#dde1ff",
+              "on-tertiary-fixed": "#341100",
+              "outline-variant": "#c4c6cf",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary-container": "#768baf"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .tonal-shift {
+        background-color: #f1f4f6;
+      }
+      .no-border {
+        border: none !important;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface selection:bg-secondary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl flex items-center justify-between px-6 h-20 w-full shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-700" data-icon="analytics">analytics</span>
+<h1 class="font-headline font-bold text-2xl tracking-tight text-slate-900">Insights</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-100 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-slate-500" data-icon="search">search</span>
+</button>
+<div class="h-10 w-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white shadow-sm">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Portrait of a business professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCHFRLYrYBVwmaHY0povIDz9Si-HGnnY3F7sofAe0moPSay5XGPy0AAndEPbjisCL1WG791bXKRmCR086g0nxRvOdCVnqyvvQuz-9X6ZnvWLDUs4GJTuufmrDXu1HFW3mYXoDqAlTt_p27lnMb9ts7fqEnHDuc8IQd-hFIaXhR1V9ztqNvQzJduwYbxcXuOPCAqevr-P8rirKDy9ca6_SkxCMRPzI5yFMCDUUBB1t4zYwU_Xot6UChQBnEjj2cHSUugOpsnNJb_cBV"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-32 pb-32 px-6 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Hero Illustration & Locked State -->
+<div class="lg:col-span-6 relative">
+<div class="aspect-square rounded-[2rem] bg-gradient-to-br from-primary to-primary-container p-12 flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Decorative abstract elements -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+<div class="absolute bottom-0 left-0 w-48 h-48 bg-on-tertiary-container/5 rounded-full blur-2xl -ml-10 -mb-10"></div>
+<!-- Locked Chart Visual -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-32 h-32 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-8 ring-1 ring-white/20">
+<span class="material-symbols-outlined text-6xl text-white" data-icon="lock" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div class="flex items-end gap-2 h-32">
+<div class="w-8 bg-white/10 rounded-t-lg h-[40%]"></div>
+<div class="w-8 bg-white/20 rounded-t-lg h-[65%]"></div>
+<div class="w-8 bg-white/30 rounded-t-lg h-[90%]"></div>
+<div class="w-8 bg-white/15 rounded-t-lg h-[50%]"></div>
+<div class="w-8 bg-white/25 rounded-t-lg h-[75%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Value Proposition & Benefits -->
+<div class="lg:col-span-6 flex flex-col gap-8">
+<div class="space-y-4">
+<span class="inline-block px-4 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container font-headline font-bold text-xs uppercase tracking-[0.15em]">Premium Access</span>
+<h2 class="font-headline font-extrabold text-4xl md:text-5xl lg:text-6xl text-primary leading-tight">Scale with Professional Intelligence.</h2>
+<p class="text-on-surface-variant text-lg md:text-xl font-body leading-relaxed max-w-xl">
+                        Unlock the full power of your data. Transition to a Business Account to access architectural-grade analytics and operational precision.
+                    </p>
+</div>
+<!-- Benefits List (No-Line Strategy) -->
+<div class="flex flex-col gap-4">
+<div class="group flex items-center gap-6 p-6 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+<div class="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="bar_chart">bar_chart</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-primary">Detailed Spending Graphs</h3>
+<p class="text-on-surface-variant text-sm font-body">Visualize every cent with high-fidelity, real-time data visualization.</p>
+</div>
+</div>
+<div class="group flex items-center gap-6 p-6 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+<div class="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="csv">csv</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-primary">Export Transactions to CSV</h3>
+<p class="text-on-surface-variant text-sm font-body">Seamlessly bridge your financial data with any accounting software.</p>
+</div>
+</div>
+<div class="group flex items-center gap-6 p-6 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+<div class="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="manage_search">manage_search</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-primary">Advanced Search</h3>
+<p class="text-on-surface-variant text-sm font-body">Find historical shipments and invoices with ultra-granular filters.</p>
+</div>
+</div>
+</div>
+<!-- CTA -->
+<div class="pt-4">
+<button class="w-full md:w-auto px-10 py-5 rounded-xl bg-secondary text-white font-headline font-bold text-lg hover:bg-secondary-container transition-all shadow-xl shadow-secondary/20 active:scale-95">
+                        Switch to Business Account
+                    </button>
+<p class="mt-4 text-center md:text-left text-on-surface-variant text-xs font-medium uppercase tracking-widest">
+                        Starting at $19.99/mo • No contract required
+                    </p>
+</div>
+</div>
+</div>
+<!-- Asymmetric Momentum Section (Secondary Content) -->
+<section class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-primary p-8 rounded-[2rem] text-white flex flex-col justify-between h-64 relative overflow-hidden">
+<div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full"></div>
+<h4 class="font-headline font-bold text-xl relative z-10">Global Fleet Tracking</h4>
+<div class="mt-auto flex items-center gap-2 text-on-primary-container relative z-10">
+<span class="material-symbols-outlined" data-icon="public">public</span>
+<span class="font-label text-sm uppercase tracking-wider">Live Map View</span>
+</div>
+</div>
+<div class="bg-surface-container-highest p-8 rounded-[2rem] flex flex-col justify-between h-64">
+<h4 class="font-headline font-bold text-xl text-primary">API Direct Access</h4>
+<div class="mt-auto flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="font-label text-sm uppercase tracking-wider">Developer Ready</span>
+</div>
+</div>
+<div class="bg-secondary-fixed p-8 rounded-[2rem] flex flex-col justify-between h-64">
+<h4 class="font-headline font-bold text-xl text-on-secondary-fixed">Team Management</h4>
+<div class="mt-auto flex items-center gap-2 text-on-secondary-fixed-variant">
+<span class="material-symbols-outlined" data-icon="group_add">group_add</span>
+<span class="font-label text-sm uppercase tracking-wider">Multi-user seats</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Visible only on mobile as per Responsive Pivot rule) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl no-border">
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="local_shipping">local_shipping</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider">Fleet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="package_2">package_2</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider">Shipments</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-blue-50 text-blue-700 rounded-xl py-2 px-4 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="insights" style="font-variation-settings: 'FILL' 1;">insights</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+<!-- Desktop Sidebar-style indicator (Simulated for Web) -->
+<div class="hidden md:flex fixed left-0 top-20 bottom-0 w-1 bg-surface-container items-center">
+<div class="w-1 bg-secondary h-32 absolute top-1/4 rounded-r-full"></div>
+</div>
+</body></html>

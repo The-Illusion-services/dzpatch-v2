@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-container": "#768baf",
+                        "inverse-surface": "#2d3133",
+                        "tertiary": "#1d0600",
+                        "on-primary-fixed-variant": "#324768",
+                        "on-background": "#181c1e",
+                        "on-surface-variant": "#44474e",
+                        "surface-variant": "#e0e3e5",
+                        "inverse-primary": "#b2c7ef",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d7dadc",
+                        "secondary-fixed": "#dde1ff",
+                        "on-surface": "#181c1e",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary": "#000d22",
+                        "on-secondary-container": "#efefff",
+                        "secondary-fixed-dim": "#b8c3ff",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "outline": "#74777e",
+                        "outline-variant": "#c4c6cf",
+                        "on-tertiary-fixed": "#341100",
+                        "on-secondary-fixed": "#001356",
+                        "surface-container-high": "#e5e9eb",
+                        "inverse-on-surface": "#eef1f3",
+                        "surface-container": "#ebeef0",
+                        "background": "#f7fafc",
+                        "tertiary-container": "#401600",
+                        "secondary": "#0040e0",
+                        "on-primary-fixed": "#021c3a",
+                        "primary-container": "#0a2342",
+                        "secondary-container": "#2e5bff",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f1f4f6",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary-container": "#e66100",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#4a5f81",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7fafc",
+                        "surface": "#f7fafc",
+                        "primary-fixed": "#d5e3ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 w-full bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl shadow-sm dark:shadow-none">
+<div class="flex items-center gap-4">
+<button class="transition-all duration-300 ease-in-out active:scale-95 text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-extrabold tracking-tighter text-slate-900 dark:text-slate-50 font-['Manrope']">OmniRoute</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden md:flex items-center gap-6 mr-6">
+<a class="font-['Manrope'] font-bold tracking-tight text-blue-600" href="#">Explorer</a>
+<a class="font-['Manrope'] font-bold tracking-tight text-slate-500 hover:bg-slate-100/50" href="#">Earnings</a>
+<a class="font-['Manrope'] font-bold tracking-tight text-slate-500 hover:bg-slate-100/50" href="#">Schedule</a>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm">
+<img alt="Driver Profile" data-alt="professional driver headshot portrait with a clean friendly expression and natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhJmCl1LiorfqMxYwXEMGiIsxLaqajBQ-o-Q_VOhOGQ4P94FSwTKPgKH739UqsSBOdp5Tx5WTgKqutd-BvsijKhPGnIe8aP8qTFwIk9Kagvjn2ILO6WRnCjMl2Snr2VIadR7JskZwiRnO18BOguNjXU1jZoMEhVVXt-dXNI21BxtE8YXca2Qt_b07uMP6FOQ0tsWoCIFDNEtpJMe1lso4u_e89FHEjmFboagDaAwuXAkgiFu6vkXhEYy_22p54h96O4o1GfE0JIC1P"/>
+</div>
+</div>
+</header>
+<!-- Main Map Canvas -->
+<main class="flex-grow relative pt-16 h-screen overflow-hidden">
+<!-- Mock Map Background -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover grayscale-[20%] brightness-[1.05]" data-alt="clean minimal city map with subtle navy and white tones and marked delivery routes" data-location="Lagos" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4b9HG-iUVvU5IgpwbbFbpneE0RduE4k3tAOQIORMHPGjFcmKCHBakT1TcfHsl4-5fEoKqY7roAcNUX9E-vuVw51ssizR-Z_K-DD7OSHPR_EVQuF6iygSSKANM-dEKnvGvgYHa3lq22x2ajncDy0J0OqP1ONRa2WwzoNS-Fh02BxwwtGNkD5ztN6B3MPcvu0DG66B9qNJQyQ7_odM7mzj6ZRrclQbw58tTxfOhqIVtdVM3xg_Zb9pZgPDoh8Ma2Egfc6cAaIktb2v6"/>
+<!-- Map Markers -->
+<div class="absolute top-[45%] left-[40%] animate-bounce">
+<span class="material-symbols-outlined text-secondary text-5xl drop-shadow-lg" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+</div>
+<!-- Rider Order Preview Card (Target Component) -->
+<div class="absolute bottom-28 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-40">
+<div class="bg-surface-container-lowest rounded-[2rem] p-6 shadow-[0_20px_50px_rgba(0,13,34,0.12)] border border-white/40">
+<!-- Header: Distance & Price -->
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-headline">Pickup Distance</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-lg">near_me</span>
+<span class="text-2xl font-extrabold font-headline tracking-tight text-primary">1.2km</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-headline">Est. Earnings</span>
+<div class="text-2xl font-extrabold font-headline tracking-tight text-secondary">₦1,200</div>
+</div>
+</div>
+<!-- Package Info Chip -->
+<div class="inline-flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full mb-6">
+<span class="material-symbols-outlined text-on-primary-fixed-variant text-sm">package_2</span>
+<span class="text-sm font-semibold text-on-primary-fixed-variant font-headline">Small Parcel</span>
+</div>
+<!-- Route Visualization -->
+<div class="relative flex flex-col gap-6 mb-8 pl-8">
+<!-- The Connection Line -->
+<div class="absolute left-3.5 top-3 bottom-3 w-0.5 border-l-2 border-dashed border-outline-variant"></div>
+<!-- Pickup -->
+<div class="relative">
+<div class="absolute -left-7 top-1 w-5 h-5 rounded-full border-4 border-white bg-secondary shadow-sm"></div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-headline">Pickup</span>
+<span class="text-sm font-bold text-primary font-headline">Victoria Island, Block 4</span>
+</div>
+</div>
+<!-- Drop-off -->
+<div class="relative">
+<div class="absolute -left-7 top-1 w-5 h-5 rounded-full border-4 border-white bg-tertiary-container shadow-sm"></div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-headline">Drop-off</span>
+<span class="text-sm font-bold text-primary font-headline">Ikeja City Center, G-Floor</span>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex gap-3">
+<button class="flex-1 py-4 px-6 rounded-xl font-headline font-bold text-sm bg-surface-container-high text-primary transition-all active:scale-95">
+                        View Details
+                    </button>
+<button class="flex-[1.5] py-4 px-6 rounded-xl font-headline font-bold text-sm bg-secondary text-on-secondary shadow-lg shadow-secondary/20 transition-all active:scale-95">
+                        Accept Order
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- NavigationDrawer (Hidden by default, visual representation) -->
+<div class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-[60] hidden">
+<aside class="h-full w-80 rounded-r-2xl bg-slate-50 dark:bg-slate-900 shadow-2xl flex flex-col overflow-y-auto">
+<div class="p-8 flex flex-col gap-1">
+<div class="w-16 h-16 rounded-2xl overflow-hidden mb-4">
+<img alt="Driver Avatar" data-alt="driver avatar profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpgl0XrD7U-ZrrIfccsxvJO3iIBkQ0W79RIkjhrUkYGTPgAAFioco5VXQyoE65qWfvMGkm3M_2n1ZCnmgaY7yocQm414ZO0imevqjGX-PCaP77Rrhn6_yFl3MkgQs79hgzf6rR52A5gMY993TAAo8y-lGLZbd9zKTiKsqDe-dJibHoz6j6jnmrrkMmas_PLxwYpp0zOWeyx9k_I7ZLr4CiYYkcI1-MN1h48z9AB7VAMC8Ikn76DZOi21xNlsCRqa0Ibhxu1DCCzSdK"/>
+</div>
+<h3 class="font-['Manrope'] text-lg font-bold text-primary">Alex Rivera</h3>
+<p class="text-xs font-semibold text-slate-400">ID: OR-99281</p>
+<div class="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Active Duty
+                </div>
+</div>
+<nav class="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
+<div class="bg-blue-600 text-white rounded-lg m-2 p-4 flex items-center gap-4 font-['Manrope'] text-sm font-semibold">
+<span class="material-symbols-outlined">power_settings_new</span>
+                    Duty Status
+                </div>
+<div class="text-slate-600 dark:text-slate-400 p-4 hover:bg-slate-200 flex items-center gap-4 font-['Manrope'] text-sm font-semibold">
+<span class="material-symbols-outlined">history</span>
+                    Route History
+                </div>
+<div class="text-slate-600 dark:text-slate-400 p-4 hover:bg-slate-200 flex items-center gap-4 font-['Manrope'] text-sm font-semibold">
+<span class="material-symbols-outlined">local_shipping</span>
+                    Vehicle Info
+                </div>
+<div class="text-slate-600 dark:text-slate-400 p-4 hover:bg-slate-200 flex items-center gap-4 font-['Manrope'] text-sm font-semibold">
+<span class="material-symbols-outlined">help</span>
+                    Support
+                </div>
+<div class="text-slate-600 dark:text-slate-400 p-4 hover:bg-slate-200 flex items-center gap-4 font-['Manrope'] text-sm font-semibold">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </div>
+</nav>
+</aside>
+</div>
+<!-- BottomNavBar (Active for Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full rounded-t-3xl z-50 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,13,34,0.06)] flex justify-around items-center h-20 px-4 pb-safe w-full">
+<!-- Explorer (Active) -->
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl px-4 py-1.5 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Explorer</span>
+</a>
+<!-- Earnings -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Earnings</span>
+</a>
+<!-- Schedule -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Schedule</span>
+</a>
+<!-- Account -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 active:scale-90 transition-transform duration-200 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider mt-1">Account</span>
+</a>
+</nav>
+</body></html>

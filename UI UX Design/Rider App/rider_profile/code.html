@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Driver Profile - Alex Rider</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-variant": "#e0e3e5",
+                        "surface-tint": "#4a5f81",
+                        "on-secondary-fixed": "#001356",
+                        "surface-container-low": "#f1f4f6",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "outline": "#74777e",
+                        "surface": "#f7fafc",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-container-high": "#e5e9eb",
+                        "inverse-on-surface": "#eef1f3",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#d7dadc",
+                        "surface-bright": "#f7fafc",
+                        "on-secondary-container": "#efefff",
+                        "tertiary": "#1d0600",
+                        "on-tertiary-container": "#e66100",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-fixed-variant": "#324768",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "primary-container": "#0a2342",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#401600",
+                        "secondary": "#0040e0",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "inverse-primary": "#b2c7ef",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "secondary-fixed": "#dde1ff",
+                        "outline-variant": "#c4c6cf",
+                        "on-surface-variant": "#44474e",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#ebeef0",
+                        "primary": "#000d22",
+                        "on-primary-container": "#768baf",
+                        "background": "#f7fafc",
+                        "secondary-fixed-dim": "#b8c3ff",
+                        "secondary-container": "#2e5bff",
+                        "on-background": "#181c1e",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-surface": "#181c1e",
+                        "primary-fixed": "#d5e3ff",
+                        "on-primary-fixed": "#021c3a"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift {
+            transition: background-color 0.2s ease;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3, .font-manrope {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-40 bg-white/70 backdrop-blur-md shadow-sm">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="text-blue-700 hover:bg-slate-50 transition-colors active:scale-95 duration-150 p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-manrope font-extrabold text-slate-900 text-lg tracking-tight">Driver Portal</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-secondary/10">
+<img alt="Driver Profile Photo" class="w-full h-full object-cover" data-alt="Professional studio portrait of a confident male driver in his 30s with a friendly smile, clean lighting, blurred urban background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2G65gojlYmSaXnacA1EC4HDyPRZstZM3Ji7TLPC0Q7IlBvRmtHWAugtbTH0UZo_7HyGucbwpdIQCGcVAeYAM18gdOxlM4d_6MLzPHVpzUmsUTsrD2Za0ip1x5A4g4mGaq_7uKigonQ892EQQ73LXVnQZ8AT-vkqjSL3fKn64NjK-byZTQYKN-rKZrGY04_fiVq4vqRvr6Ri9jPbyLy-HCuFPpcS74mtnvTrQtY-lanscMHI6pxWpL-XlSdZAFnYlGEWxhnGvgZUFK"/>
+</div>
+</div>
+<div class="bg-slate-100 h-px w-full"></div>
+</header>
+<main class="max-w-4xl mx-auto px-6 pt-8 space-y-8">
+<!-- Hero Profile Section (Asymmetric Layout) -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+<div class="md:col-span-4 aspect-square rounded-[2rem] overflow-hidden shadow-2xl relative group">
+<img alt="Alex Rider" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" data-alt="High quality close up portrait of a male delivery driver with kind eyes and short hair, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEMT4HVgKD_H1CGwIbopXXV9siT4vN92Uv2o4O2_jesGPr6_ifiR7mVznLXG6xuhMpTANxXY7VnYIjIcqmDAcaCz0yFy0iKiRScPZV2_yICe1UtzlAp_EwgDtAHxU2-UG4g0NyXXZw5H0eGbpKlVAKJ3g8uBAfqMReLmcNo9xd5h1Ov5GbN6kdli0DVg0RCDtdaoydQRPwQmB-SKNjk-K7In9FmXUT_wh60ORJye4vnyxuA99rYn3z8L5hdDpPUgxOI6tTplELK00z"/>
+<div class="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md py-3 px-4 rounded-2xl flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-tertiary-container">
+<span class="material-symbols-outlined text-[18px]" data-icon="star" data-weight="fill" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-headline font-bold text-lg">4.95</span>
+</div>
+<span class="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Gold Tier</span>
+</div>
+</div>
+<div class="md:col-span-8 space-y-4 pb-2">
+<div class="space-y-1">
+<span class="font-label text-xs font-semibold text-secondary tracking-[0.2em] uppercase">Executive Driver</span>
+<h2 class="font-headline text-5xl font-extrabold text-primary tracking-tighter">Alex Rider</h2>
+</div>
+<div class="flex flex-wrap gap-3">
+<div class="bg-surface-container-high px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="directions_car">directions_car</span>
+<span class="font-body font-medium text-sm text-on-surface">Blue Honda • ABC-123</span>
+</div>
+<div class="bg-surface-container-high px-4 py-2 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="verified_user">verified_user</span>
+<span class="font-body font-medium text-sm text-on-surface">Verified Identity</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Stats Section -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Large Stats Card -->
+<div class="md:col-span-2 bg-primary-container p-8 rounded-[2.5rem] text-white flex flex-col justify-between min-h-[240px]">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<p class="font-label text-on-primary-container text-xs font-bold uppercase tracking-widest">Monthly Performance</p>
+<h3 class="font-headline text-3xl font-bold">Excellent Standing</h3>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed text-4xl" data-icon="equalizer">equalizer</span>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="space-y-1">
+<p class="font-headline text-4xl font-extrabold text-white">1,240</p>
+<p class="font-body text-sm text-on-primary-container">Total Trips Completed</p>
+</div>
+<div class="space-y-1">
+<p class="font-headline text-4xl font-extrabold text-white">98%</p>
+<p class="font-body text-sm text-on-primary-container">Acceptance Rate</p>
+</div>
+</div>
+</div>
+<!-- Small Detail Card -->
+<div class="bg-surface-container-lowest p-8 rounded-[2.5rem] border border-surface-container-high flex flex-col justify-between">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-fixed" data-icon="schedule">schedule</span>
+</div>
+<div class="space-y-1">
+<p class="font-headline text-3xl font-extrabold text-primary">8.5 hrs</p>
+<p class="font-body text-sm text-on-surface-variant font-medium">Today's Online Time</p>
+</div>
+<div class="pt-4 border-t border-surface-variant">
+<p class="font-label text-[10px] font-bold text-on-tertiary-container uppercase">Shift Ending Soon</p>
+</div>
+</div>
+</section>
+<!-- Quick Actions / Navigation Items -->
+<section class="space-y-4">
+<h4 class="font-headline text-xl font-bold text-primary px-2">Account Details</h4>
+<div class="bg-surface-container-low rounded-[2rem] overflow-hidden">
+<div class="flex items-center justify-between p-6 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600" data-icon="description">description</span>
+</div>
+<span class="font-headline font-semibold text-primary">Documents &amp; Compliance</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="h-px bg-surface-variant/50 mx-6"></div>
+<div class="flex items-center justify-between p-6 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600" data-icon="account_balance">account_balance</span>
+</div>
+<span class="font-headline font-semibold text-primary">Banking &amp; Payouts</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="h-px bg-surface-variant/50 mx-6"></div>
+<div class="flex items-center justify-between p-6 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600" data-icon="contact_support">contact_support</span>
+</div>
+<span class="font-headline font-semibold text-primary">Driver Support</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-white dark:bg-slate-950 flex justify-around items-center px-4 pb-6 pt-3 shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] rounded-t-2xl border-t border-slate-100">
+<!-- Home -->
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-500 transition-colors tap-highlight-transparent active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Home</span>
+</a>
+<!-- Earnings -->
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-500 transition-colors tap-highlight-transparent active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Earnings</span>
+</a>
+<!-- Profile (Active) -->
+<a class="flex flex-col items-center gap-1 text-blue-600 scale-110 transition-transform tap-highlight-transparent active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Profile</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-500 transition-colors tap-highlight-transparent active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase">Settings</span>
+</a>
+</nav>
+</body></html>

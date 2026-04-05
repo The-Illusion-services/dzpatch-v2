@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,13 +25,14 @@ type Bid = {
   order_id: string;
   rider_id: string;
   amount: number;
-  status: string;
+  status: string; // 'pending' | 'expired'
   created_at: string;
   rider_name: string;
   rider_avatar: string | null;
   rider_rating: number;
   rider_trips: number;
   vehicle_type: string;
+  negotiation_round: number;
 };
 
 const DEFAULT_CENTER = { latitude: 5.9631, longitude: 8.3271 };
@@ -46,12 +48,14 @@ const MAP_STYLE = [
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
-// Deterministic scatter around center from rider_id chars
-function scatterCoord(id: string, center: { latitude: number; longitude: number }, idx: number) {
-  const seed = (id.charCodeAt(0) + id.charCodeAt(2) + idx * 31) / 600;
-  const seed2 = (id.charCodeAt(1) + id.charCodeAt(3) + idx * 17) / 600;
+// Deterministic scatter: derived purely from bid ID (stable — never depends on list index)
+function scatterCoord(id: string, center: { latitude: number; longitude: number }) {
+  // Use chars spread across the UUID for better entropy
+  const c = (n: number) => id.charCodeAt(n % id.length);
+  const seed  = (c(0) + c(4) + c(8)  + c(12)) / 1020;
+  const seed2 = (c(2) + c(6) + c(10) + c(14)) / 1020;
   return {
-    latitude: center.latitude + (seed - 0.5) * 0.06,
+    latitude:  center.latitude  + (seed  - 0.5) * 0.06,
     longitude: center.longitude + (seed2 - 0.5) * 0.06,
   };
 }
@@ -60,6 +64,8 @@ function scatterCoord(id: string, center: { latitude: number; longitude: number 
 
 export default function LiveBiddingScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { profile } = useAuthStore();
 
@@ -112,21 +118,21 @@ export default function LiveBiddingScreen() {
       supabase
         .from('bids')
         .select(`
-          id, order_id, rider_id, amount, status, created_at,
-          riders!inner(
+          id, order_id, rider_id, amount, status, created_at, negotiation_round,
+          riders(
             average_rating, total_trips, vehicle_type,
-            profiles!inner(full_name, avatar_url)
+            profiles(full_name, avatar_url)
           )
         `)
         .eq('order_id', orderId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'expired'])
         .order('amount', { ascending: true }),
     ]);
 
     if (orderRes.data) setOrder((orderRes as any).data as any);
 
     if (bidsRes.data) {
-      const mapped: Bid[] = (bidsRes.data as any[]).map((b) => ({
+      const mapped: Bid[] = (bidsRes.data as any[]).filter(b => b.negotiation_round % 2 !== 0).map((b) => ({
         id: b.id,
         order_id: b.order_id,
         rider_id: b.rider_id,
@@ -138,6 +144,7 @@ export default function LiveBiddingScreen() {
         rider_rating: b.riders?.average_rating ?? 0,
         rider_trips: b.riders?.total_trips ?? 0,
         vehicle_type: b.riders?.vehicle_type ?? 'motorcycle',
+        negotiation_round: b.negotiation_round ?? 1,
       }));
       setBids(mapped);
       if (mapped.length > 0) setSelectedBid((s) => s ?? mapped[0].id);
@@ -153,24 +160,36 @@ export default function LiveBiddingScreen() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         async (payload) => {
+          const newBidId = (payload.new as any).id;
+          
+          const { data: reliableBid } = await supabase
+            .from('bids')
+            .select('status, amount, rider_id, negotiation_round')
+            .eq('id', newBidId)
+            .single();
+            
+          if (!reliableBid) return;
+          if ((reliableBid as any).negotiation_round % 2 === 0) return;
+
           const { data: riderData } = await supabase
             .from('riders')
             .select('average_rating, total_trips, vehicle_type, profiles(full_name, avatar_url)')
-            .eq('id', (payload.new as any).rider_id)
-            .single();
+            .eq('id', (reliableBid as any).rider_id)
+            .maybeSingle();
 
           const newBid: Bid = {
-            id: (payload.new as any).id,
-            order_id: (payload.new as any).order_id,
-            rider_id: (payload.new as any).rider_id,
-            amount: (payload.new as any).amount,
-            status: (payload.new as any).status,
+            id: newBidId,
+            order_id: orderId,
+            rider_id: (reliableBid as any).rider_id,
+            amount: (reliableBid as any).amount,
+            status: (reliableBid as any).status,
             created_at: (payload.new as any).created_at,
             rider_name: (riderData as any)?.profiles?.full_name ?? 'Rider',
             rider_avatar: (riderData as any)?.profiles?.avatar_url ?? null,
             rider_rating: (riderData as any)?.average_rating ?? 0,
             rider_trips: (riderData as any)?.total_trips ?? 0,
             vehicle_type: (riderData as any)?.vehicle_type ?? 'motorcycle',
+            negotiation_round: (reliableBid as any).negotiation_round ?? 1,
           };
 
           setBids((prev) => {
@@ -187,11 +206,19 @@ export default function LiveBiddingScreen() {
         { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         (payload) => {
           const updated = payload.new as any;
-          if (updated.status === 'rejected' || updated.status === 'expired') {
-            setBids((prev) => prev.filter((b) => b.id !== updated.id));
+          if (updated.status === 'rejected' || updated.status === 'countered') {
+            // Remove rejected/countered bids — they're truly gone
+            setBids((prev) => {
+              const next = prev.filter((b) => b.id !== updated.id);
+              setSelectedBid((s) => s === updated.id ? (next[0]?.id ?? null) : s);
+              return next;
+            });
+          } else if (updated.status === 'expired') {
+            // Keep expired bids visible with Expired label — customer can still see what was offered
+            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, status: 'expired' } : b));
           } else if (updated.status === 'pending') {
-            // Amount updated (e.g. counter accepted) — refresh the bid amount
-            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, amount: updated.amount } : b));
+            // Amount updated — refresh
+            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, amount: updated.amount, status: 'pending' } : b));
           }
         }
       )
@@ -254,7 +281,7 @@ export default function LiveBiddingScreen() {
   const handleNegotiate = (bid: Bid) => {
     router.push({
       pathname: '/(customer)/counter-offer',
-      params: { orderId, bidId: bid.id, riderName: bid.rider_name, bidAmount: bid.amount.toString() },
+      params: { orderId, bidId: bid.id, riderName: bid.rider_name, bidAmount: bid.amount.toString(), negotiationRound: String(bid.negotiation_round ?? 1) },
     } as any);
   };
 
@@ -290,11 +317,11 @@ export default function LiveBiddingScreen() {
           </View>
         </Marker>
 
-        {/* Rider markers scattered around */}
-        {bids.map((bid, idx) => (
+        {/* Rider markers scattered around — coords are stable (memoised per bid.id) */}
+        {bids.map((bid) => (
           <Marker
             key={bid.id}
-            coordinate={scatterCoord(bid.id, center, idx)}
+            coordinate={scatterCoord(bid.id, center)}
             anchor={{ x: 0.5, y: 0.5 }}
             tracksViewChanges={false}
             onPress={() => setSelectedBid(bid.id)}
@@ -358,28 +385,43 @@ export default function LiveBiddingScreen() {
           <>
             {/* Bid tabs */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bidTabs}>
-              {bids.map((bid, idx) => (
-                <Pressable
-                  key={bid.id}
-                  style={[styles.bidTab, bid.id === selectedBid && styles.bidTabActive]}
-                  onPress={() => setSelectedBid(bid.id)}
-                >
-                  {idx === 0 && bids.length > 1 && (
-                    <Text style={styles.bestLabel}>BEST</Text>
-                  )}
-                  <Text style={[styles.bidTabAmount, bid.id === selectedBid && styles.bidTabAmountActive]}>
-                    ₦{Number(bid.amount).toLocaleString()}
-                  </Text>
-                  <Text style={[styles.bidTabName, bid.id === selectedBid && styles.bidTabNameActive]} numberOfLines={1}>
-                    {bid.rider_name.split(' ')[0]}
-                  </Text>
-                </Pressable>
-              ))}
+              {bids.map((bid, idx) => {
+                const isExpired = bid.status === 'expired';
+                return (
+                  <Pressable
+                    key={bid.id}
+                    style={[
+                      styles.bidTab,
+                      isExpired && styles.bidTabExpired,
+                      !isExpired && bid.negotiation_round > 1 && styles.bidTabCounter,
+                      bid.id === selectedBid && !isExpired && styles.bidTabActive,
+                    ]}
+                    onPress={() => setSelectedBid(bid.id)}
+                  >
+                    {isExpired ? (
+                      <Text style={styles.expiredLabel}>EXPIRED</Text>
+                    ) : bid.negotiation_round > 1 ? (
+                      <Text style={styles.counterLabel}>COUNTER</Text>
+                    ) : idx === 0 && bids.length > 1 ? (
+                      <Text style={styles.bestLabel}>BEST</Text>
+                    ) : null}
+                    <Text style={[styles.bidTabAmount, bid.id === selectedBid && !isExpired && styles.bidTabAmountActive, isExpired && styles.bidTabAmountExpired]}>
+                      ₦{Number(bid.amount).toLocaleString()}
+                    </Text>
+                    <Text style={[styles.bidTabName, bid.id === selectedBid && !isExpired && styles.bidTabNameActive]} numberOfLines={1}>
+                      {bid.rider_name.split(' ')[0]}
+                    </Text>
+                    <Text style={[styles.bidTabRating, bid.id === selectedBid && !isExpired && styles.bidTabRatingActive]}>
+                      ⭐ {bid.rider_rating.toFixed(1)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
 
             {/* Active bid detail card */}
             {activeBid && (
-              <View style={styles.bidDetail}>
+              <View style={[styles.bidDetail, activeBid.status === 'expired' && styles.bidDetailExpired]}>
                 <View style={styles.bidDetailTop}>
                   <Avatar name={activeBid.rider_name} uri={activeBid.rider_avatar} size="lg" />
                   <View style={{ flex: 1, gap: 3 }}>
@@ -390,23 +432,31 @@ export default function LiveBiddingScreen() {
                       <Text style={styles.metaChip}>{vehicleIcon[activeBid.vehicle_type] ?? '🏍️'} {activeBid.vehicle_type}</Text>
                     </View>
                   </View>
-                  <Text style={styles.bidDetailAmount}>₦{Number(activeBid.amount).toLocaleString()}</Text>
+                  <Text style={[styles.bidDetailAmount, activeBid.status === 'expired' && styles.bidDetailAmountExpired]}>
+                    ₦{Number(activeBid.amount).toLocaleString()}
+                  </Text>
                 </View>
 
-                <View style={styles.bidDetailActions}>
-                  <Pressable style={styles.negotiateBtn} onPress={() => handleNegotiate(activeBid)}>
-                    <Text style={styles.negotiateBtnText}>Negotiate</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.acceptBtn, accepting === activeBid.id && styles.acceptBtnDisabled]}
-                    onPress={() => handleAccept(activeBid)}
-                    disabled={accepting !== null}
-                  >
-                    <Text style={styles.acceptBtnText}>
-                      {accepting === activeBid.id ? 'Accepting...' : 'Accept Offer'}
-                    </Text>
-                  </Pressable>
-                </View>
+                {activeBid.status === 'expired' ? (
+                  <View style={styles.expiredNotice}>
+                    <Text style={styles.expiredNoticeText}>This bid expired — the rider can rebid on your order</Text>
+                  </View>
+                ) : (
+                  <View style={styles.bidDetailActions}>
+                    <Pressable style={styles.negotiateBtn} onPress={() => handleNegotiate(activeBid)}>
+                      <Text style={styles.negotiateBtnText}>Negotiate</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.acceptBtn, accepting === activeBid.id && styles.acceptBtnDisabled]}
+                      onPress={() => handleAccept(activeBid)}
+                      disabled={accepting !== null}
+                    >
+                      <Text style={styles.acceptBtnText}>
+                        {accepting === activeBid.id ? 'Accepting...' : 'Accept Offer'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             )}
           </>
@@ -443,7 +493,8 @@ export default function LiveBiddingScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1 },
 
   // Header overlay
@@ -455,34 +506,34 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
   },
   backArrow: { fontSize: 20, color: '#0040e0', fontWeight: '600' },
   headerCenter: { flex: 1, gap: 3 },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surface,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#0040e0' },
   liveText: { fontSize: 10, fontWeight: '800', color: '#0040e0', letterSpacing: 1.5, textTransform: 'uppercase' },
   bidCount: {
-    fontSize: Typography.xs, fontWeight: '700', color: '#44474e',
+    fontSize: Typography.xs, fontWeight: '700', color: colors.textSecondary,
     marginLeft: 2,
   },
   timerChip: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.surface,
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
   timerChipUrgent: { backgroundColor: '#ffdad6' },
-  timerText: { fontSize: Typography.sm, fontWeight: '800', color: '#000D22', letterSpacing: 0.5 },
+  timerText: { fontSize: Typography.sm, fontWeight: '800', color: colors.textPrimary, letterSpacing: 0.5 },
   timerTextUrgent: { color: '#ba1a1a' },
 
   // Map markers
@@ -494,11 +545,11 @@ const styles = StyleSheet.create({
   centerPinInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#0040e0' },
   riderPin: {
     alignItems: 'center', gap: 2,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.surface,
     borderRadius: 16, padding: 6,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
-    borderWidth: 1.5, borderColor: 'rgba(196,198,207,0.4)',
+    borderWidth: 1.5, borderColor: colors.border,
   },
   riderPinSelected: {
     backgroundColor: '#0040e0', borderColor: '#0040e0',
@@ -516,23 +567,23 @@ const styles = StyleSheet.create({
   // Bottom sheet
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: Spacing[5], paddingTop: 16,
     gap: 14,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: -8 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.1, shadowRadius: 20, elevation: 16,
   },
 
   // Order strip
   orderStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F7FAFC', borderRadius: 14,
+    backgroundColor: colors.background, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 10,
   },
   orderDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0040e0', flexShrink: 0 },
-  orderStripText: { flex: 1, fontSize: Typography.xs, fontWeight: '600', color: '#44474e' },
-  orderArrow: { fontSize: Typography.xs, color: '#c4c6cf', fontWeight: '700' },
+  orderStripText: { flex: 1, fontSize: Typography.xs, fontWeight: '600', color: colors.textSecondary },
+  orderArrow: { fontSize: Typography.xs, color: colors.textDisabled, fontWeight: '700' },
 
   // Waiting state
   waitingState: {
@@ -543,41 +594,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     position: 'absolute', top: 12,
   },
-  waitingTitle: { fontSize: Typography.md, fontWeight: '700', color: '#000D22' },
-  waitingSub: { fontSize: Typography.sm, color: '#74777e' },
+  waitingTitle: { fontSize: Typography.md, fontWeight: '700', color: colors.textPrimary },
+  waitingSub: { fontSize: Typography.sm, color: colors.textSecondary },
 
   // Bid tabs
   bidTabs: { gap: 8, paddingVertical: 2 },
   bidTab: {
     alignItems: 'center', gap: 2, minWidth: 80,
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.background,
     borderWidth: 1.5, borderColor: 'transparent',
   },
   bidTabActive: { backgroundColor: '#EEF2FF', borderColor: '#0040e0' },
   bestLabel: { fontSize: 8, fontWeight: '800', color: '#0040e0', letterSpacing: 1.5, textTransform: 'uppercase' },
-  bidTabAmount: { fontSize: Typography.sm, fontWeight: '800', color: '#44474e' },
+  counterLabel: { fontSize: 8, fontWeight: '800', color: '#b45309', letterSpacing: 1.5, textTransform: 'uppercase' },
+  expiredLabel: { fontSize: 8, fontWeight: '800', color: '#74777e', letterSpacing: 1.5, textTransform: 'uppercase' },
+  bidTabCounter: { backgroundColor: '#fff4e5', borderColor: '#f59e0b' },
+  bidTabExpired: { backgroundColor: colors.background, opacity: 0.55, borderColor: 'transparent' },
+  bidTabAmount: { fontSize: Typography.sm, fontWeight: '800', color: colors.textSecondary },
   bidTabAmountActive: { color: '#0040e0' },
-  bidTabName: { fontSize: 10, fontWeight: '600', color: '#74777e' },
+  bidTabAmountExpired: { color: colors.textDisabled, textDecorationLine: 'line-through' },
+  bidTabName: { fontSize: 10, fontWeight: '600', color: colors.textSecondary },
   bidTabNameActive: { color: '#0040e0' },
+  bidTabRating: { fontSize: 9, fontWeight: '600', color: colors.textSecondary },
+  bidTabRatingActive: { color: '#0040e0' },
 
   // Bid detail
   bidDetail: {
-    backgroundColor: '#F7FAFC', borderRadius: 20,
+    backgroundColor: colors.background, borderRadius: 20,
     padding: 16, gap: 14,
   },
   bidDetailTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bidDetailName: { fontSize: Typography.md, fontWeight: '700', color: '#000D22' },
+  bidDetailName: { fontSize: Typography.md, fontWeight: '700', color: colors.textPrimary },
   bidDetailMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
-  metaChip: { fontSize: Typography.xs, color: '#44474e' },
+  metaChip: { fontSize: Typography.xs, color: colors.textSecondary },
   bidDetailAmount: { fontSize: 26, fontWeight: '900', color: '#0040e0', letterSpacing: -0.5 },
 
+  bidDetailExpired: { opacity: 0.7, borderWidth: 1, borderColor: colors.border },
+  bidDetailAmountExpired: { color: colors.textDisabled, textDecorationLine: 'line-through' },
+  expiredNotice: {
+    paddingVertical: 12, paddingHorizontal: 14,
+    backgroundColor: colors.background,
+    borderRadius: 12, alignItems: 'center',
+  },
+  expiredNoticeText: { fontSize: Typography.xs, color: colors.textSecondary, textAlign: 'center' },
   bidDetailActions: { flexDirection: 'row', gap: 10 },
   negotiateBtn: {
     flex: 1, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: '#0040e0',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   negotiateBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#0040e0' },
   acceptBtn: {
@@ -593,7 +659,8 @@ const styles = StyleSheet.create({
   // Cancel
   cancelBtn: {
     height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.background,
   },
-  cancelBtnText: { fontSize: Typography.sm, fontWeight: '600', color: '#74777e' },
-});
+  cancelBtnText: { fontSize: Typography.sm, fontWeight: '600', color: colors.textSecondary },
+  }); // end makeStyles
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Profile - Dzpatch Customer App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary": "#0040e0",
+                        "surface": "#f7fafc",
+                        "primary-fixed": "#d5e3ff",
+                        "surface-container-highest": "#e0e3e5",
+                        "inverse-on-surface": "#eef1f3",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-bright": "#f7fafc",
+                        "surface-tint": "#4a5f81",
+                        "on-tertiary-fixed": "#341100",
+                        "on-surface-variant": "#44474e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#e66100",
+                        "on-background": "#181c1e",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "secondary-container": "#2e5bff",
+                        "inverse-surface": "#2d3133",
+                        "surface-container": "#ebeef0",
+                        "on-secondary-fixed": "#001356",
+                        "on-primary-container": "#768baf",
+                        "surface-container-high": "#e5e9eb",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "secondary-fixed": "#dde1ff",
+                        "tertiary": "#1d0600",
+                        "outline": "#74777e",
+                        "on-error-container": "#93000a",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#b2c7ef",
+                        "on-primary-fixed-variant": "#324768",
+                        "surface-dim": "#d7dadc",
+                        "primary": "#000d22",
+                        "background": "#f7fafc",
+                        "tertiary-container": "#401600",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#f1f4f6",
+                        "outline-variant": "#c4c6cf",
+                        "on-secondary-container": "#efefff",
+                        "on-primary-fixed": "#021c3a",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "primary-container": "#0a2342",
+                        "on-surface": "#181c1e",
+                        "secondary-fixed-dim": "#b8c3ff",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "error-container": "#ffdad6"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm shadow-[#000d22]/5">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#0040e0] hover:bg-[#f1f4f6] transition-colors active:scale-95 duration-200 p-2 rounded-full" data-icon="arrow_back" style="">arrow_back</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-[#181c1e]" style="">Profile</h1>
+</div>
+<div class="w-10 h-10"></div> <!-- Spacer for balance -->
+</div>
+<div class="bg-[#f1f4f6] h-[1px] w-full"></div>
+</header>
+<main class="max-w-2xl mx-auto px-6 py-8">
+<!-- User Summary Section -->
+<section class="flex flex-col items-center mb-12">
+<div class="relative mb-6">
+<div class="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Close up portrait of Alex Sterling smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVZHCheICmVHW-ilfpxiLXZR6CuJprV2I4sCOVuBIm0Dts9per3CtMFW_7BU0gduf-SvJEaE3CZwTbF1t_eyqOBKVD7s4J78zXCiWr5RqI5WKKhnNrwxlh4AF_N0LwiPAt-DTTqg9FpB35VcXa3VW4zhc6EAuAoLrZ0HBFXQBFOYuoNeTdfOBWPz00VrkeHDHSd9mevYpPC3Fg36_xW6xPB699awL-ecKWZCGX86TJYtqM7J4o82Gh_By5pxTxzx378w5D2NXFqyR_" style="">
+</div>
+<div class="absolute bottom-1 right-1 bg-secondary text-white p-1.5 rounded-full border-2 border-white shadow-md">
+<span class="material-symbols-outlined text-sm" data-icon="edit" style="">edit</span>
+</div>
+</div>
+<h2 class="font-manrope font-extrabold text-3xl text-primary tracking-tight mb-1" style="">Alex Sterling</h2>
+<div class="flex flex-col items-center gap-1 mb-6">
+<p class="text-on-surface-variant font-medium text-sm" style="">alex.sterling@example.com</p>
+<p class="text-on-surface-variant font-medium text-sm" style="">+234 800 000 0000</p>
+</div>
+<button class="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all shadow-md shadow-secondary/20" style="">
+                Edit Profile
+            </button>
+</section>
+<!-- Navigation List -->
+<section class="space-y-4">
+<div class="bg-surface-container-low rounded-2xl p-2">
+<!-- Row 1: Address Management -->
+<a class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl hover:bg-surface-container-high transition-colors group" href="#" style="">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-secondary/10 text-secondary rounded-lg">
+<span class="material-symbols-outlined" data-icon="location_on" style="">location_on</span>
+</div>
+<span class="font-semibold text-primary" style="">Address Management</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="chevron_right" style="">chevron_right</span>
+</a>
+<!-- Row 2: In-App Wallet -->
+<a class="flex items-center justify-between p-4 mt-2 bg-surface-container-lowest rounded-xl hover:bg-surface-container-high transition-colors group" href="#" style="">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-secondary/10 text-secondary rounded-lg">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="">account_balance_wallet</span>
+</div>
+<span class="font-semibold text-primary" style="">In-App Wallet</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="chevron_right" style="">chevron_right</span>
+</a>
+<!-- Row 3: Account Security -->
+<a class="flex items-center justify-between p-4 mt-2 bg-surface-container-lowest rounded-xl hover:bg-surface-container-high transition-colors group" href="#" style="">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-secondary/10 text-secondary rounded-lg">
+<span class="material-symbols-outlined" data-icon="shield" style="">shield</span>
+</div>
+<span class="font-semibold text-primary" style="">Account Security</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="chevron_right" style="">chevron_right</span>
+</a>
+<!-- Row 4: Notification Preferences -->
+<a class="flex items-center justify-between p-4 mt-2 bg-surface-container-lowest rounded-xl hover:bg-surface-container-high transition-colors group" href="#" style="">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-secondary/10 text-secondary rounded-lg">
+<span class="material-symbols-outlined" data-icon="notifications" style="">notifications</span>
+</div>
+<span class="font-semibold text-primary" style="">Notifications<br></span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="chevron_right" style="">chevron_right</span>
+</a>
+<!-- Row 5: Help & Support -->
+<a class="flex items-center justify-between p-4 mt-2 bg-surface-container-lowest rounded-xl hover:bg-surface-container-high transition-colors group" href="#" style="">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center bg-secondary/10 text-secondary rounded-lg">
+<span class="material-symbols-outlined" data-icon="headset_mic" style="">headset_mic</span>
+</div>
+<span class="font-semibold text-primary" style="">Help &amp; Support</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary transition-colors" data-icon="chevron_right" style="">chevron_right</span>
+</a>
+</div>
+</section>
+<!-- Footer Section -->
+<section class="mt-12 px-2">
+<button class="w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-error/10 bg-error/5 text-error font-bold hover:bg-error hover:text-white transition-all duration-300" style="">
+<span class="material-symbols-outlined" data-icon="logout" style="">logout</span>
+                Logout
+            </button>
+<p class="text-center text-[10px] uppercase tracking-widest font-semibold text-slate-400 mt-8 font-body" style="">Dzpatch v2.4.0 • Built for Speed</p>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_0_rgba(0,13,34,0.04)] rounded-t-3xl border-t border-slate-100">
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-1 hover:text-[#0040e0] transition-all active:scale-90 duration-150" href="#" style="">
+<span class="material-symbols-outlined" data-icon="local_shipping" style="">local_shipping</span>
+<span class="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest mt-1" style="">Deliveries</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-1 hover:text-[#0040e0] transition-all active:scale-90 duration-150" href="#" style="">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="">account_balance_wallet</span>
+<span class="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest mt-1" style="">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-1 hover:text-[#0040e0] transition-all active:scale-90 duration-150" href="#" style="">
+<span class="material-symbols-outlined" data-icon="explore" style="">explore</span>
+<span class="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest mt-1" style="">Track</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#dde1ff] text-[#0040e0] rounded-xl px-4 py-1 active:scale-90 duration-150" href="#" style="">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: &quot;FILL&quot; 1;">person</span>
+<span class="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest mt-1" style="">Profile</span>
+</a>
+</nav>
+</body></html>

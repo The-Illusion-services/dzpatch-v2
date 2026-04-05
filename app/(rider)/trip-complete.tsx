@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ const STARS = [1, 2, 3, 4, 5];
 
 export default function TripCompleteScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId, riderEarnings, commission } = useLocalSearchParams<{
     orderId: string;
     riderEarnings: string;
@@ -94,7 +97,7 @@ export default function TripCompleteScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#F7FAFC' }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
       showsVerticalScrollIndicator={false}
     >
@@ -144,7 +147,7 @@ export default function TripCompleteScreen() {
         </View>
         <View style={styles.earningsDivider} />
         <View style={styles.earningsRow}>
-          <Text style={[styles.earningsRowLabel, { fontWeight: '900', color: '#000D22' }]}>Net Pay</Text>
+          <Text style={[styles.earningsRowLabel, { fontWeight: '900', color: colors.textPrimary }]}>Net Pay</Text>
           <Text style={[styles.earningsRowValue, { color: '#0040e0', fontSize: Typography.lg }]}>
             ₦{net.toLocaleString()}
           </Text>
@@ -182,7 +185,8 @@ export default function TripCompleteScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
   content: { gap: 20, paddingHorizontal: Spacing[5] },
 
   // Hero
@@ -200,41 +204,41 @@ const styles = StyleSheet.create({
     shadowColor: '#0040e0', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3, shadowRadius: 20, elevation: 8,
   },
-  heroHeadline: { fontSize: Typography['2xl'], fontWeight: '900', color: '#000D22' },
-  heroSub: { fontSize: Typography.sm, color: '#74777e', textAlign: 'center' },
+  heroHeadline: { fontSize: Typography['2xl'], fontWeight: '900', color: colors.textPrimary },
+  heroSub: { fontSize: Typography.sm, color: colors.textSecondary, textAlign: 'center' },
 
   // Stats
   statsGrid: { flexDirection: 'row', gap: 12 },
   statCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 20,
+    flex: 1, backgroundColor: colors.surface, borderRadius: 20,
     padding: 18, gap: 4, alignItems: 'center',
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  statValue: { fontSize: Typography.lg, fontWeight: '900', color: '#000D22' },
-  statLabel: { fontSize: Typography.xs, color: '#74777e' },
+  statValue: { fontSize: Typography.lg, fontWeight: '900', color: colors.textPrimary },
+  statLabel: { fontSize: Typography.xs, color: colors.textSecondary },
 
   // Earnings
   earningsCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, gap: 12,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.surface, borderRadius: 20, padding: 20, gap: 12,
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
-  earningsTitle: { fontSize: Typography.md, fontWeight: '800', color: '#000D22' },
+  earningsTitle: { fontSize: Typography.md, fontWeight: '800', color: colors.textPrimary },
   earningsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   earningsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  earningsRowLabel: { fontSize: Typography.sm, fontWeight: '600', color: '#44474e' },
-  earningsRowValue: { fontSize: Typography.sm, fontWeight: '800', color: '#000D22' },
-  earningsDivider: { height: 1, backgroundColor: '#F1F4F6' },
+  earningsRowLabel: { fontSize: Typography.sm, fontWeight: '600', color: colors.textSecondary },
+  earningsRowValue: { fontSize: Typography.sm, fontWeight: '800', color: colors.textPrimary },
+  earningsDivider: { height: 1, backgroundColor: colors.border },
 
   // Rating
   ratingCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20,
+    backgroundColor: colors.surface, borderRadius: 20, padding: 20,
     alignItems: 'center', gap: 12,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
-  ratingTitle: { fontSize: Typography.md, fontWeight: '800', color: '#000D22' },
+  ratingTitle: { fontSize: Typography.md, fontWeight: '800', color: colors.textPrimary },
   starsRow: { flexDirection: 'row', gap: 8 },
   ratingThanks: { fontSize: Typography.sm, color: '#16A34A', fontWeight: '600' },
 
@@ -247,4 +251,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 16, elevation: 6,
   },
   homeBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
-});
+  }); // end makeStyles
+}

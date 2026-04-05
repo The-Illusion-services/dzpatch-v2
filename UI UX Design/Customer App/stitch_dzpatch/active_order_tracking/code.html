@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#341100",
+              "inverse-on-surface": "#eef1f3",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-low": "#f1f4f6",
+              "primary-container": "#0a2342",
+              "surface-bright": "#f7fafc",
+              "surface": "#f7fafc",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#021c3a",
+              "on-tertiary": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "tertiary-container": "#401600",
+              "surface-tint": "#4a5f81",
+              "tertiary-fixed": "#ffdbcb",
+              "primary-fixed": "#d5e3ff",
+              "on-primary-fixed-variant": "#324768",
+              "surface-variant": "#e0e3e5",
+              "on-surface-variant": "#44474e",
+              "tertiary": "#1d0600",
+              "surface-dim": "#d7dadc",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-secondary-fixed": "#001356",
+              "surface-container-high": "#e5e9eb",
+              "surface-container": "#ebeef0",
+              "inverse-surface": "#2d3133",
+              "on-error-container": "#93000a",
+              "surface-container-highest": "#e0e3e5",
+              "outline-variant": "#c4c6cf",
+              "error": "#ba1a1a",
+              "on-background": "#181c1e",
+              "background": "#f7fafc",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "outline": "#74777e",
+              "secondary-fixed": "#dde1ff",
+              "on-primary-container": "#768baf",
+              "on-tertiary-container": "#e66100",
+              "primary-fixed-dim": "#b2c7ef",
+              "error-container": "#ffdad6",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary": "#ffffff",
+              "secondary": "#0040e0",
+              "inverse-primary": "#b2c7ef",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-surface": "#181c1e",
+              "on-primary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .map-gradient-overlay {
+            background: linear-gradient(180deg, rgba(247,250,252,0.8) 0%, rgba(247,250,252,0) 20%, rgba(247,250,252,0) 80%, rgba(247,250,252,1) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl flex items-center px-6 h-16 w-full shadow-sm shadow-blue-900/5">
+<button class="flex items-center justify-center p-2 rounded-xl text-blue-700 dark:text-blue-500 hover:bg-slate-50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="ml-4 font-headline font-bold text-lg tracking-tight text-slate-900 dark:text-slate-50">Track Order</h1>
+<div class="ml-auto flex items-center gap-2">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full font-label text-xs font-bold uppercase tracking-widest">Live</span>
+</div>
+</header>
+<!-- Interactive Map Content -->
+<main class="relative h-screen w-full pt-16">
+<!-- Map Placeholder with data-location -->
+<div class="absolute inset-0 bg-surface-container" data-location="San Francisco" style="">
+<img alt="Detailed city navigation map with logistics routes" class="w-full h-full object-cover opacity-60 grayscale-[0.3]" data-alt="Modern map interface with blue route lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI5hLBWqAlZSapkF3XDJwCbwNRezPajDiOWPnG2BlGfKCgyjg_HvQJGKBnJgNeEpyDsGvglRLHWgBKQT7-IuXh3zGIx3QGtFwfnBQDHqNpVPCIC9MyleBfGX9hypgNjOPN6tKW0Ayi92e3CKCovvEJ9ZF0SkAC5msFiA2XK0c1_OEahRoTxn5gITFnTVgGaL6Y0_LYElqd2qeB6bPBdSZSJuoBjDWOV27sG21CVx0O6gjM-3mG3dz73EE6NLRKE1kE8_NPoDefNOhY"/>
+<!-- Map Overlay Gradients for Depth -->
+<div class="absolute inset-0 map-gradient-overlay pointer-events-none"></div>
+<!-- Kinetic Route Visualization -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none">
+<path class="opacity-60" d="M 200,400 Q 300,350 450,450 T 700,300" fill="none" stroke="#0040e0" stroke-dasharray="8 12" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+<!-- Rider Marker -->
+<div class="absolute top-[40%] left-[45%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="relative">
+<div class="absolute inset-0 bg-secondary rounded-full animate-ping opacity-20 scale-150"></div>
+<div class="bg-secondary text-white p-3 rounded-full shadow-[0_8px_24px_rgba(0,64,224,0.4)] relative z-10">
+<span class="material-symbols-outlined block" style="font-variation-settings: 'FILL' 1;">moped</span>
+</div>
+</div>
+<div class="mt-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-tighter">
+                    John D.
+                </div>
+</div>
+<!-- Destination Marker -->
+<div class="absolute top-[30%] left-[70%] -translate-x-1/2 -translate-y-1/2">
+<div class="bg-white p-2 rounded-full shadow-lg border-2 border-primary">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+</div>
+</div>
+<!-- Floating Tracking Dashboard -->
+<div class="absolute bottom-0 left-0 w-full z-40 p-4 md:p-8">
+<div class="max-w-xl mx-auto bg-surface-container-lowest rounded-[2rem] shadow-[0_20px_50px_rgba(0,13,34,0.12)] overflow-hidden border border-white/40 backdrop-blur-sm">
+<!-- ETA Header Section -->
+<div class="p-6 pb-4 flex items-end justify-between border-b border-surface-container">
+<div>
+<p class="font-label text-on-surface-variant text-xs font-semibold uppercase tracking-[0.15em] mb-1">Estimated Arrival</p>
+<div class="flex items-baseline gap-2">
+<h2 class="font-headline font-extrabold text-4xl text-primary tracking-tight">8</h2>
+<span class="font-headline font-bold text-lg text-primary">mins remaining</span>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center gap-1 bg-surface-container-low px-3 py-1 rounded-full text-on-surface-variant font-label text-sm font-medium">
+<span class="material-symbols-outlined text-sm">distance</span> 2.4 km
+                        </span>
+</div>
+</div>
+<!-- Status Timeline -->
+<div class="px-6 py-6 overflow-x-auto">
+<div class="flex items-start justify-between min-w-[500px]">
+<!-- Step 1 (Done) -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<span class="mt-2 font-label text-[10px] font-bold uppercase text-on-surface text-center leading-tight">Rider<br/>Assigned</span>
+<div class="absolute top-4 left-1/2 w-full h-[2px] bg-secondary opacity-30"></div>
+</div>
+<!-- Step 2 (Active) -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center z-10 shadow-[0_0_15px_rgba(0,64,224,0.3)] ring-4 ring-secondary/10">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">near_me</span>
+</div>
+<span class="mt-2 font-label text-[10px] font-extrabold uppercase text-secondary text-center leading-tight">Heading to<br/>Pick-up</span>
+<div class="absolute top-4 left-1/2 w-full h-[2px] bg-surface-container-high"></div>
+</div>
+<!-- Step 3 (Pending) -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-on-surface-variant opacity-30"></div>
+</div>
+<span class="mt-2 font-label text-[10px] font-bold uppercase text-on-surface-variant text-center leading-tight">Picked<br/>up</span>
+<div class="absolute top-4 left-1/2 w-full h-[2px] bg-surface-container-high"></div>
+</div>
+<!-- Step 4 (Pending) -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-on-surface-variant opacity-30"></div>
+</div>
+<span class="mt-2 font-label text-[10px] font-bold uppercase text-on-surface-variant text-center leading-tight">On the<br/>way</span>
+<div class="absolute top-4 left-1/2 w-full h-[2px] bg-surface-container-high"></div>
+</div>
+<!-- Step 5 (Pending) -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-on-surface-variant opacity-30"></div>
+</div>
+<span class="mt-2 font-label text-[10px] font-bold uppercase text-on-surface-variant text-center leading-tight">Delivered</span>
+</div>
+</div>
+</div>
+<!-- Rider Info & Actions -->
+<div class="px-6 pb-8">
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img alt="Delivery Rider Profile" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" data-alt="Close-up portrait of a smiling professional delivery person" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG87bEeWGV-HHwFLCvrspGe0YedWvOEgB6SAxA7HNPLTyKLmarfEh_UHH4x-hS--p7cPYNkh9WCGaTcI5PfKBtM2Fn2BnyZp1A9a1NMCnuilWmp0sd45hYlMDJjw6sHtEKZyNpB-LhFrMHqOwvn0p1Rb10rgJ0F5RKeoTOhxZiURF5B2f0yuz8a40vaTq_pHIMN-qUaTGUV_kcn5zJNs_6Yg72kL5fXF7vcUzg950h584pBHOz6ERENXq4J_YCE3lbzdFJt58i8gVv"/>
+<div class="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></div>
+</div>
+<div>
+<h3 class="font-headline font-bold text-primary text-base">John D.</h3>
+<div class="flex items-center gap-2">
+<span class="font-label text-xs font-semibold bg-surface-container-lowest text-on-tertiary-container px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                        4.9 <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</span>
+<span class="font-label text-[11px] text-on-surface-variant font-medium">Blue Honda (ABC-123)</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-11 h-11 rounded-xl bg-white text-secondary shadow-sm hover:shadow-md transition-all flex items-center justify-center active:scale-95">
+<span class="material-symbols-outlined">call</span>
+</button>
+<button class="w-11 h-11 rounded-xl bg-secondary text-white shadow-sm hover:shadow-lg transition-all flex items-center justify-center active:scale-95">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+<!-- Footer Controls -->
+<div class="mt-6 flex items-center justify-between">
+<button class="flex items-center gap-2 font-label text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">ios_share</span>
+                            Share Tracking
+                        </button>
+<a class="font-label text-sm font-semibold text-error/80 hover:text-error transition-colors px-2 py-1" href="#">
+                            Cancel Order
+                        </a>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- App Shell - Bottom Navigation (Hidden for focus but available on trigger) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white dark:bg-slate-900 rounded-t-3xl z-50 shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] transform translate-y-full opacity-0">
+<!-- Kept here for structure as requested by shell logic, but hidden to prioritize content canvas per UX goal -->
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1 px-3">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Manrope'] font-semibold text-[11px] uppercase tracking-wider">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-xl py-1 px-3">
+<span class="material-symbols-outlined" data-icon="package_2">package_2</span>
+<span class="font-['Manrope'] font-semibold text-[11px] uppercase tracking-wider">Orders</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1 px-3">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Manrope'] font-semibold text-[11px] uppercase tracking-wider">Wallet</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1 px-3">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Manrope'] font-semibold text-[11px] uppercase tracking-wider">Profile</span>
+</div>
+</nav>
+</body></html>

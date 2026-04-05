@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-tint": "#4a5f81",
+              "surface-dim": "#d7dadc",
+              "on-primary-container": "#768baf",
+              "on-primary-fixed": "#021c3a",
+              "background": "#f7fafc",
+              "on-tertiary-fixed": "#341100",
+              "tertiary": "#1d0600",
+              "surface-bright": "#f7fafc",
+              "surface-container-highest": "#e0e3e5",
+              "secondary-fixed": "#dde1ff",
+              "outline": "#74777e",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "error": "#ba1a1a",
+              "on-secondary-fixed": "#001356",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-primary": "#ffffff",
+              "secondary": "#0040e0",
+              "tertiary-fixed": "#ffdbcb",
+              "on-surface": "#181c1e",
+              "surface": "#f7fafc",
+              "surface-variant": "#e0e3e5",
+              "on-secondary-fixed-variant": "#0035be",
+              "primary": "#000d22",
+              "tertiary-container": "#401600",
+              "on-surface-variant": "#44474e",
+              "surface-container-low": "#f1f4f6",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-secondary-container": "#efefff",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#c4c6cf",
+              "secondary-container": "#2e5bff",
+              "on-tertiary-container": "#e66100",
+              "inverse-surface": "#2d3133",
+              "primary-container": "#0a2342",
+              "on-primary-fixed-variant": "#324768",
+              "inverse-on-surface": "#eef1f3",
+              "primary-fixed": "#d5e3ff",
+              "on-background": "#181c1e",
+              "surface-container-high": "#e5e9eb",
+              "surface-container": "#ebeef0",
+              "on-error-container": "#93000a",
+              "on-error": "#ffffff",
+              "on-secondary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #000d22 0%, #0a2342 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-background selection:bg-secondary-fixed">
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md shadow-sm shadow-blue-900/5 flex items-center justify-between px-6 h-16">
+<div class="flex items-center gap-2">
+<span class="text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tighter font-headline">Dzpatch</span>
+</div>
+</header>
+<main class="min-h-screen flex flex-col items-center justify-center px-6 pt-16">
+<div class="w-full max-w-md text-center space-y-12">
+<div class="relative inline-flex items-center justify-center">
+<div class="absolute inset-0 bg-secondary/5 blur-3xl rounded-full scale-150"></div>
+<div class="relative w-32 h-32 flex items-center justify-center rounded-full bg-surface-container-lowest shadow-sm">
+<div class="flex items-center justify-center w-24 h-24 rounded-full bg-secondary text-on-secondary shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined !text-5xl" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<h1 class="font-headline font-extrabold text-4xl text-on-surface tracking-tight">Password Updated</h1>
+<p class="text-on-surface-variant font-body text-lg max-w-[280px] mx-auto leading-relaxed">
+                    Your security credentials have been successfully reset. You can now access your fleet dashboard.
+                </p>
+</div>
+<div class="pt-8 space-y-6">
+<a class="group relative flex items-center justify-center w-full bg-secondary text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 active:scale-95 shadow-md shadow-secondary/10 hover:shadow-xl hover:shadow-secondary/20" href="#">
+<span class="font-label text-base tracking-wide">Back to Login</span>
+<span class="material-symbols-outlined ml-2 transition-transform group-hover:translate-x-1" data-icon="arrow_forward">arrow_forward</span>
+</a>
+<div class="flex flex-col items-center space-y-2">
+<span class="text-sm font-label uppercase tracking-widest text-on-surface-variant/60">Verification Code Sent To</span>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container"></span>
+<span class="text-sm font-medium text-on-surface-variant">adm**@dzpatch.com</span>
+</div>
+</div>
+</div>
+<div class="pt-12 grid grid-cols-3 gap-4 opacity-40">
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+<div class="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+</div>
+</div>
+</main>
+<footer class="fixed bottom-12 w-full text-center px-6">
+<p class="text-xs font-label text-on-surface-variant/40 tracking-widest uppercase">
+            Dzpatch Secure Infrastructure • Version 4.2.0
+        </p>
+</footer>
+<div class="fixed top-24 left-10 pointer-events-none opacity-[0.03]">
+<span class="material-symbols-outlined !text-[300px]" data-icon="hub">hub</span>
+</div>
+<div class="fixed bottom-10 right-10 pointer-events-none opacity-[0.03]">
+<span class="material-symbols-outlined !text-[250px]" data-icon="local_shipping">local_shipping</span>
+</div>
+</body></html>

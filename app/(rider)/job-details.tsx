@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { buildRiderEarningsBreakdown } from '@/lib/sprint4-ux';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 
@@ -25,6 +26,9 @@ type OrderDetail = {
   package_notes: string | null;
   dynamic_price: number | null;
   suggested_price: number | null;
+  platform_commission_rate: number | null;
+  platform_commission_amount: number | null;
+  rider_net_amount: number | null;
   distance_km: number | null;
   created_at: string;
   expires_at: string | null;
@@ -52,7 +56,7 @@ export default function JobDetailsScreen() {
       .select(`
         id, status, pickup_address, dropoff_address,
         package_size, package_description, package_notes,
-        dynamic_price, suggested_price, distance_km,
+        dynamic_price, suggested_price, platform_commission_rate, platform_commission_amount, rider_net_amount, distance_km,
         created_at, expires_at,
         customer:customer_id(full_name, phone),
         category:category_id(name)
@@ -84,7 +88,8 @@ export default function JobDetailsScreen() {
 
   const handleAccept = async () => {
     if (!riderId || !orderId || !order) return;
-    const price = order.dynamic_price ?? order.suggested_price;
+    // Use suggested_price (customer's agreed price) first; fall back to dynamic_price
+    const price = order.suggested_price ?? order.dynamic_price;
     if (!price) {
       Alert.alert('Error', 'No price available for this order.');
       return;
@@ -125,6 +130,15 @@ export default function JobDetailsScreen() {
 
   const isExpired = order.expires_at ? new Date(order.expires_at) < new Date() : false;
   const isAvailable = order.status === 'pending' && !isExpired;
+  const orderPrice = order.suggested_price ?? order.dynamic_price ?? 0;
+  const earningsBreakdown = buildRiderEarningsBreakdown({
+    gross: orderPrice,
+    commissionAmount: order.platform_commission_amount,
+    commissionRatePercentage: order.platform_commission_rate,
+  });
+  const estimatedNet = order.rider_net_amount != null
+    ? Math.round(order.rider_net_amount)
+    : earningsBreakdown.net;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -151,15 +165,25 @@ export default function JobDetailsScreen() {
         {/* Price + time */}
         <View style={styles.heroCard}>
           <View>
-            <Text style={styles.heroLabel}>Est. Earnings</Text>
-            <Text style={styles.heroPrice}>{formatPrice(order.dynamic_price, order.suggested_price)}</Text>
+            <Text style={styles.heroLabel}>Est. Take-Home</Text>
+            <Text style={styles.heroPrice}>₦{estimatedNet.toLocaleString()}</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroRight}>
-            <Text style={styles.heroLabel}>Requested</Text>
-            <Text style={styles.heroTime}>{timeSince(order.created_at)}</Text>
+            <Text style={styles.heroLabel}>Gross / Request</Text>
+            <Text style={styles.heroTime}>₦{orderPrice.toLocaleString()} · {timeSince(order.created_at)}</Text>
           </View>
         </View>
+
+        {/* Feasibility chip */}
+        {order.distance_km && (
+          <View style={styles.feasibilityChip}>
+            <Text style={styles.feasibilityIcon}>📍</Text>
+            <Text style={styles.feasibilityText}>
+              ~{Math.max(2, Math.round(order.distance_km / 30 * 60))} min to reach pickup · {order.distance_km} km
+            </Text>
+          </View>
+        )}
 
         {/* Route card */}
         <View style={styles.card}>
@@ -238,13 +262,19 @@ export default function JobDetailsScreen() {
           </View>
           <View style={styles.earningsRow}>
             <Text style={styles.earningsLabel}>Order price</Text>
-            <Text style={styles.earningsValue}>{formatPrice(order.dynamic_price, order.suggested_price)}</Text>
+            <Text style={styles.earningsValue}>₦{earningsBreakdown.gross.toLocaleString()}</Text>
+          </View>
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsLabel}>Platform commission</Text>
+            <Text style={styles.earningsValue}>₦{earningsBreakdown.commission.toLocaleString()}</Text>
           </View>
           <View style={[styles.earningsRow, styles.earningsDivider]}>
-            <Text style={styles.earningsLabelTotal}>You earn</Text>
-            <Text style={styles.earningsTotal}>{formatPrice(order.dynamic_price, order.suggested_price)}</Text>
+            <Text style={styles.earningsLabelTotal}>Estimated take-home</Text>
+            <Text style={styles.earningsTotal}>₦{estimatedNet.toLocaleString()}</Text>
           </View>
-          <Text style={styles.earningsNote}>Commission deducted from your wallet after delivery</Text>
+          <Text style={styles.earningsNote}>
+            This preview uses the order&apos;s saved commission values so you can judge the job before bidding.
+          </Text>
         </View>
       </ScrollView>
 
@@ -262,7 +292,7 @@ export default function JobDetailsScreen() {
             {accepting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.acceptBtnText}>Accept for {formatPrice(order.dynamic_price, order.suggested_price)}</Text>
+              <Text style={styles.acceptBtnText}>Accept for {formatPrice(order.suggested_price, order.dynamic_price)}</Text>
             )}
           </Pressable>
         </View>
@@ -308,6 +338,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
   },
   expiredText: { fontSize: Typography.xs, fontWeight: '600', color: '#ba1a1a', flex: 1 },
+
+  feasibilityChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#EEF2FF', borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  feasibilityIcon: { fontSize: 14 },
+  feasibilityText: { fontSize: Typography.xs, fontWeight: '700', color: '#0040e0' },
 
   // Hero card
   heroCard: {

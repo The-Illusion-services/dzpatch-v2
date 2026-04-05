@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+﻿import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,7 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MIN_WITHDRAWAL = 1000;
 const FEE = 50;
@@ -29,7 +29,7 @@ const NIGERIAN_BANKS = [
   'Moniepoint', 'Sterling Bank', 'Ecobank',
 ];
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function WithdrawScreen() {
   const insets = useSafeAreaInsets();
@@ -43,7 +43,7 @@ export default function WithdrawScreen() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  // ── Load wallet ────────────────────────────────────────────────────────────
+  // â”€â”€ Load wallet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -78,7 +78,7 @@ export default function WithdrawScreen() {
     if (maxWithdrawable > 0) setAmount(String(Math.floor(maxWithdrawable)));
   };
 
-  // ── Submit withdrawal ──────────────────────────────────────────────────────
+  // â”€â”€ Submit withdrawal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const submit = async () => {
     if (!isValid || !walletId || !profile) return;
@@ -102,19 +102,19 @@ export default function WithdrawScreen() {
 
     Alert.alert(
       'Withdrawal Requested',
-      `₦${parsedAmount.toLocaleString()} will be sent to your ${bankName} account within 15 minutes.`,
+      `Your ₦${parsedAmount.toLocaleString()} withdrawal to ${bankName} has been submitted for processing. We will update you once it is confirmed.`,
       [{ text: 'Done', onPress: () => router.replace('/(customer)/wallet' as any) }],
     );
   };
 
-  // ── Bank picker modal ──────────────────────────────────────────────────────
+  // â”€â”€ Bank picker modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (bankPickerOpen) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Pressable onPress={() => setBankPickerOpen(false)} hitSlop={8}>
-            <Text style={styles.backArrow}>←</Text>
+            <Text style={styles.backArrow}>â†</Text>
           </Pressable>
           <Text style={styles.headerTitle}>Select Bank</Text>
           <View style={{ width: 24 }} />
@@ -130,7 +130,7 @@ export default function WithdrawScreen() {
               }}
             >
               <Text style={[styles.bankRowText, bankName === b && styles.bankRowTextActive]}>{b}</Text>
-              {bankName === b && <Text style={styles.bankRowCheck}>✓</Text>}
+              {bankName === b && <Text style={styles.bankRowCheck}>âœ“</Text>}
             </Pressable>
           ))}
         </ScrollView>
@@ -138,7 +138,7 @@ export default function WithdrawScreen() {
     );
   }
 
-  // ── Main screen ────────────────────────────────────────────────────────────
+  // â”€â”€ Main screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <KeyboardAvoidingView
@@ -148,10 +148,10 @@ export default function WithdrawScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(customer)/wallet' as any)} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={styles.backArrow}>â†</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Withdraw</Text>
-        <Text style={styles.headerIcon}>🏦</Text>
+        <Text style={styles.headerIcon}>ðŸ¦</Text>
       </View>
 
       <ScrollView
@@ -168,12 +168,12 @@ export default function WithdrawScreen() {
               <View style={styles.balanceSkeleton} />
             ) : (
               <Text style={styles.balanceValue}>
-                ₦{balance !== null ? Number(balance).toLocaleString('en-NG', { minimumFractionDigits: 2 }) : '0.00'}
+                â‚¦{balance !== null ? Number(balance).toLocaleString('en-NG', { minimumFractionDigits: 2 }) : '0.00'}
               </Text>
             )}
           </View>
           <View style={styles.securedBadge}>
-            <Text style={styles.securedBadgeText}>🔒  Secured Wallet</Text>
+            <Text style={styles.securedBadgeText}>ðŸ”’  Secured Wallet</Text>
           </View>
         </View>
 
@@ -181,7 +181,7 @@ export default function WithdrawScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Withdrawal Amount</Text>
           <View style={styles.amountInputWrap}>
-            <Text style={styles.currencySign}>₦</Text>
+            <Text style={styles.currencySign}>â‚¦</Text>
             <TextInput
               style={styles.amountInput}
               placeholder="0.00"
@@ -193,7 +193,7 @@ export default function WithdrawScreen() {
             />
           </View>
           <View style={styles.amountMeta}>
-            <Text style={styles.amountMin}>Min: ₦{MIN_WITHDRAWAL.toLocaleString()}</Text>
+            <Text style={styles.amountMin}>Min: â‚¦{MIN_WITHDRAWAL.toLocaleString()}</Text>
             <Pressable onPress={setMax} hitSlop={8}>
               <Text style={styles.amountMax}>Max Amount</Text>
             </Pressable>
@@ -209,7 +209,7 @@ export default function WithdrawScreen() {
               <Text style={[styles.bankFieldText, !bankName && styles.bankFieldPlaceholder]}>
                 {bankName || 'Select Bank'}
               </Text>
-              <Text style={styles.bankFieldChevron}>›</Text>
+              <Text style={styles.bankFieldChevron}>â€º</Text>
             </Pressable>
             <View style={styles.divider} />
 
@@ -237,7 +237,7 @@ export default function WithdrawScreen() {
               <View>
                 <Text style={styles.accountNameLabel}>ACCOUNT NAME</Text>
                 <Text style={styles.accountNameValue}>
-                  {accountNumber.length === 10 ? (profile?.full_name ?? '—') : '—'}
+                  {accountNumber.length === 10 ? (profile?.full_name ?? 'â€”') : 'â€”'}
                 </Text>
               </View>
             </View>
@@ -247,12 +247,12 @@ export default function WithdrawScreen() {
         {/* Fee notice */}
         {parsedAmount > 0 && (
           <View style={styles.feeNotice}>
-            <Text style={styles.feeIcon}>ℹ</Text>
+            <Text style={styles.feeIcon}>â„¹</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.feeTitle}>Transaction Fee: ₦{FEE.toLocaleString()}</Text>
+              <Text style={styles.feeTitle}>Transaction Fee: â‚¦{FEE.toLocaleString()}</Text>
               <Text style={styles.feeBody}>
-                You&apos;ll receive ₦{parsedAmount.toLocaleString()} and ₦{FEE} is deducted for bank processing.
-                Total deducted: ₦{total.toLocaleString()}.
+                You&apos;ll receive â‚¦{parsedAmount.toLocaleString()} and â‚¦{FEE} is deducted for bank processing.
+                Total deducted: â‚¦{total.toLocaleString()}.
               </Text>
             </View>
           </View>
@@ -261,14 +261,14 @@ export default function WithdrawScreen() {
         {/* Insufficient funds warning */}
         {parsedAmount > 0 && balance !== null && total > balance && (
           <View style={[styles.feeNotice, styles.errorNotice]}>
-            <Text style={styles.feeIcon}>⚠</Text>
+            <Text style={styles.feeIcon}>âš </Text>
             <Text style={[styles.feeTitle, styles.errorText]}>
-              Insufficient balance. Max you can withdraw is ₦{Math.max(0, balance - FEE).toLocaleString()}.
+              Insufficient balance. Max you can withdraw is â‚¦{Math.max(0, balance - FEE).toLocaleString()}.
             </Text>
           </View>
         )}
 
-        <Text style={styles.arrivalNote}>Funds usually arrive within 15 minutes.</Text>
+        <Text style={styles.arrivalNote}>Payout timing depends on bank and payment processor confirmation.</Text>
       </ScrollView>
 
       {/* Fixed CTA */}
@@ -283,9 +283,9 @@ export default function WithdrawScreen() {
           ) : (
             <>
               <Text style={styles.ctaBtnText}>
-                {isValid ? `Withdraw ₦${parsedAmount.toLocaleString()}` : 'Withdraw to Bank'}
+                {isValid ? `Withdraw â‚¦${parsedAmount.toLocaleString()}` : 'Withdraw to Bank'}
               </Text>
-              <Text style={styles.ctaBtnIcon}>→</Text>
+              <Text style={styles.ctaBtnIcon}>â†’</Text>
             </>
           )}
         </Pressable>
@@ -294,7 +294,7 @@ export default function WithdrawScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7FAFC' },
@@ -530,3 +530,4 @@ const styles = StyleSheet.create({
   ctaBtnText: { fontSize: Typography.md, fontWeight: Typography.extrabold, color: '#FFFFFF' },
   ctaBtnIcon: { fontSize: 18, color: '#FFFFFF' },
 });
+

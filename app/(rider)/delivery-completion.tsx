@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -13,9 +13,12 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '@/lib/supabase';
+import { uploadProofOfDelivery } from '@/lib/delivery-flow';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,14 +27,17 @@ interface OrderInfo {
   dropoff_address: string;
   package_size: string | null;
   package_description: string | null;
+  status: string;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function DeliveryCompletionScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
-  const { riderId } = useAuthStore();
+  const { riderId, profile } = useAuthStore();
 
   const [order, setOrder] = useState<OrderInfo | null>(null);
   const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
@@ -39,17 +45,31 @@ export default function DeliveryCompletionScreen() {
   const [completing, setCompleting] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // ── Fetch order ────────────────────────────────────────────────────────────
+  // ── Fetch order + ensure arrived_dropoff status ───────────────────────────
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || !profile?.id) return;
     supabase
       .from('orders')
-      .select('id, dropoff_address, package_size, package_description')
+      .select('id, dropoff_address, package_size, package_description, status')
       .eq('id', orderId)
       .single()
-      .then(({ data }) => { if (data) setOrder(data as OrderInfo); });
-  }, [orderId]);
+      .then(({ data }) => {
+        if (!data) return;
+        setOrder(data as OrderInfo);
+        // If arriving here with in_transit status (e.g. resume after arrived_dropoff missed),
+        // push the status forward so complete_delivery won't reject the order
+        if ((data as OrderInfo).status === 'in_transit') {
+          (supabase as any).rpc('update_order_status', {
+            p_order_id: orderId,
+            p_new_status: 'arrived_dropoff',
+            p_changed_by: profile.id,
+          }).then(({ error }: { error: any }) => {
+            if (error) console.warn('arrived_dropoff auto-update failed:', error.message);
+          });
+        }
+      });
+  }, [orderId, profile?.id]);
 
   // ── OTP input handlers ─────────────────────────────────────────────────────
 
@@ -107,57 +127,82 @@ export default function DeliveryCompletionScreen() {
       } as any);
       if (verifyErr) throw verifyErr;
       if (!verified) {
-        Alert.alert('Wrong Code', 'The delivery code is incorrect. Please ask the customer for the correct code.');
+        Alert.alert(
+          'Wrong Code',
+          'The delivery code is incorrect. Please ask the customer for their correct code.\n\nAfter 3 wrong attempts, code entry will be locked for 1 hour.',
+        );
         setCompleting(false);
         return;
       }
 
       // 2. Upload POD photo if taken
-      let podUrl: string | undefined;
-      if (podPhotoUri) {
-        const fileName = `pod-${orderId}-${Date.now()}.jpg`;
-        // Convert URI to Blob (required for Android; works on iOS too)
-        const blob = await fetch(podPhotoUri).then((r) => r.blob());
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('documents')
-          .upload(`pod/${fileName}`, blob, { contentType: 'image/jpeg' });
-        if (uploadErr) throw uploadErr;
-        if (uploadData?.path) {
-          const { data: urlData } = supabase.storage.from('documents').getPublicUrl(uploadData.path);
-          podUrl = urlData.publicUrl;
-        }
+      let podPath: string | undefined;
+      if (podPhotoUri && profile?.id) {
+        podPath = await uploadProofOfDelivery({
+          podPhotoUri,
+          profileId: profile.id,
+          orderId,
+          fetchBlob: async (uri) => {
+            // React Native Blob doesn't support ArrayBufferView construction.
+            // Read as base64 and convert to ArrayBuffer manually, then wrap in Blob.
+            const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+            // Decode base64 → ArrayBuffer (no Uint8Array needed)
+            const binaryStr = atob(base64);
+            const buffer = new ArrayBuffer(binaryStr.length);
+            const view = new DataView(buffer);
+            for (let i = 0; i < binaryStr.length; i++) {
+              view.setUint8(i, binaryStr.charCodeAt(i));
+            }
+            return buffer as unknown as Blob;
+          },
+          uploadFile: (path, file, options) => supabase.storage.from('documents').upload(path, file, options),
+        });
       }
 
       // 3. Complete delivery (distributes earnings + commission)
       const { data: result, error: completeErr } = await supabase.rpc('complete_delivery', {
         p_order_id: orderId,
         p_rider_id: riderId,
-        p_pod_photo_url: podUrl ?? null,
+        p_pod_photo_url: podPath ?? null,
       } as any);
       if (completeErr) throw completeErr;
 
-      const earnings = result as { rider_earnings: number; platform_commission: number } | null;
+      const earnings = result as {
+        rider_earnings: number;
+        platform_commission?: number;
+        commission?: number;
+      } | null;
 
       router.replace({
         pathname: '/(rider)/trip-complete' as any,
         params: {
           orderId,
           riderEarnings: String(earnings?.rider_earnings ?? 0),
-          commission: String(earnings?.platform_commission ?? 0),
+          commission: String(earnings?.platform_commission ?? earnings?.commission ?? 0),
         },
       });
-    } catch {
-      Alert.alert('Error', 'Could not complete delivery. Please try again.');
+    } catch (err: any) {
+      const msg: string = err?.message ?? '';
+      if (msg.includes('locked')) {
+        Alert.alert(
+          'Code Entry Locked',
+          'Too many incorrect attempts. Code entry is locked for 1 hour. Contact support if needed.',
+        );
+      } else if (msg.includes('verified')) {
+        Alert.alert('Code Required', 'Delivery code must be verified before completing the delivery.');
+      } else {
+        Alert.alert('Error', `Could not complete delivery: ${msg || 'Please try again.'}`);
+      }
     } finally {
       setCompleting(false);
     }
   };
 
-  const isReady = code.every((d) => d !== '') && !completing;
+  const isReady = code.every((d) => d !== '') && !!podPhotoUri && !completing;
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#F7FAFC' }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -226,7 +271,7 @@ export default function DeliveryCompletionScreen() {
           <View style={styles.photoPlaceholder}>
             <Ionicons name="camera-outline" size={36} color="#74777e" />
             <Text style={styles.photoLabel}>Take Photo of Package</Text>
-            <Text style={styles.photoSub}>Optional — proof of delivery</Text>
+            <Text style={styles.photoSub}>Required — tap to take a photo</Text>
           </View>
         )}
       </Pressable>
@@ -248,7 +293,8 @@ export default function DeliveryCompletionScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
   content: { gap: 16, paddingHorizontal: Spacing[5] },
 
   // Header
@@ -258,55 +304,55 @@ const styles = StyleSheet.create({
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5,
   },
   stepText: { fontSize: Typography.xs, fontWeight: '700', color: '#0040e0' },
-  title: { fontSize: Typography['2xl'], fontWeight: '900', color: '#000D22' },
+  title: { fontSize: Typography['2xl'], fontWeight: '900', color: colors.textPrimary },
 
   // Package card
   packageCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, gap: 8,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.surface, borderRadius: 20, padding: 20, gap: 8,
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
   packageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  packageTitle: { fontSize: Typography.md, fontWeight: '800', color: '#000D22' },
-  packageDesc: { fontSize: Typography.sm, color: '#44474e' },
+  packageTitle: { fontSize: Typography.md, fontWeight: '800', color: colors.textPrimary },
+  packageDesc: { fontSize: Typography.sm, color: colors.textSecondary },
   destRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  destText: { flex: 1, fontSize: Typography.sm, color: '#74777e' },
-  orderId: { fontSize: Typography.xs, color: '#C4C6CF', fontWeight: '700', letterSpacing: 1 },
+  destText: { flex: 1, fontSize: Typography.sm, color: colors.textSecondary },
+  orderId: { fontSize: Typography.xs, color: colors.textDisabled, fontWeight: '700', letterSpacing: 1 },
 
   // Code input
   codeCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, gap: 12,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.surface, borderRadius: 20, padding: 20, gap: 12,
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
   codeLabel: {
-    fontSize: Typography.xs, fontWeight: '700', color: '#74777e',
+    fontSize: Typography.xs, fontWeight: '700', color: colors.textSecondary,
     letterSpacing: 1.5, textTransform: 'uppercase',
   },
-  codeHint: { fontSize: Typography.xs, color: '#74777e' },
+  codeHint: { fontSize: Typography.xs, color: colors.textSecondary },
   codeInputRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   codeBox: {
     width: 46, height: 56, borderRadius: 12,
-    borderWidth: 2, borderColor: '#C4C6CF',
-    backgroundColor: '#F7FAFC',
-    fontSize: 24, fontWeight: '900', color: '#000D22',
+    borderWidth: 2, borderColor: colors.border,
+    backgroundColor: colors.background,
+    fontSize: 24, fontWeight: '900', color: colors.textPrimary,
   },
   codeBoxFilled: { borderColor: '#0040e0', backgroundColor: '#EEF2FF' },
 
   // Photo
   photoCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, overflow: 'hidden',
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.surface, borderRadius: 20, overflow: 'hidden',
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
   photoPlaceholder: {
     height: 160, alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderWidth: 2, borderColor: '#C4C6CF',
+    gap: 8, borderWidth: 2, borderColor: colors.border,
     borderStyle: 'dashed', borderRadius: 20,
     margin: 1,
   },
-  photoLabel: { fontSize: Typography.sm, fontWeight: '700', color: '#44474e' },
-  photoSub: { fontSize: Typography.xs, color: '#74777e' },
+  photoLabel: { fontSize: Typography.sm, fontWeight: '700', color: colors.textSecondary },
+  photoSub: { fontSize: Typography.xs, color: colors.textSecondary },
   photoPreview: { position: 'relative', height: 200 },
   previewImage: { width: '100%', height: '100%' },
   photoOverlay: {
@@ -327,4 +373,5 @@ const styles = StyleSheet.create({
   },
   completeBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   completeBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
-});
+  }); // end makeStyles
+}

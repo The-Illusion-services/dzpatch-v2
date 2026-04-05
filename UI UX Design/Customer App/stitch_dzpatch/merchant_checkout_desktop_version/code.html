@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC | Secure Checkout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#e66100",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed": "#d5e3ff",
+              "outline-variant": "#c4c6cf",
+              "tertiary-fixed-dim": "#ffb692",
+              "background": "#f7fafc",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-secondary-fixed-variant": "#0035be",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "surface-variant": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "secondary-fixed": "#dde1ff",
+              "surface-tint": "#4a5f81",
+              "inverse-primary": "#b2c7ef",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-error": "#ffffff",
+              "on-secondary-fixed": "#001356",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary": "#ffffff",
+              "on-background": "#181c1e",
+              "tertiary": "#1d0600",
+              "surface": "#f7fafc",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed": "#341100",
+              "on-tertiary": "#ffffff",
+              "on-surface-variant": "#44474e",
+              "error-container": "#ffdad6",
+              "on-error-container": "#93000a",
+              "surface-container": "#ebeef0",
+              "primary-container": "#0a2342",
+              "on-primary": "#ffffff",
+              "tertiary-fixed": "#ffdbcb",
+              "tertiary-container": "#401600",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-dim": "#d7dadc",
+              "surface-container-highest": "#e0e3e5",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "outline": "#74777e",
+              "secondary": "#0040e0",
+              "on-secondary-container": "#efefff",
+              "on-primary-fixed-variant": "#324768",
+              "on-primary-fixed": "#021c3a",
+              "inverse-surface": "#2d3133",
+              "on-primary-container": "#768baf",
+              "on-surface": "#181c1e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-background min-h-screen">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 sticky bg-white/70 backdrop-blur-xl shadow-sm">
+<nav class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
+<div class="text-2xl font-black tracking-tighter text-slate-900">KINETIC</div>
+<div class="hidden md:flex space-x-8 items-center">
+<a class="font-manrope text-sm font-semibold tracking-tight text-slate-600 hover:text-blue-600 transition-colors" href="#">Solutions</a>
+<a class="font-manrope text-sm font-semibold tracking-tight text-slate-600 hover:text-blue-600 transition-colors" href="#">Tracking</a>
+<a class="font-manrope text-sm font-semibold tracking-tight text-slate-600 hover:text-blue-600 transition-colors" href="#">Support</a>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-secondary transition-colors" data-icon="shopping_cart">shopping_cart</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-secondary transition-colors" data-icon="help_outline">help_outline</span>
+</div>
+<button class="font-manrope text-sm font-bold tracking-tight text-blue-700 hover:text-blue-600 transition-colors">Account</button>
+</div>
+</nav>
+</header>
+<main class="max-w-7xl mx-auto px-8 py-12 md:py-20">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Left Column: Checkout Form -->
+<div class="lg:col-span-7 space-y-10">
+<!-- Header & Badge -->
+<div class="space-y-4">
+<div class="inline-flex items-center space-x-2 bg-secondary/10 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-xs font-bold tracking-wider text-secondary uppercase">Secure Checkout</span>
+</div>
+<h1 class="text-4xl font-extrabold tracking-tight text-primary">Complete your payment safely</h1>
+<p class="text-on-surface-variant max-w-lg">Fill in your delivery and contact information below to finalize your order with Artisan Bakery.</p>
+</div>
+<!-- Merchant Identity Card -->
+<div class="bg-surface-container-low p-6 rounded-xl flex items-center justify-between">
+<div class="flex items-center space-x-5">
+<div class="w-16 h-16 bg-white rounded-xl shadow-sm flex items-center justify-center p-2">
+<img alt="Artisan Bakery Logo" class="rounded-lg object-contain w-full h-full" data-alt="Minimalist bakery logo with dark blue background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB87MfP92ev1yL0aEjYUFF8bWRIwTt7bTJQv_-ki-qNCt79LR_KkMDc3z8VuU783qb1F1AJ9GmG8PsfyynDLqXTywqJAeBW5arGy-vSM6mqOG6Kj4975F6tS_fVZzfWvB81UJH0kE8jI-33HerRMa_hcpafsxqZuSFDcCutGxIu4XeY4-UV5dmGF48Kq6le6_WzeYQEX20I5qYUehq2WDxTlEJ-sMrBbyxNveHMRHcQr3X0T-nH4q9poqTzs7x8Dwc_5mMSsVTooUx8"/>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<h3 class="font-headline font-bold text-xl text-primary">Artisan Bakery</h3>
+<span class="material-symbols-outlined text-blue-500 text-lg" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div class="flex items-center space-x-2 mt-1">
+<span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+<span class="text-xs font-medium text-on-surface-variant">Online &amp; Verified Merchant</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Amount to Pay</p>
+<p class="text-3xl font-black text-primary tracking-tighter">N 1,500</p>
+</div>
+</div>
+<!-- Form Sections -->
+<form class="space-y-8">
+<div class="grid grid-cols-1 gap-6">
+<!-- Delivery Address -->
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">Delivery Address</label>
+<div class="relative group">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant" data-icon="location_on">location_on</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-on-surface placeholder:text-outline transition-all duration-200" placeholder="Enter full street address" type="text"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-tertiary-fixed transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+<!-- Contact Details Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">Your Email</label>
+<div class="relative group">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant" data-icon="alternate_email">alternate_email</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-on-surface placeholder:text-outline transition-all duration-200" placeholder="email@example.com" type="email"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-tertiary-fixed transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">Primary Phone Number</label>
+<div class="relative group flex items-center">
+<div class="absolute left-4 flex items-center space-x-2 text-on-surface-variant">
+<img alt="Nigeria Flag" class="w-5 h-auto rounded-sm" data-alt="Nigeria country flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX1Yx82RRm5sLuw7qELZBt4hkJCa6KkdSpDhkdTnwAfvJQKc51OcZuOngCzWo8VAMSp0Fvr8yabhbkzYyYs5whIfzsmRv1yNJlBBJiZzi8gl-GFn5DCGA8pqquqyYzP1QogignWvzbYLQdGxrnqn4pBcXgT0I5ttg3uCq921SkVV-3efNi6l565b6pkqLKg7I1xF-Wn9pK6Fh9iANtmDuS5YxFplHQ4Egp3RFAP4MNf6gFNvlAtZDqapkrv0wYy97_qsrAjLzeT4vr"/>
+<span class="text-sm font-semibold">+234</span>
+</div>
+<input class="w-full pl-24 pr-4 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-on-surface placeholder:text-outline transition-all duration-200" placeholder="801 234 5678" type="tel"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-tertiary-fixed transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+</div>
+<!-- Secondary Phone & Note -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">Secondary Phone (Optional)</label>
+<div class="relative group flex items-center">
+<div class="absolute left-4 flex items-center space-x-2 text-on-surface-variant">
+<img alt="Nigeria Flag" class="w-5 h-auto rounded-sm" data-alt="Nigeria country flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA00ZM6NKzT3ZFCHtz0Rj8USIXfwYvoLjN2LlEBvpJMe3nsX0-MWWNM56IBGG_g81sMDf6lL8vpB6bVxDFrRNhmYAcGfKJSnz_s4DqZynMVuatDuhB9p42qyzbeESFgvkIzRnLisKSYVh8Dv2s12B_Sz46bVN9IZIH1wXm58f12rfB_5v7eCsbAtUf_rxLO1uWV0r2xzeh_4G31aduqgCvFXvEhQCC7z57iLiEsaFw-C33ftmUyyLjYOTZHJ52hosH69qqQtZIbA7nN"/>
+<span class="text-sm font-semibold">+234</span>
+</div>
+<input class="w-full pl-24 pr-4 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-on-surface placeholder:text-outline transition-all duration-200" placeholder="Alternative number" type="tel"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-tertiary-fixed transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1">Note / Item Description</label>
+<div class="relative group">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant" data-icon="sticky_note_2">sticky_note_2</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-0 text-on-surface placeholder:text-outline transition-all duration-200" placeholder="Add a note to your order" type="text"/>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-tertiary-fixed transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+</div>
+</div>
+</form>
+</div>
+<!-- Right Column: Order Summary Sidebar -->
+<div class="lg:col-span-5">
+<div class="sticky top-32 space-y-6">
+<div class="bg-primary-container p-8 rounded-2xl shadow-sm text-on-primary">
+<h2 class="font-headline font-extrabold text-2xl tracking-tight mb-8">Order Summary</h2>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-3">
+<span class="text-on-primary-container font-medium">Subtotal</span>
+<span class="font-bold">N 1,500.00</span>
+</div>
+<div class="flex justify-between items-center py-3">
+<div class="flex items-center space-x-2">
+<span class="text-on-primary-container font-medium">Service Fee</span>
+<span class="text-[10px] bg-secondary/30 text-secondary-fixed px-2 py-0.5 rounded-full font-bold">INCLUDED</span>
+</div>
+<span class="font-bold">N 0.00</span>
+</div>
+<div class="pt-6 mt-4 border-t border-on-primary-container/20">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-xs font-bold text-on-primary-container uppercase tracking-widest mb-1">Order Total</p>
+<p class="text-4xl font-black tracking-tighter">N 1,500.00</p>
+</div>
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="payments">payments</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-10 bg-secondary hover:bg-secondary/90 text-white font-bold py-5 rounded-xl transition-all duration-200 flex items-center justify-center space-x-3 group shadow-lg shadow-secondary/20">
+<span>Pay N 1,500.00</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<div class="mt-8 flex items-center justify-center space-x-3 text-on-primary-container/70">
+<span class="material-symbols-outlined text-sm" data-icon="lock" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="text-xs font-semibold tracking-wide uppercase">End-to-End Encrypted Payment</span>
+</div>
+</div>
+<!-- Additional Trust Indicators -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center space-x-3">
+<span class="material-symbols-outlined text-secondary" data-icon="local_shipping">local_shipping</span>
+<span class="text-xs font-bold text-primary">Fast Delivery</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center space-x-3">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="support_agent">support_agent</span>
+<span class="text-xs font-bold text-primary">24/7 Support</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Section -->
+<footer class="w-full border-t border-slate-200 bg-slate-50 mt-12">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 py-8 w-full max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row items-center md:space-x-8 space-y-4 md:space-y-0">
+<div class="text-lg font-bold text-slate-900">KINETIC</div>
+<p class="font-inter text-xs tracking-wide text-slate-500">© 2024 Kinetic Logistics. All rights reserved.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-6 mt-6 md:mt-0">
+<a class="font-inter text-xs tracking-wide text-slate-500 hover:text-slate-900 underline-offset-4 hover:underline transition-opacity" href="#">Privacy Policy</a>
+<a class="font-inter text-xs tracking-wide text-slate-500 hover:text-slate-900 underline-offset-4 hover:underline transition-opacity" href="#">Terms of Service</a>
+<a class="font-inter text-xs tracking-wide text-slate-500 hover:text-slate-900 underline-offset-4 hover:underline transition-opacity" href="#">Cookie Settings</a>
+<a class="font-inter text-xs tracking-wide text-slate-500 hover:text-slate-900 underline-offset-4 hover:underline transition-opacity" href="#">Global Reach</a>
+</div>
+</div>
+</footer>
+</body></html>

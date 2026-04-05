@@ -1,0 +1,206 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>DZPATCH - Login &amp; Sign Up</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-tint": "#4a5f81",
+              "secondary": "#0040e0",
+              "surface-container-low": "#f1f4f6",
+              "secondary-fixed-dim": "#b8c3ff",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary-fixed": "#341100",
+              "on-secondary-fixed-variant": "#0035be",
+              "tertiary-fixed": "#ffdbcb",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d5e3ff",
+              "on-tertiary": "#ffffff",
+              "inverse-primary": "#b2c7ef",
+              "surface-variant": "#e0e3e5",
+              "error-container": "#ffdad6",
+              "surface-container-high": "#e5e9eb",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-error-container": "#93000a",
+              "on-surface-variant": "#44474e",
+              "on-secondary-fixed": "#001356",
+              "outline-variant": "#e2e8f0",
+              "on-secondary": "#ffffff",
+              "on-surface": "#181c1e",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-highest": "#e0e3e5",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed": "#dde1ff",
+              "background": "#fcfdfe",
+              "on-primary-fixed": "#021c3a",
+              "surface-dim": "#d7dadc",
+              "secondary-container": "#2e5bff",
+              "on-background": "#181c1e",
+              "on-primary-fixed-variant": "#324768",
+              "on-primary-container": "#768baf",
+              "primary": "#0A2342",
+              "on-primary": "#ffffff",
+              "tertiary-container": "#401600",
+              "surface-container": "#ebeef0",
+              "outline": "#74777e",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-secondary-container": "#efefff",
+              "error": "#ba1a1a",
+              "primary-container": "#0a2342",
+              "inverse-surface": "#2d3133",
+              "tertiary": "#1d0600",
+              "surface-bright": "#fcfdfe",
+              "on-tertiary-container": "#e66100",
+              "surface": "#fcfdfe"
+            },
+            fontFamily: {
+              "headline": ["Manrope", "sans-serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #0A2342 0%, #0040e0 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased">
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/50 px-6 h-16 md:px-12 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="text-xl font-extrabold tracking-tight text-primary font-headline" style="">DZPATCH</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium text-on-surface-variant hover:text-secondary transition-colors" href="#" style="">Support</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-secondary transition-colors" href="#" style="">Network</a>
+</div>
+</header>
+<main class="min-h-screen flex flex-col md:flex-row pt-16">
+<!-- Left Column -->
+<section class="hidden md:flex md:w-1/2 lg:w-3/5 kinetic-gradient flex-col justify-between p-12 lg:p-20 relative overflow-hidden">
+<div class="relative z-10">
+<h1 class="font-headline text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1]" style="">
+                Logistics <br>
+<span class="text-secondary-fixed" style="">Redefined.</span>
+</h1>
+<p class="mt-8 text-white/70 text-lg max-w-md leading-relaxed font-medium" style="">
+                Precision tracking, architectural reliability, and seamless orchestration for the modern global manifest.
+            </p>
+</div>
+<div class="relative z-10 grid grid-cols-2 gap-4 mt-20">
+<div class="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+<span class="material-symbols-outlined text-secondary-fixed mb-4" style="">speed</span>
+<h3 class="text-white font-headline text-lg font-bold" style="">Kinetic Pulse</h3>
+<p class="text-white/60 text-sm mt-1" style="">Real-time telemetry for assets.</p>
+</div>
+<div class="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+<span class="material-symbols-outlined text-secondary-fixed mb-4" style="">security</span>
+<h3 class="text-white font-headline text-lg font-bold" style="">Fortress Secure</h3>
+<p class="text-white/60 text-sm mt-1" style="">End-to-end encryption.</p>
+</div>
+</div>
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-secondary blur-[120px]"></div>
+</div>
+</section>
+<!-- Right Column -->
+<section class="flex-1 flex flex-col justify-center items-center p-6 md:p-12 lg:p-24 bg-surface-container-lowest">
+<div class="w-full max-w-[400px]">
+<!-- Welcome Header -->
+<div class="mb-10 text-center md:text-left">
+<h2 class="font-headline text-4xl font-extrabold text-primary tracking-tight" style="">Welcome back</h2>
+<p class="text-on-surface-variant mt-2 font-medium" style=""><br></p>
+</div>
+<!-- Social Logins -->
+<div class="space-y-4 mb-8">
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-3 bg-white hover:bg-surface-container-low transition-all py-3.5 rounded-2xl border border-outline-variant shadow-sm active:scale-95" type="button" style="">
+<svg class="w-5 h-5" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="text-sm font-bold text-primary" style="">Google</span>
+</button>
+<button class="flex items-center justify-center gap-3 bg-white hover:bg-surface-container-low transition-all py-3.5 rounded-2xl border border-outline-variant shadow-sm active:scale-95" type="button" style="">
+<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+<path d="M17.05 20.28c-.96.95-2.01 1.74-3.14 1.74-1.09 0-1.42-.66-2.68-.66-1.28 0-1.63.64-2.65.66-1.09.02-2.04-.8-3.04-1.74C3.58 18.33 2 15.34 2 12.39c0-3.02 1.95-4.63 3.86-4.63 1.02 0 1.98.61 2.61.61.61 0 1.73-.74 2.94-.74 1.34 0 2.45.62 3.12 1.48-2.73 1.48-2.28 5.32.48 6.44-.64 1.63-1.5 3.25-2.96 4.73zM11.91 7.02c0-2.32 1.93-4.22 4.29-4.25.04 2.36-2.03 4.39-4.29 4.25z"></path>
+</svg>
+<span class="text-sm font-bold text-primary" style="">Apple</span>
+</button>
+</div>
+<!-- Divider -->
+<div class="flex items-center gap-4 py-2">
+<div class="h-[1px] flex-1 bg-outline-variant/50"></div>
+<span class="text-[10px] font-bold text-outline uppercase tracking-[0.2em]" style="">Or email access</span>
+<div class="h-[1px] flex-1 bg-outline-variant/50"></div>
+</div>
+</div>
+<!-- Form Section -->
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="block text-[10px] font-bold uppercase tracking-[0.15em] text-primary/60 ml-1" for="identifier" style="">
+                        Phone or Email
+                    </label>
+<input class="w-full bg-white border border-outline-variant rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all text-on-surface font-medium placeholder:text-outline/40" id="identifier" placeholder="name@company.com" type="text">
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-primary/60" for="password" style="">
+                            Password
+                        </label>
+<a class="text-[10px] font-bold uppercase tracking-wider text-secondary hover:underline transition-all" href="#" style="">
+                            Forgot?
+                        </a>
+</div>
+<input class="w-full bg-white border border-outline-variant rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all text-on-surface font-medium placeholder:text-outline/40" id="password" placeholder="••••••••" type="password">
+</div>
+<!-- Action Buttons: Side-by-Side -->
+<div class="pt-6">
+<div class="flex items-center justify-between gap-4">
+<button class="flex-1 flex flex-col items-center justify-center bg-secondary-fixed text-primary rounded-2xl py-4 transition-all active:scale-95 shadow-sm" type="submit" style="">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;wght&quot; 400;">login</span>
+<span class="font-headline text-[11px] font-bold uppercase tracking-wider mt-1" style="">Login</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center bg-white border border-outline-variant text-primary rounded-2xl py-4 transition-all active:scale-95 hover:bg-surface-container-low shadow-sm" type="button" style="">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;wght&quot; 400;">person_add</span>
+<span class="font-headline text-[11px] font-bold uppercase tracking-wider mt-1" style="">Sign Up</span>
+</button>
+</div>
+</div>
+</form>
+<div class="mt-10 text-center">
+<p class="text-on-surface-variant text-xs font-medium" style="">
+                    New to DZPATCH? 
+                    <a class="text-secondary font-bold ml-1 hover:underline" href="#" style="">Create an account</a>
+</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Abstract Decorative Gradient -->
+<div class="hidden">
+<img data-alt="Abstract deep navy digital grid background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGDIjBNSpxzyIWSiAuODqaoINbt6zKC7A-Vo5O8wtJ32mGvObrP2fsHs4y-4pykaz2nLMnyOjPt4jCEktb_1e6Y5QsZaw6jQEMPXeNqpSR7_TAq3h4wPP46f3YDna1RdpQtWkQS1eOWUZzpnf7whvc0uvz6ws2P_kz3uaWdq5ZAs87j6r0blH-Q47Erv39vCaHeJViTNL1wKs07pXoksvYlEqz50kHvyDg7JGqiwbrm0m1PXpHN7IqVpOrDLEMkecAcJjUel3QuQYt" class="" style="">
+<img data-alt="Modern logistics terminal architectural detail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAat7UjTgv7fExH2on9254pA7xGG0loxOx0N_WLLlUOwnniQVg1WgBCrkyDiFFF7gMdvnAh2souKwZAI1TOtj-u2-Nvkjm12tvhYOQgEK82tomdvu0gU_FnsgYhcm01oMADGWXZT03mHC-_ciSe70xVipdnxGfCAFwV0UQRXZ5CAgMj0tGBqnb71d39F6iPIIPoOuweodRtLuFFkJvKcEs2oDSLF7HLibnH8OWPKgK4U64bKlHjjmg0gbrANucnO4X6IJ_o9LLR5zln" class="" style="">
+</div>
+</body></html>

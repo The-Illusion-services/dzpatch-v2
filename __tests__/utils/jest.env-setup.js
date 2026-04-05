@@ -22,3 +22,37 @@ if (typeof globalThis.URL === 'undefined') {
   globalThis.URL = URL;
   globalThis.URLSearchParams = URLSearchParams;
 }
+
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const envPath = path.resolve(process.cwd(), '.env');
+
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+
+    for (const rawLine of envContent.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+
+      const eqIndex = line.indexOf('=');
+      if (eqIndex <= 0) continue;
+
+      const key = line.slice(0, eqIndex).trim();
+      let value = line.slice(eqIndex + 1).trim();
+
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
+    }
+  }
+} catch {
+  // best-effort env loading only
+}

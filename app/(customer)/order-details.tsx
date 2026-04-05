@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { SkeletonCard } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 
@@ -68,6 +70,7 @@ function formatFullDate(iso: string): string {
 export default function OrderDetailsScreen() {
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { profile } = useAuthStore();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [rider, setRider] = useState<RiderInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +114,30 @@ export default function OrderDetailsScreen() {
   const isCancelled = order?.status === 'cancelled';
   const price = order?.final_price ?? order?.base_price ?? 0;
   const stepIdx = order ? statusStepIndex(order.status) : 0;
+
+  const handleReportIssue = () => {
+    const subjects = ['Wrong delivery', 'Damaged item', 'Payment issue', 'Rider behaviour', 'Other'];
+    Alert.alert('Report an Issue', 'What went wrong?', [
+      ...subjects.map((subject) => ({
+        text: subject,
+        onPress: async () => {
+          if (!orderId || !profile?.id) return;
+          const { error } = await supabase.from('disputes').insert({
+            order_id: orderId,
+            raised_by: profile.id,
+            subject,
+            description: `Issue reported from order-details screen. Order: ${orderId}`,
+          });
+          if (error) {
+            Alert.alert('Error', 'Could not submit report. Please try again.');
+          } else {
+            Alert.alert('Report Submitted', 'Our support team will review your issue within 24 hours.');
+          }
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -304,8 +331,8 @@ export default function OrderDetailsScreen() {
             </Pressable>
           )}
 
-          <Pressable style={styles.disputeBtn}>
-            <Text style={styles.disputeBtnText}>Report a Dispute</Text>
+          <Pressable style={styles.disputeBtn} onPress={handleReportIssue}>
+            <Text style={styles.disputeBtnText}>Report an Issue</Text>
           </Pressable>
         </ScrollView>
       )}

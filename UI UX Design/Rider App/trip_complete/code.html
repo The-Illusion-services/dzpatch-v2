@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trip Completed - Rider</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#0035be",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "secondary-fixed": "#dde1ff",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#b2c7ef",
+              "primary-container": "#0a2342",
+              "error": "#ba1a1a",
+              "secondary-fixed-dim": "#b8c3ff",
+              "secondary-container": "#2e5bff",
+              "on-background": "#181c1e",
+              "on-primary-container": "#768baf",
+              "background": "#f7fafc",
+              "on-primary-fixed": "#021c3a",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-surface": "#181c1e",
+              "primary-fixed": "#d5e3ff",
+              "outline-variant": "#c4c6cf",
+              "on-surface-variant": "#44474e",
+              "surface-container": "#ebeef0",
+              "primary": "#000d22",
+              "on-error": "#ffffff",
+              "on-primary": "#ffffff",
+              "outline": "#74777e",
+              "surface-container-low": "#f1f4f6",
+              "on-secondary": "#ffffff",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6",
+              "surface": "#f7fafc",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "surface-variant": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "on-secondary-fixed": "#001356",
+              "inverse-surface": "#2d3133",
+              "on-tertiary-container": "#e66100",
+              "on-tertiary-fixed": "#341100",
+              "on-primary-fixed-variant": "#324768",
+              "tertiary-fixed": "#ffdbcb",
+              "on-secondary-container": "#efefff",
+              "surface-dim": "#d7dadc",
+              "surface-bright": "#f7fafc",
+              "tertiary": "#1d0600"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .tonal-shift-bg {
+        background-color: #f1f4f6;
+      }
+      .tap-highlight-none {
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm flex items-center justify-between px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="transition-all duration-300 ease-in-out active:scale-95 text-blue-700">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline font-bold text-lg tracking-tight text-blue-900">Delivery in Progress</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden">
+<img alt="Rider Profile" data-alt="close-up portrait of a professional delivery rider with a friendly expression wearing a sleek helmet and gear" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnTQjzvmBuda8u4yIUlLd08sF1XQKG-VP1665qiMM6512ceaXKTYzMBU4h_yKS0V_Rw_x2YFuKWbBincfiG8SXWmT2J9PloK9KChGuHHynjOG59V3hMFdU8ydh3GCm1BH2Qo_mNpDFNd_2EYh0e03xeuSCl1vijEiKSQUkzvxRZ13SuGWtRdDQXgiRYCQyOZuJn5ZcZeaEfNO8v8rMx56qjCgj2bfPup_-jcdLT2AWeqW4HhbS54hFPtjFRtZfDFHvOA9lpkoHKUrS"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-lg mx-auto">
+<!-- Success Illustration & Title -->
+<section class="flex flex-col items-center text-center mb-10">
+<div class="relative mb-6">
+<!-- Decorative concentric circles for "pulse" effect -->
+<div class="absolute inset-0 bg-secondary/10 rounded-full scale-150 animate-pulse"></div>
+<div class="relative w-24 h-24 bg-secondary text-white rounded-full flex items-center justify-center shadow-lg shadow-secondary/30">
+<span class="material-symbols-outlined !text-5xl" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<h2 class="font-headline font-extrabold text-3xl text-primary tracking-tight">Trip Completed!</h2>
+<p class="text-on-surface-variant mt-2 font-medium">Excellent work! Your delivery was successful.</p>
+</section>
+<!-- Bento Grid Stats -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-surface-container-low p-5 rounded-xl flex flex-col items-center justify-center text-center border-b-2 border-secondary/20">
+<span class="material-symbols-outlined text-secondary mb-2" data-icon="distance">distance</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest font-label">Distance</span>
+<span class="text-primary font-headline font-bold text-xl">4.2 mi</span>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl flex flex-col items-center justify-center text-center border-b-2 border-tertiary-container/20">
+<span class="material-symbols-outlined text-on-tertiary-container mb-2" data-icon="timer">timer</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest font-label">Time</span>
+<span class="text-primary font-headline font-bold text-xl">18 mins</span>
+</div>
+</div>
+<!-- Earnings Breakdown Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-8">
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold text-lg text-primary">Earnings Breakdown</h3>
+<span class="bg-secondary-fixed text-on-secondary-fixed-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Processed</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant font-medium">Gross Earnings</span>
+<span class="text-primary font-semibold">₦1,500</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant font-medium">Dzpatch Commission</span>
+<span class="text-error font-semibold">-₦150</span>
+</div>
+<div class="h-px bg-surface-container-high my-2"></div>
+<div class="flex justify-between items-center pt-2">
+<span class="text-primary font-bold text-lg">Net Pay</span>
+<span class="text-secondary font-headline font-extrabold text-2xl">₦1,350</span>
+</div>
+</div>
+</div>
+<!-- Summary Footer of the card -->
+<div class="bg-primary-container p-4 flex items-center gap-3">
+<div class="bg-secondary p-2 rounded-lg">
+<span class="material-symbols-outlined text-white text-sm" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<p class="text-on-primary-container text-xs leading-snug">This amount will be added to your weekly payout schedule.</p>
+</div>
+</div>
+<!-- Feedback Section (Optional Modern UI element) -->
+<div class="bg-surface-container-low p-6 rounded-xl mb-10 flex items-center justify-between">
+<div>
+<h4 class="font-bold text-primary text-sm">Rate Customer</h4>
+<p class="text-on-surface-variant text-xs">Help us improve the experience</p>
+</div>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-outline-variant hover:text-secondary cursor-pointer" data-icon="star">star</span>
+<span class="material-symbols-outlined text-outline-variant hover:text-secondary cursor-pointer" data-icon="star">star</span>
+<span class="material-symbols-outlined text-outline-variant hover:text-secondary cursor-pointer" data-icon="star">star</span>
+<span class="material-symbols-outlined text-outline-variant hover:text-secondary cursor-pointer" data-icon="star">star</span>
+<span class="material-symbols-outlined text-outline-variant hover:text-secondary cursor-pointer" data-icon="star">star</span>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-secondary text-white font-headline font-bold py-5 rounded-xl shadow-lg shadow-secondary/20 transition-all duration-300 active:scale-95 uppercase tracking-widest text-sm">
+            BACK TO HOME
+        </button>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] rounded-t-3xl z-50">
+<div class="flex flex-col items-center justify-center bg-blue-600 text-white rounded-xl py-2 px-4 shadow-lg shadow-blue-200">
+<span class="material-symbols-outlined" data-icon="directions_run">directions_run</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Route</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Package</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Earnings</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 py-2 px-4 hover:text-blue-500 transition-transform active:scale-90">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-inter text-[11px] font-semibold uppercase tracking-wider mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   Pressable,
@@ -9,12 +10,17 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function DeliverySuccessScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId, finalPrice, deliveryTime, riderId, riderName } = useLocalSearchParams<{
     orderId: string;
     finalPrice?: string;
@@ -22,6 +28,32 @@ export default function DeliverySuccessScreen() {
     riderId?: string;
     riderName?: string;
   }>();
+  const { profile } = useAuthStore();
+
+  // ── Report Issue ──────────────────────────────────────────────────────────
+  const handleReportIssue = () => {
+    const subjects = ['Wrong delivery', 'Damaged item', 'Payment issue', 'Rider behaviour', 'Other'];
+    Alert.alert('Report an Issue', 'What went wrong?', [
+      ...subjects.map((subject) => ({
+        text: subject,
+        onPress: async () => {
+          if (!orderId || !profile?.id) return;
+          const { error } = await supabase.from('disputes').insert({
+            order_id: orderId,
+            raised_by: profile.id,
+            subject,
+            description: `Issue reported from delivery-success screen. Order: ${orderId}`,
+          });
+          if (error) {
+            Alert.alert('Error', 'Could not submit report. Please try again.');
+          } else {
+            Alert.alert('Report Submitted', 'Our support team will review your issue within 24 hours.');
+          }
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   // ── Package scale-in + tilt ───────────────────────────────────────────────
   const scaleAnim = useRef(new Animated.Value(0.6)).current;
@@ -123,6 +155,13 @@ export default function DeliverySuccessScreen() {
           <Text style={styles.receiptText}>View Digital Receipt</Text>
           <Text style={styles.receiptChevron}>›</Text>
         </Pressable>
+
+        {/* Report issue */}
+        <Pressable style={styles.reportRow} onPress={handleReportIssue}>
+          <Text style={styles.reportIcon}>⚠️</Text>
+          <Text style={styles.reportText}>Report an Issue</Text>
+          <Text style={styles.receiptChevron}>›</Text>
+        </Pressable>
       </View>
 
       {/* Actions */}
@@ -151,8 +190,9 @@ export default function DeliverySuccessScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7FAFC' },
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
 
   header: {
     flexDirection: 'row',
@@ -161,13 +201,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[5],
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(196,198,207,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
   brand: {
     fontSize: Typography.lg,
     fontWeight: Typography.extrabold,
-    color: '#000D22',
+    color: colors.textPrimary,
     fontStyle: 'italic',
     letterSpacing: -0.5,
   },
@@ -218,10 +258,10 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000D22',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -255,7 +295,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
     borderWidth: 3,
-    borderColor: '#F7FAFC',
+    borderColor: colors.background,
   },
   checkBadgeText: { fontSize: 22, color: '#FFFFFF', fontWeight: Typography.bold },
 
@@ -263,13 +303,13 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: Typography.xl,
     fontWeight: Typography.extrabold,
-    color: '#000D22',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
     textAlign: 'center',
   },
   subtext: {
     fontSize: Typography.sm,
-    color: '#44474e',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,
@@ -279,7 +319,7 @@ const styles = StyleSheet.create({
   statsGrid: { flexDirection: 'row', gap: 12, width: '100%' },
   statCard: {
     flex: 1,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 18,
     gap: 6,
@@ -291,14 +331,14 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 9,
     fontWeight: Typography.bold,
-    color: '#74777e',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
   statValue: {
     fontSize: Typography.xl,
     fontWeight: Typography.bold,
-    color: '#000D22',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -311,11 +351,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#F1F4F6',
+    backgroundColor: colors.surface,
   },
   receiptIcon: { fontSize: 18 },
   receiptText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#0040e0', flex: 1 },
   receiptChevron: { fontSize: 18, color: '#0040e0', fontWeight: Typography.bold },
+
+  reportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#FFF4E5',
+  },
+  reportIcon: { fontSize: 18 },
+  reportText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: '#b45309', flex: 1 },
 
   // Actions
   actions: {
@@ -341,10 +393,11 @@ const styles = StyleSheet.create({
   rateBtnText: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#FFFFFF' },
   doneBtn: {
     height: 52,
-    backgroundColor: '#E0E3E5',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  doneBtnText: { fontSize: Typography.md, fontWeight: Typography.bold, color: '#000D22' },
-});
+  doneBtnText: { fontSize: Typography.md, fontWeight: Typography.bold, color: colors.textPrimary },
+  }); // end makeStyles
+}

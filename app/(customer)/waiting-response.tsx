@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -11,16 +11,35 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function WaitingResponseScreen() {
   const insets = useSafeAreaInsets();
-  const { orderId, riderName, counterAmount, originalBid } = useLocalSearchParams<{
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { orderId, riderName, counterAmount, originalBid, negotiationRound } = useLocalSearchParams<{
     orderId: string;
     riderName: string;
     counterAmount: string;
     originalBid: string;
+    negotiationRound?: string;
   }>();
 
+
+  // ── 5-min counter-offer countdown ─────────────────────────────────────────
+  const [countdown, setCountdown] = useState(5 * 60); // seconds
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(tick); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+  const countdownMins = Math.floor(countdown / 60).toString().padStart(2, '0');
+  const countdownSecs = (countdown % 60).toString().padStart(2, '0');
+  const isExpiringSoon = countdown <= 60;
 
   // ── Hourglass spin ────────────────────────────────────────────────────────
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -75,7 +94,7 @@ export default function WaitingResponseScreen() {
       router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
 
     const poll = setInterval(async () => {
-      // Check order status
+      // Check order status first
       const { data: orderData } = await supabase
         .from('orders')
         .select('status')
@@ -88,19 +107,42 @@ export default function WaitingResponseScreen() {
         if (status === 'cancelled') { clearInterval(poll); goHome(); return; }
       }
 
-      // Also check bids: if rider responded with a new pending bid (re-counter),
-      // go back to live-bidding so customer can see and respond
-      const { data: bids } = await supabase
+      // Fetch latest bids for this order (pending + countered)
+      const { data: recentBids } = await supabase
         .from('bids')
-        .select('id, status, amount')
+        .select('id, status, amount, parent_bid_id, negotiation_round')
         .eq('order_id', orderId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'countered', 'expired', 'rejected'])
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(3);
 
-      if (bids && (bids as any[]).length > 0) {
+      if (!recentBids || (recentBids as any[]).length === 0) return;
+
+      const allBids = recentBids as any[];
+      const latestPending = allBids.find((b) => b.status === 'pending');
+
+      // Rider countered our offer: a new pending bid exists with parent_bid_id
+      if (latestPending && latestPending.parent_bid_id && latestPending.negotiation_round % 2 !== 0) {
+        clearInterval(poll);
+        router.replace({
+          pathname: '/(customer)/counter-offer',
+          params: {
+            orderId,
+            bidId: latestPending.id,
+            riderName: riderName ?? 'Rider',
+            bidAmount: String(latestPending.amount),
+            negotiationRound: String(latestPending.negotiation_round ?? negotiationRound ?? 1),
+          },
+        } as any);
+        return;
+      }
+
+      // All bids expired/rejected — negotiation dead, go back to live-bidding
+      const allTerminal = allBids.every((b) => b.status === 'expired' || b.status === 'rejected');
+      if (allTerminal) {
         clearInterval(poll);
         goBidding();
+        return;
       }
     }, 4000);
 
@@ -115,12 +157,43 @@ export default function WaitingResponseScreen() {
           else if (status === 'cancelled') goHome();
         }
       )
-      // Also catch new bid inserts in realtime (rider re-counter)
+      // Catch new rider bid inserts (rider countered back = new pending bid with parent_bid_id)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
+        async (payload) => {
+          const newBidId = (payload.new as any).id;
+          const { data: reliableBid } = await supabase
+            .from('bids')
+            .select('status, amount, parent_bid_id, negotiation_round')
+            .eq('id', newBidId)
+            .single();
+
+          if (!reliableBid) return;
+          if ((reliableBid as any).status !== 'pending') return;
+          
+          if ((reliableBid as any).parent_bid_id && (reliableBid as any).negotiation_round % 2 !== 0) {
+            // Rider countered our offer — take customer to counter-offer screen
+            router.replace({
+              pathname: '/(customer)/counter-offer',
+              params: {
+                orderId,
+                bidId: newBidId,
+                riderName: riderName ?? 'Rider',
+                bidAmount: String((reliableBid as any).amount),
+                negotiationRound: String((reliableBid as any).negotiation_round),
+              },
+            } as any);
+          }
+        }
+      )
+      // Catch bid updates: expiry/rejection closes the negotiation
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         (payload) => {
-          if ((payload.new as any).status === 'pending') goBidding();
+          const bid = payload.new as any;
+          if (bid.status === 'expired' || bid.status === 'rejected') goBidding();
         }
       )
       .subscribe();
@@ -129,7 +202,7 @@ export default function WaitingResponseScreen() {
       clearInterval(poll);
       supabase.removeChannel(channel);
     };
-  }, [orderId]);
+  }, [orderId, riderName, negotiationRound]);
 
   // ── Cancel & search again ─────────────────────────────────────────────────
   const handleCancelAndSearch = () => {
@@ -192,6 +265,13 @@ export default function WaitingResponseScreen() {
             <Animated.View style={[styles.offerPulseDot, { opacity: pulseAnim }]} />
           </View>
 
+          {/* Countdown */}
+          <View style={[styles.countdownRow, isExpiringSoon && styles.countdownRowUrgent]}>
+            <Text style={[styles.countdownLabel, isExpiringSoon && styles.countdownLabelUrgent]}>
+              {countdown > 0 ? `Expires in ${countdownMins}:${countdownSecs}` : 'Offer expired'}
+            </Text>
+          </View>
+
           {/* Timeline */}
           <View style={styles.timeline}>
             {timelineSteps.map((step, i) => (
@@ -237,21 +317,22 @@ export default function WaitingResponseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7FAFC' },
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
 
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing[5], paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(196,198,207,0.2)',
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 20, color: '#0040e0', fontWeight: '600' },
   headerTitle: {
     flex: 1, textAlign: 'center',
     fontSize: Typography.lg, fontWeight: Typography.bold,
-    color: '#000D22', letterSpacing: -0.3,
+    color: colors.textPrimary, letterSpacing: -0.3,
   },
 
   shimmerBar: {
@@ -287,10 +368,10 @@ const styles = StyleSheet.create({
   hourglass: { fontSize: 36 },
   headline: {
     fontSize: Typography.lg, fontWeight: Typography.bold,
-    color: '#000D22', textAlign: 'center', lineHeight: 26,
+    color: colors.textPrimary, textAlign: 'center', lineHeight: 26,
   },
   headlineAmount: { color: '#0040e0' },
-  subtext: { fontSize: Typography.sm, color: '#44474e', textAlign: 'center', lineHeight: 20 },
+  subtext: { fontSize: Typography.sm, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 
   trackerCard: {
     width: '100%',
@@ -315,6 +396,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  countdownRow: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  countdownRowUrgent: { backgroundColor: 'rgba(186,26,26,0.2)' },
+  countdownLabel: { fontSize: Typography.xs, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5 },
+  countdownLabelUrgent: { color: '#ff8a80' },
+
   timeline: { gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16 },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   timelineDot: {
@@ -336,18 +427,19 @@ const styles = StyleSheet.create({
   timelineValuePending: { color: '#b8c3ff', fontStyle: 'italic' },
 
   actionSection: { width: '100%', alignItems: 'center', gap: 10 },
-  actionHint: { fontSize: Typography.xs, color: '#74777e', textAlign: 'center' },
+  actionHint: { fontSize: Typography.xs, color: colors.textSecondary, textAlign: 'center' },
   cancelBtn: {
     width: '100%', paddingVertical: 14, alignItems: 'center',
-    borderRadius: 16, backgroundColor: '#E0E3E5',
+    borderRadius: 16, backgroundColor: colors.surface,
   },
-  cancelBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#44474e' },
+  cancelBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: colors.textSecondary },
 
   securityBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 6,
-    backgroundColor: '#F1F4F6', borderRadius: 999,
+    backgroundColor: colors.surface, borderRadius: 999,
   },
   securityIcon: { fontSize: 14 },
-  securityText: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: '#44474e' },
-});
+  securityText: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: colors.textSecondary },
+  }); // end makeStyles
+}

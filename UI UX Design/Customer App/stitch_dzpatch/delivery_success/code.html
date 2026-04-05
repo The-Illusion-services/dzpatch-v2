@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Delivery Success | Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#1d0600",
+              "surface-bright": "#f7fafc",
+              "inverse-surface": "#2d3133",
+              "secondary-fixed": "#dde1ff",
+              "outline": "#74777e",
+              "error": "#ba1a1a",
+              "primary-container": "#0a2342",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed": "#341100",
+              "on-surface": "#181c1e",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary-fixed": "#021c3a",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "on-secondary-fixed": "#001356",
+              "tertiary-fixed-dim": "#ffb692",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-dim": "#d7dadc",
+              "surface-variant": "#e0e3e5",
+              "surface": "#f7fafc",
+              "surface-container-highest": "#e0e3e5",
+              "inverse-primary": "#b2c7ef",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed-variant": "#324768",
+              "surface-container": "#ebeef0",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-surface-variant": "#44474e",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "primary-fixed": "#d5e3ff",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "outline-variant": "#c4c6cf",
+              "on-primary": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "surface-container-high": "#e5e9eb",
+              "tertiary-fixed": "#ffdbcb",
+              "background": "#f7fafc",
+              "secondary": "#0040e0",
+              "tertiary-container": "#401600",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "on-background": "#181c1e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .kinetic-gradient {
+        background: linear-gradient(135deg, #000d22 0%, #0a2342 100%);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased">
+<!-- Top Navigation Anchor (As requested, though Transactional pages usually suppress, this keeps Brand Identity) -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm shadow-[#000d22]/5 flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-2">
+<span class="text-[#000d22] font-black italic tracking-tighter text-lg">Dzpatch</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar close up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJEEmq0vPmXuetzozXGjLl2_PXeuAnon3ek1oYfC4vc4mS8Yy1GKqJdN1XYAxvzgsQXIdZQqL4c7ZM66TfpjLFQ-xYcu3lwDXKobfyG_KY8bIQ-cwQHixskzvhg5XtbSbt4mS1YitrLQ-NZiiuzA01w0Vw6iqQl5CISU8rNg9Fs9jad4imufCsOFF4n4YuLnZz6ARnqL2vfv4dWAfltwQK37gyZzc6ZD_qVz7sFtvjbVu5KNCrlJV4_cJk5yRaQB2AsD0r--dMS5UD"/>
+</div>
+</header>
+<main class="min-h-screen pt-24 pb-12 px-6 flex flex-col items-center justify-center max-w-2xl mx-auto">
+<!-- Success Illustration Section -->
+<div class="relative mb-10 w-full flex justify-center">
+<!-- Asymmetric Kinetic Background -->
+<div class="absolute -top-12 -left-4 w-64 h-64 bg-secondary/5 rounded-full blur-3xl"></div>
+<div class="absolute top-0 -right-4 w-48 h-48 bg-tertiary-fixed/10 rounded-full blur-3xl"></div>
+<!-- 3D Style Package Representation -->
+<div class="relative z-10 w-64 h-64 flex items-center justify-center">
+<div class="relative group">
+<!-- The "Package" -->
+<div class="w-48 h-48 bg-surface-container-lowest shadow-2xl shadow-primary/10 rounded-xl flex items-center justify-center transform -rotate-3 transition-transform group-hover:rotate-0 duration-500">
+<div class="w-40 h-40 border-2 border-dashed border-outline-variant rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-7xl" style="font-variation-settings: 'FILL' 1;">package_2</span>
+</div>
+</div>
+<!-- The Floating Checkmark -->
+<div class="absolute -bottom-4 -right-4 w-20 h-20 bg-secondary rounded-full flex items-center justify-center shadow-xl shadow-secondary/30 ring-8 ring-surface transition-transform group-hover:scale-110 duration-300">
+<span class="material-symbols-outlined text-white text-4xl">check</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Headline & Messaging -->
+<div class="text-center mb-12">
+<h1 class="font-headline font-extrabold text-3xl md:text-4xl text-primary tracking-tight mb-3">Package Delivered Successfully</h1>
+<p class="font-body text-on-surface-variant max-w-sm mx-auto leading-relaxed">Your shipment has reached its destination. Thank you for choosing Dzpatch for your logistics needs.</p>
+</div>
+<!-- Detailed Summary Card (Bento-style layout) -->
+<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+<!-- Price Card -->
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col justify-between h-32 border-l-4 border-secondary">
+<span class="text-on-surface-variant font-label text-xs uppercase tracking-widest font-semibold">Final Price</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline font-bold text-2xl text-primary">₦4,200</span>
+<span class="text-on-surface-variant text-sm">.00</span>
+</div>
+</div>
+<!-- Time Card -->
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col justify-between h-32 border-l-4 border-tertiary-fixed-dim">
+<span class="text-on-surface-variant font-label text-xs uppercase tracking-widest font-semibold">Delivery Time</span>
+<div class="flex items-center gap-3">
+<span class="font-headline font-bold text-2xl text-primary">24 mins</span>
+<span class="material-symbols-outlined text-on-tertiary-container">speed</span>
+</div>
+</div>
+</div>
+<!-- Receipt Link -->
+<div class="mb-12">
+<a class="group flex items-center gap-2 text-secondary font-semibold hover:text-primary transition-colors py-2 px-4 rounded-full hover:bg-secondary-fixed" href="#">
+<span class="material-symbols-outlined text-xl">receipt_long</span>
+<span class="font-label tracking-wide">View Digital Receipt</span>
+<span class="material-symbols-outlined text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">chevron_right</span>
+</a>
+</div>
+<!-- Action Buttons Cluster -->
+<div class="w-full flex flex-col gap-4">
+<button class="w-full h-14 bg-secondary text-white font-headline font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined">star</span>
+                Rate Rider
+            </button>
+<button class="w-full h-14 bg-surface-container-high text-primary font-headline font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container-highest active:scale-95 transition-all">
+                Done / Back to Home
+            </button>
+</div>
+</main>
+<!-- Suppressed BottomNavBar for transactional focus, but as it's a "Completion" state, it can be viewed as top-level return -->
+<!-- Using the structure from JSON but tailored for the end of a journey -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 backdrop-blur-lg rounded-t-3xl shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] z-50">
+<a class="flex flex-col items-center justify-center text-[#4a5f81] hover:bg-[#f1f4f6] transition-colors rounded-xl px-4 py-1.5" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest mt-1">Deliveries</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4a5f81] hover:bg-[#f1f4f6] transition-colors rounded-xl px-4 py-1.5" href="#">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest mt-1">Activity</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4a5f81] hover:bg-[#f1f4f6] transition-colors rounded-xl px-4 py-1.5" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest mt-1">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4a5f81] hover:bg-[#f1f4f6] transition-colors rounded-xl px-4 py-1.5" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] font-medium text-[10px] uppercase tracking-widest mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -17,9 +17,9 @@ import { WebView } from 'react-native-webview';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { isWalletFundingCallback, waitForWalletFundingConfirmation } from '@/lib/wallet-funding';
 
 const QUICK_AMOUNTS = [1000, 2500, 5000, 10000];
-const CALLBACK_URL = 'https://dzpatch.com/payment-callback';
 
 export default function RiderWalletScreen() {
   const insets = useSafeAreaInsets();
@@ -30,6 +30,8 @@ export default function RiderWalletScreen() {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -63,8 +65,9 @@ export default function RiderWalletScreen() {
           body: JSON.stringify({ amount: amt, wallet_id: walletId }),
         }
       );
-      const json = await res.json() as { authorization_url?: string };
-      if (!json.authorization_url) throw new Error('No auth URL');
+      const json = await res.json() as { authorization_url?: string; reference?: string };
+      if (!json.authorization_url || !json.reference) throw new Error('No auth URL');
+      setPaymentReference(json.reference);
       setAuthUrl(json.authorization_url);
     } catch {
       Alert.alert('Error', 'Could not initialize payment. Please try again.');
@@ -73,15 +76,64 @@ export default function RiderWalletScreen() {
     }
   };
 
-  const handleWebViewNav = (url: string) => {
-    if (url.startsWith(CALLBACK_URL)) {
+  const confirmWalletFunding = async () => {
+    if (!walletId || !paymentReference) {
       setAuthUrl(null);
-      Alert.alert('Payment Processing', 'Your payment is being processed. Balance will update shortly.');
-      router.replace({ pathname: '/(rider)/earnings' as any });
+      return;
+    }
+
+    setAuthUrl(null);
+    setConfirmingPayment(true);
+
+    try {
+      const result = await waitForWalletFundingConfirmation(paymentReference, walletId);
+
+      if (result.balance !== null) {
+        setBalance(result.balance);
+      }
+
+      if (result.confirmed) {
+        Alert.alert('Wallet Funded', 'Your rider wallet has been credited successfully.', [
+          { text: 'OK', onPress: () => router.replace({ pathname: '/(rider)/earnings' as any }) },
+        ]);
+        return;
+      }
+
+      Alert.alert(
+        'Payment Received',
+        'Your payment is still being confirmed. Your wallet will update as soon as the provider confirms it.',
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(rider)/earnings' as any }) }],
+      );
+    } catch {
+      Alert.alert(
+        'Payment Processing',
+        'We could not confirm your wallet credit yet. Please check your earnings wallet shortly.',
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(rider)/earnings' as any }) }],
+      );
+    } finally {
+      setConfirmingPayment(false);
+      setPaymentReference(null);
+    }
+  };
+
+  const handleWebViewNav = (url: string) => {
+    if (isWalletFundingCallback(url)) {
+      void confirmWalletFunding();
       return false;
     }
     return true;
   };
+
+  if (confirmingPayment) {
+    return (
+      <View style={styles.confirmingWrap}>
+        <Text style={styles.confirmingTitle}>Confirming Payment</Text>
+        <Text style={styles.confirmingText}>
+          We are waiting for the wallet credit to be confirmed before showing success.
+        </Text>
+      </View>
+    );
+  }
 
   if (authUrl) {
     return (
@@ -198,4 +250,19 @@ const styles = StyleSheet.create({
   },
   fundBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   fundBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
+  confirmingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing[6],
+    backgroundColor: '#F7FAFC',
+  },
+  confirmingTitle: { fontSize: Typography.lg, fontWeight: '800', color: '#000D22' },
+  confirmingText: {
+    marginTop: 8,
+    textAlign: 'center',
+    fontSize: Typography.sm,
+    color: '#44474e',
+    lineHeight: 20,
+  },
 });

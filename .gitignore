@@ -44,3 +44,9 @@ app-example
 /android
 supabase.exe
 *.exe
+
+# Custom ignore for push
+coverage/
+supabase/.branches/
+supabase/migrations/archive_local_2026-04-02/
+.claude/

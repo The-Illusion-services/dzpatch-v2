@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+﻿import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -17,7 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface WalletData {
   id: string;
@@ -31,21 +31,21 @@ interface BankAccount {
   account_name: string;
 }
 
-const FEE = 100; // ₦100 flat withdrawal fee
+const FEE = 100; // â‚¦100 flat withdrawal fee
 const MIN_WITHDRAWAL = 500;
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function RiderWithdrawScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
+  const { profile, riderId } = useAuthStore();
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Fetch wallet + bank account ────────────────────────────────────────────
+  // â”€â”€ Fetch wallet + bank account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -61,13 +61,13 @@ export default function RiderWithdrawScreen() {
     supabase
       .from('rider_bank_accounts')
       .select('bank_name, bank_code, account_number, account_name')
-      .eq('rider_id', profile.id)
+      .eq('rider_id', riderId)
       .eq('is_default', true)
       .single()
       .then(({ data }) => { if (data) setBankAccount(data as BankAccount); });
-  }, [profile?.id]);
+  }, [profile?.id, riderId]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const amountNum = parseInt(amount || '0', 10);
   const payout = Math.max(0, amountNum - FEE);
@@ -76,7 +76,7 @@ export default function RiderWithdrawScreen() {
 
   const setMax = () => setAmount(String(Math.max(0, balance - FEE)));
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleWithdraw = async () => {
     if (!wallet?.id || !profile?.id || !isValid) return;
@@ -93,7 +93,7 @@ export default function RiderWithdrawScreen() {
       if (error) throw error;
       Alert.alert(
         'Withdrawal Requested',
-        `₦${payout.toLocaleString()} will be transferred within 1–3 business days.`,
+        `Your ₦${payout.toLocaleString()} payout has been submitted for processing. We will notify you once it is confirmed.`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch {
@@ -126,7 +126,7 @@ export default function RiderWithdrawScreen() {
         <View style={styles.balanceCard}>
           <View style={styles.balanceDecor} />
           <Text style={styles.balanceLabel}>AVAILABLE FOR WITHDRAWAL</Text>
-          <Text style={styles.balanceAmount}>₦{balance.toLocaleString()}</Text>
+          <Text style={styles.balanceAmount}>â‚¦{balance.toLocaleString()}</Text>
           {bankAccount && (
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
@@ -139,7 +139,7 @@ export default function RiderWithdrawScreen() {
         <View style={styles.inputCard}>
           <Text style={styles.inputLabel}>WITHDRAWAL AMOUNT</Text>
           <View style={styles.inputRow}>
-            <Text style={styles.currencySymbol}>₦</Text>
+            <Text style={styles.currencySymbol}>â‚¦</Text>
             <TextInput
               style={styles.amountInput}
               value={amount}
@@ -154,7 +154,7 @@ export default function RiderWithdrawScreen() {
             </Pressable>
           </View>
           <View style={styles.inputDivider} />
-          <Text style={styles.minText}>Min: ₦{MIN_WITHDRAWAL.toLocaleString()}</Text>
+          <Text style={styles.minText}>Min: â‚¦{MIN_WITHDRAWAL.toLocaleString()}</Text>
         </View>
 
         {/* Bank account selector */}
@@ -168,7 +168,7 @@ export default function RiderWithdrawScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.bankName}>{bankAccount.bank_name}</Text>
                 <Text style={styles.bankAccountNum}>
-                  {bankAccount.account_name} • ****{bankAccount.account_number.slice(-4)}
+                  {bankAccount.account_name} â€¢ ****{bankAccount.account_number.slice(-4)}
                 </Text>
               </View>
               <Ionicons name="checkmark-circle" size={20} color="#0040e0" />
@@ -189,20 +189,20 @@ export default function RiderWithdrawScreen() {
           <View style={styles.calcCard}>
             <View style={styles.calcRow}>
               <Text style={styles.calcLabel}>Withdrawal Amount</Text>
-              <Text style={styles.calcValue}>₦{amountNum.toLocaleString()}</Text>
+              <Text style={styles.calcValue}>â‚¦{amountNum.toLocaleString()}</Text>
             </View>
             <View style={styles.calcRow}>
               <View style={styles.calcLabelRow}>
                 <Ionicons name="information-circle-outline" size={14} color="#74777e" />
                 <Text style={styles.calcLabel}>Transaction Fee</Text>
               </View>
-              <Text style={[styles.calcValue, { color: '#ba1a1a' }]}>-₦{FEE.toLocaleString()}</Text>
+              <Text style={[styles.calcValue, { color: '#ba1a1a' }]}>-â‚¦{FEE.toLocaleString()}</Text>
             </View>
             <View style={styles.calcDivider} />
             <View style={styles.calcRow}>
               <Text style={[styles.calcLabel, { fontWeight: '900', color: '#000D22' }]}>Final Payout</Text>
               <Text style={[styles.calcValue, { color: '#0040e0', fontSize: Typography.md }]}>
-                ₦{payout.toLocaleString()}
+                â‚¦{payout.toLocaleString()}
               </Text>
             </View>
           </View>
@@ -212,7 +212,7 @@ export default function RiderWithdrawScreen() {
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={16} color="#0040e0" />
           <Text style={styles.noticeText}>
-            Funds processed within 1–3 business days. High-value withdrawals may undergo additional verification.
+            Payout timing depends on bank and processor confirmation. High-value withdrawals may undergo additional verification.
           </Text>
         </View>
 
@@ -232,7 +232,7 @@ export default function RiderWithdrawScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   content: { gap: 16, paddingHorizontal: Spacing[5] },
@@ -339,3 +339,4 @@ const styles = StyleSheet.create({
   submitBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   submitText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
 });
+

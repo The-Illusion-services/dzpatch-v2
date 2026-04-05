@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dzpatch Rider - Splash</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#f7fafc",
+              "secondary-fixed": "#dde1ff",
+              "primary-fixed-dim": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#021c3a",
+              "surface-variant": "#e0e3e5",
+              "on-surface": "#181c1e",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "primary": "#000d22",
+              "outline-variant": "#c4c6cf",
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#ffdbcb",
+              "on-tertiary-fixed": "#341100",
+              "on-secondary-fixed": "#001356",
+              "tertiary-container": "#401600",
+              "surface-bright": "#f7fafc",
+              "primary-container": "#0a2342",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-highest": "#e0e3e5",
+              "surface-tint": "#4a5f81",
+              "inverse-primary": "#b2c7ef",
+              "on-surface-variant": "#44474e",
+              "surface-container-high": "#e5e9eb",
+              "primary-fixed": "#d5e3ff",
+              "tertiary": "#1d0600",
+              "surface-container": "#ebeef0",
+              "on-primary-fixed-variant": "#324768",
+              "secondary-fixed-dim": "#b8c3ff",
+              "outline": "#74777e",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "secondary-container": "#2e5bff",
+              "inverse-surface": "#2d3133",
+              "secondary": "#0040e0",
+              "on-background": "#181c1e",
+              "on-secondary-container": "#efefff",
+              "on-primary-container": "#768baf",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary-container": "#e66100",
+              "background": "#f7fafc",
+              "on-secondary-fixed-variant": "#0035be",
+              "surface-dim": "#d7dadc"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mesh {
+            background: radial-gradient(at 0% 0%, #0a2342 0%, transparent 50%),
+                        radial-gradient(at 100% 100%, #000d22 0%, transparent 50%),
+                        radial-gradient(at 50% 50%, #001356 0%, transparent 100%);
+            background-color: #000d22;
+        }
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        .animate-subtle {
+            animation: subtle-pulse 4s ease-in-out infinite;
+        }
+        .loading-bar {
+            width: 140px;
+            height: 2px;
+            background: rgba(178, 199, 239, 0.2);
+            position: relative;
+            overflow: hidden;
+            border-radius: 999px;
+        }
+        .loading-progress {
+            position: absolute;
+            height: 100%;
+            width: 40%;
+            background: #dde1ff;
+            left: -40%;
+            animation: loading-slide 1.5s infinite ease-in-out;
+        }
+        @keyframes loading-slide {
+            0% { left: -40%; }
+            100% { left: 100%; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-primary overflow-hidden h-screen w-screen flex flex-col items-center justify-center font-body selection:bg-secondary-container">
+<!-- Background Layer with Gradient Texture -->
+<div class="absolute inset-0 z-0 bg-mesh opacity-80" data-alt="Dark navy blue atmospheric gradient with subtle grain and organic light pulses representing a premium logistics background"></div>
+<!-- Central Branding Anchor -->
+<main class="relative z-10 flex flex-col items-center space-y-12">
+<!-- Logo Cluster -->
+<div class="flex flex-col items-center space-y-4 animate-subtle">
+<!-- Iconic Representation -->
+<div class="w-20 h-20 bg-secondary flex items-center justify-center rounded-xl shadow-2xl shadow-primary/50">
+<span class="material-symbols-outlined text-white text-4xl" data-icon="local_shipping" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+</div>
+<!-- Typography Anchor -->
+<div class="text-center">
+<h1 class="font-headline font-extrabold text-4xl tracking-tighter text-white">
+                    Dzpatch
+                </h1>
+<div class="flex items-center justify-center space-x-2 mt-1">
+<span class="h-[1px] w-6 bg-secondary-fixed/30"></span>
+<span class="font-label font-semibold text-[10px] uppercase tracking-[0.3em] text-secondary-fixed">
+                        RIDER
+                    </span>
+<span class="h-[1px] w-6 bg-secondary-fixed/30"></span>
+</div>
+</div>
+</div>
+<!-- Loading Indicator -->
+<div class="flex flex-col items-center space-y-6">
+<div class="loading-bar">
+<div class="loading-progress"></div>
+</div>
+<p class="font-label text-xs font-medium text-primary-fixed-dim/60 tracking-wide">
+                Authenticating secure terminal...
+            </p>
+</div>
+</main>
+<!-- Footer Identity (Discrete) -->
+<footer class="absolute bottom-12 z-10 flex flex-col items-center">
+<div class="flex items-center space-x-3 text-primary-fixed-dim/40">
+<span class="material-symbols-outlined text-lg" data-icon="encrypted">encrypted</span>
+<span class="font-label text-[10px] font-bold uppercase tracking-widest">End-to-End Secure Logistics</span>
+</div>
+</footer>
+<!-- Decorative Kinetic Accents -->
+<div class="absolute top-0 left-0 w-full h-full pointer-events-none z-5">
+<div class="absolute top-[20%] right-[15%] w-64 h-64 bg-secondary/5 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[10%] left-[10%] w-96 h-96 bg-primary-container/20 rounded-full blur-[120px]"></div>
+</div>
+</body></html>

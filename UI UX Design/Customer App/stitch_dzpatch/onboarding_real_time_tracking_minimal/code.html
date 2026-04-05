@@ -1,0 +1,182 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dzpatch - Real-time Tracking</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet">
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#f7fafc",
+              "on-error": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "on-tertiary": "#ffffff",
+              "on-primary-fixed": "#021c3a",
+              "primary-container": "#0a2342",
+              "surface-container-low": "#f1f4f6",
+              "tertiary-fixed-dim": "#ffb692",
+              "on-tertiary-fixed": "#341100",
+              "inverse-on-surface": "#eef1f3",
+              "surface-bright": "#f7fafc",
+              "on-surface-variant": "#44474e",
+              "surface-variant": "#e0e3e5",
+              "tertiary": "#1d0600",
+              "surface-dim": "#d7dadc",
+              "on-secondary-fixed-variant": "#0035be",
+              "tertiary-container": "#401600",
+              "surface-tint": "#4a5f81",
+              "on-primary-fixed-variant": "#324768",
+              "tertiary-fixed": "#ffdbcb",
+              "primary-fixed": "#d5e3ff",
+              "secondary-container": "#2e5bff",
+              "secondary-fixed": "#dde1ff",
+              "primary": "#000d22",
+              "outline": "#74777e",
+              "inverse-surface": "#2d3133",
+              "surface-container": "#ebeef0",
+              "surface-container-high": "#e5e9eb",
+              "on-secondary-fixed": "#001356",
+              "on-background": "#181c1e",
+              "background": "#f7fafc",
+              "outline-variant": "#c4c6cf",
+              "error": "#ba1a1a",
+              "surface-container-highest": "#e0e3e5",
+              "on-error-container": "#93000a",
+              "inverse-primary": "#b2c7ef",
+              "secondary": "#0040e0",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-surface": "#181c1e",
+              "error-container": "#ffdad6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-active {
+            width: 2rem;
+            transition: all 0.3s ease;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden">
+<!-- Top Navigation Anchor -->
+<nav class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#0040e0]" data-icon="speed" style="">speed</span>
+<span class="text-xl font-extrabold tracking-tighter text-[#000d22] font-headline" style="">Dzpatch</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[#4a5f81] font-['Manrope'] font-bold tracking-tight text-sm hover:bg-[#f1f4f6] transition-colors px-3 py-1 rounded-full" style="">Skip</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="relative h-screen w-full flex flex-col pt-20">
+<!-- Illustration/Map Area: Asymmetric Bento Style -->
+<section class="flex-grow relative px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+<!-- Map Visualization Card -->
+<div class="md:col-span-7 h-[397px] md:h-[574px] relative rounded-3xl overflow-hidden shadow-2xl bg-surface-container-highest group">
+<div class="absolute inset-0 bg-[#000d22]/5 mix-blend-multiply z-10 pointer-events-none"></div>
+<img alt="Minimalist high contrast map view" class="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700" data-alt="Minimal satellite view of urban streets" data-location="London" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHLL21ppGnJ6Z3JZpR7wUx97O-omARZ3bw90MIMSs3fYdsRPultlJ42hgX4LirphP026HR2D6iONlLRRYya2yhyDL6X2wEqYNor11kWqHowtH7PEw9uPN__rIgYl9x6GWACT7S57mMPMBK38586GAh64hPMbgICi2Lg7MG1_9tBaSF_dd6VXE8LC7VOq3H5_rB70Km7QCRP_B3PA5il5SxQc07jCeaSTP9YEAUIxTU-5qSj926jTtOjM4cLNErZ-E_mwaZi7-T1wFs" style="">
+<!-- Animated Floating Elements (Static Representation) -->
+<div class="absolute top-1/2 left-1/3 z-20">
+<div class="relative flex items-center justify-center">
+<div class="absolute w-12 h-12 bg-secondary/20 rounded-full"></div>
+<div class="relative bg-secondary p-3 rounded-full shadow-lg text-white">
+<span class="material-symbols-outlined text-xl" data-icon="local_shipping" style="">local_shipping</span>
+</div>
+</div>
+</div>
+<!-- Live Status Toast (Glassmorphism) -->
+<div class="absolute top-6 left-6 right-6 z-30 bg-white/70 backdrop-blur-xl p-4 rounded-2xl shadow-xl flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-on-tertiary-container"></div>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant" style="">Live Dispatch</p>
+<p class="text-sm font-semibold text-primary" style="">Arriving in 12 mins</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="sensors" style="">sensors</span>
+</div>
+</div>
+<!-- Copy/Typography Block -->
+<div class="md:col-span-5 flex flex-col gap-6 md:pl-8">
+<div class="flex gap-2 mb-2">
+<div class="h-1 w-4 rounded-full bg-surface-variant"></div>
+<div class="h-1 w-4 rounded-full bg-surface-variant"></div>
+<div class="h-1 w-8 rounded-full bg-secondary"></div>
+</div>
+<h1 class="text-4xl md:text-5xl font-extrabold font-headline leading-tight text-primary tracking-tighter" style=""><span class="text-secondary" style=""><font color="#000d22">Real time<br></font>Tracking</span></h1>
+<p class="text-lg text-on-surface-variant leading-relaxed max-w-md" style="">
+                    Follow every mile. Our kinetic tracking engine provides millisecond updates so you're always in control of the journey.
+                </p>
+<!-- Data Brick Component -->
+<div class="flex flex-wrap gap-3 mt-4">
+<div class="bg-surface-container-low px-4 py-3 rounded-2xl border border-outline-variant/10">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1" style="">Update rate</p>
+<p class="text-primary font-bold" style="">Real-time</p>
+</div>
+<div class="bg-surface-container-low px-4 py-3 rounded-2xl border border-outline-variant/10">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1" style="">Precision</p>
+<p class="text-primary font-bold" style="">1.5 meters</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell -->
+<footer class="fixed bottom-0 left-0 w-full z-50 flex justify-between items-center px-8 pb-8 pt-4 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,13,34,0.06)] border-t border-[#e0e3e5]/30">
+<!-- Inactive Step -->
+<div class="flex flex-col items-center justify-center text-[#4a5f81] px-4 py-2 opacity-50">
+<span class="material-symbols-outlined mb-1" data-icon="close" style="">close</span>
+<span class="font-['Manrope'] font-semibold text-xs tracking-wide uppercase" style="">Skip</span>
+</div>
+<!-- Progress Indicator (Hidden on mobile labels, visual only) -->
+<div class="hidden md:flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-surface-variant"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-surface-variant"></div>
+<div class="w-8 h-1.5 rounded-full bg-secondary"></div>
+</div>
+<!-- Active Navigation CTA -->
+<div class="flex flex-col items-center justify-center bg-[#0040e0] text-white rounded-xl px-10 py-3 active:opacity-80 scale-98 transition-all hover:bg-primary cursor-pointer group shadow-lg">
+<div class="flex items-center gap-2">
+<span class="font-['Manrope'] font-semibold text-sm tracking-wide uppercase" style="">Get Started</span>
+<span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform" data-icon="rocket_launch" style="">rocket_launch</span>
+</div>
+</div>
+</footer>
+<!-- Decorative Elements -->
+<div class="fixed top-20 right-0 -z-10 w-96 h-96 bg-secondary-fixed/30 rounded-full blur-[120px]"></div>
+<div class="fixed bottom-20 -left-20 -z-10 w-64 h-64 bg-tertiary-fixed/20 rounded-full blur-[100px]"></div>
+</body></html>

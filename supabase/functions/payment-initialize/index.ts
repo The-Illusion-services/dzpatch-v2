@@ -112,16 +112,6 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── Record pending transaction ───────────────────────────────────────────
-  await supabase.from('transactions').insert({
-    wallet_id,
-    type: 'credit',
-    amount,
-    balance_after: 0, // will be corrected by credit_wallet RPC on webhook
-    description: 'Wallet top-up via Paystack',
-    status: 'pending',
-    reference,
-  });
-
   return json({
     authorization_url: paystackData.data.authorization_url,
     reference,

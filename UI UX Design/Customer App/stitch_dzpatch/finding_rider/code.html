@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#1d0600",
+              "surface-bright": "#f7fafc",
+              "inverse-surface": "#2d3133",
+              "secondary-fixed": "#dde1ff",
+              "outline": "#74777e",
+              "error": "#ba1a1a",
+              "primary-container": "#0a2342",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed": "#341100",
+              "on-surface": "#181c1e",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-primary-fixed": "#021c3a",
+              "secondary-container": "#2e5bff",
+              "primary": "#000d22",
+              "on-secondary-fixed": "#001356",
+              "tertiary-fixed-dim": "#ffb692",
+              "secondary-fixed-dim": "#b8c3ff",
+              "surface-dim": "#d7dadc",
+              "surface-variant": "#e0e3e5",
+              "surface": "#f7fafc",
+              "surface-container-highest": "#e0e3e5",
+              "inverse-primary": "#b2c7ef",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed-variant": "#324768",
+              "surface-container": "#ebeef0",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-surface-variant": "#44474e",
+              "on-tertiary-container": "#e66100",
+              "on-primary-container": "#768baf",
+              "primary-fixed": "#d5e3ff",
+              "inverse-on-surface": "#eef1f3",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "outline-variant": "#c4c6cf",
+              "on-primary": "#ffffff",
+              "on-secondary-container": "#efefff",
+              "surface-container-high": "#e5e9eb",
+              "tertiary-fixed": "#ffdbcb",
+              "background": "#f7fafc",
+              "secondary": "#0040e0",
+              "tertiary-container": "#401600",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "on-background": "#181c1e"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(.33); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .pulse-animation {
+            animation: pulse-ring 3s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        .pulse-animation-delayed {
+            animation: pulse-ring 3s cubic-bezier(0.455, 0.03, 0.515, 0.955) -1.5s infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body overflow-hidden">
+<!-- Top Navigation Anchor (Suppressed Shell for focused journey - showing only minimal brand branding) -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl flex justify-between items-center px-6 h-16 shadow-sm shadow-primary/5">
+<div class="font-headline font-black italic tracking-tighter text-primary text-xl">Dzpatch</div>
+<div class="flex items-center gap-4">
+<span class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-lg">notifications</span>
+</span>
+<div class="w-8 h-8 rounded-full bg-secondary-fixed overflow-hidden ring-2 ring-white">
+<img alt="User Profile" data-alt="Professional user avatar for profile section" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQrmU1F9NSh1CgzEfJ-XPKokjFmgbmcJRnZIgu4k5I3hLNQmXenCR1ova73E003ZiYH4dJ4L-qhoohrn0A7LH7hLHzUyHf_gXJ4K5xErOoeU2fOvIM-higEzH0PWQMCZw0cZiDAofwICAnwv7iJwuOU_GFg00v9dQokzb0tq65j5kvBPhVel-9BHsOOVI4OkPX1-L8JqRKQJD5rTIHccvQNv78Tz1ZWdQiBgrFBmwtmBEkF_xo9FL16YZPTGRzc7-GxgTshk22neT0"/>
+</div>
+</div>
+</header>
+<!-- Interactive Background Map -->
+<main class="relative h-screen w-full pt-16">
+<div class="absolute inset-0 z-0 bg-surface-container">
+<img class="w-full h-full object-cover grayscale opacity-50 contrast-125 mix-blend-multiply" data-alt="Monochrome detailed city map of San Francisco area" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLcEyf7yGp0Xn7j3XXIS-s1rJWKo41lWn6geOHSoqJ6Jk8fIOvGjtj7SR4GnMGflNR3x4fqPWjsP9LJlTRjppOwr6S7bHL4k6FTjEZsNIG9vvE7K2_Wy1x5MLqwUOH3fUkeikU_p8ZHZHSxSQCIFcZmbX_uS9sRuLreS21y25TwArAIyvYi6iuPCdFadPuJnDV5sSfa8WA_8snH_0H__NXEpZO2kNPGq2k4Ex8AJzubfP9zdNSQdaI-6hVv2B2BNuery1HbZ-baFgN"/>
+<!-- Overlay Gradient for Depth -->
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/10"></div>
+</div>
+<!-- Pulse Radar Logic -->
+<div class="absolute inset-0 flex items-center justify-center z-10">
+<div class="relative w-96 h-96 flex items-center justify-center">
+<!-- Outer Pulse Rings -->
+<div class="absolute w-full h-full border-2 border-secondary/30 rounded-full pulse-animation"></div>
+<div class="absolute w-full h-full border-2 border-secondary/20 rounded-full pulse-animation-delayed"></div>
+<!-- Inner Core -->
+<div class="relative w-16 h-16 bg-secondary flex items-center justify-center rounded-full shadow-2xl shadow-secondary/40">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+</div>
+</div>
+</div>
+<!-- Floating Feedback Overlay -->
+<div class="absolute top-24 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-3rem)] max-w-md">
+<div class="bg-surface-container-lowest/80 backdrop-blur-xl p-6 rounded-full shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] border border-white/20 flex items-center gap-4">
+<!-- Simple Spinner -->
+<div class="w-6 h-6 border-2 border-secondary/20 border-t-secondary rounded-full animate-spin"></div>
+<div>
+<h2 class="font-headline font-bold text-primary tracking-tight">Searching for a nearby rider...</h2>
+<p class="text-on-surface-variant text-sm font-medium">Estimated pickup: 4 mins</p>
+</div>
+</div>
+</div>
+<!-- Detail Card (Asymmetric Layout) -->
+<div class="absolute bottom-32 left-6 right-6 md:left-auto md:right-12 z-20 md:w-80">
+<div class="bg-primary p-6 rounded-xl shadow-2xl space-y-4">
+<div class="flex justify-between items-start">
+<span class="bg-secondary px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-widest">Priority Dispatch</span>
+<span class="text-secondary-fixed-dim text-xs font-semibold">REF: #DZ-9912</span>
+</div>
+<div class="space-y-1">
+<p class="text-white/60 text-[10px] uppercase tracking-wider font-semibold">Destination</p>
+<p class="text-white font-headline font-bold leading-tight">North Point District, 24th Ave.</p>
+</div>
+<div class="h-[1px] bg-white/10 w-full"></div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-white/40 text-[10px] uppercase font-bold">Size</p>
+<p class="text-white text-sm font-semibold">Medium (Box)</p>
+</div>
+<div>
+<p class="text-white/40 text-[10px] uppercase font-bold">Fragile</p>
+<p class="text-secondary-fixed text-sm font-semibold">Yes</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Area (Suppressed FAB for focused cancel action) -->
+<div class="fixed bottom-0 left-0 w-full p-6 flex flex-col items-center gap-4 z-30">
+<button class="w-full max-w-md bg-surface-container-lowest text-primary font-headline font-bold py-4 rounded-xl shadow-lg hover:bg-surface-container-high transition-all active:scale-95 duration-200">
+                Cancel Search
+            </button>
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-[0.2em] mb-4">Connecting to local logistics hub</p>
+</div>
+</main>
+<!-- Bottom Navigation suppressed for Transactional state -->
+</body></html>

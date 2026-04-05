@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,13 +22,31 @@ interface CustomerInfo {
   phone: string;
 }
 
-const CALABAR_DROP = { latitude: 5.9631, longitude: 8.3271 };
+interface LatLng { latitude: number; longitude: number; }
+
 const DELTA_SM = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
+const CALABAR_FALLBACK: LatLng = { latitude: 5.9631, longitude: 8.3271 };
+
+async function geocodeAddress(address: string): Promise<LatLng | null> {
+  try {
+    const key = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.status === 'OK' && json.results?.[0]) {
+      const loc = json.results[0].geometry.location;
+      return { latitude: loc.lat, longitude: loc.lng };
+    }
+  } catch { /* ignore — fall back to default */ }
+  return null;
+}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function NavigateToDropoffScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { riderId } = useAuthStore();
 
@@ -35,8 +54,19 @@ export default function NavigateToDropoffScreen() {
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [eta, setEta] = useState<number | null>(null);
   const [arriving, setArriving] = useState(false);
+  const [dropoffCoord, setDropoffCoord] = useState<LatLng>(CALABAR_FALLBACK);
   const mapRef = useRef<MapView>(null);
   const locationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Keep-screen-on warning (fires once on mount) ───────────────────────────
+  useEffect(() => {
+    Alert.alert(
+      '📍 Keep App Open',
+      'Your location is shared with the customer while you navigate. Keep this app in the foreground for accurate tracking.',
+      [{ text: 'Got it', style: 'default' }],
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Fetch order + customer ─────────────────────────────────────────────────
 
@@ -54,6 +84,13 @@ export default function NavigateToDropoffScreen() {
         // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
         const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
         setEta(mins);
+        // Geocode dropoff address → move marker + animate map
+        geocodeAddress(o.dropoff_address).then((coord) => {
+          if (coord) {
+            setDropoffCoord(coord);
+            mapRef.current?.animateToRegion({ ...coord, ...DELTA_SM }, 600);
+          }
+        });
         const { data: cust } = await supabase
           .from('profiles')
           .select('full_name, phone')
@@ -127,11 +164,11 @@ export default function NavigateToDropoffScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        initialRegion={{ ...CALABAR_DROP, ...DELTA_SM }}
+        initialRegion={{ ...CALABAR_FALLBACK, ...DELTA_SM }}
         showsUserLocation
         showsMyLocationButton={false}
       >
-        <Marker coordinate={CALABAR_DROP} title="Drop-off Location">
+        <Marker coordinate={dropoffCoord} title="Drop-off Location">
           <View style={styles.markerWrap}>
             <View style={styles.dropMarker}>
               <Ionicons name="location" size={28} color="#401600" />
@@ -144,6 +181,15 @@ export default function NavigateToDropoffScreen() {
       <View style={[styles.stepBadge, { top: insets.top + 16 }]} pointerEvents="none">
         <Text style={styles.stepText}>Step 3 of 4</Text>
       </View>
+
+      {/* Chat button — top right */}
+      <Pressable
+        style={[styles.chatFab, { top: insets.top + 16 }]}
+        onPress={() => router.push({ pathname: '/(rider)/rider-chat', params: { orderId } } as any)}
+        hitSlop={8}
+      >
+        <Ionicons name="chatbubble-ellipses" size={20} color="#0040e0" />
+      </Pressable>
 
       {/* Bottom card */}
       <View style={[styles.bottomCard, { paddingBottom: insets.bottom + 16 }]}>
@@ -199,12 +245,13 @@ export default function NavigateToDropoffScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1 },
 
   markerWrap: { alignItems: 'center' },
   dropMarker: {
-    backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20,
+    backgroundColor: colors.surface, borderRadius: 20,
     padding: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
@@ -212,20 +259,20 @@ const styles = StyleSheet.create({
 
   stepBadge: {
     position: 'absolute', left: 16,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: colors.surface,
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  stepText: { fontSize: Typography.xs, fontWeight: '700', color: '#000D22' },
+  stepText: { fontSize: Typography.xs, fontWeight: '700', color: colors.textPrimary },
 
   bottomCard: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingTop: 20, paddingHorizontal: Spacing[5],
     gap: 10,
-    shadowColor: '#000D22', shadowOffset: { width: 0, height: -4 },
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08, shadowRadius: 20, elevation: 10,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -235,17 +282,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   cardHeaderText: { fontSize: Typography.xs, fontWeight: '700', color: '#0040e0' },
-  etaText: { fontSize: Typography.sm, fontWeight: '700', color: '#000D22' },
+  etaText: { fontSize: Typography.sm, fontWeight: '700', color: colors.textPrimary },
 
   addressLabel: {
-    fontSize: Typography.xs, fontWeight: '700', color: '#74777e',
+    fontSize: Typography.xs, fontWeight: '700', color: colors.textSecondary,
     letterSpacing: 1.5, textTransform: 'uppercase',
   },
-  addressText: { fontSize: Typography.md, fontWeight: '800', color: '#000D22' },
+  addressText: { fontSize: Typography.md, fontWeight: '800', color: colors.textPrimary },
 
   recipientCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#F7FAFC', borderRadius: 14, padding: 12,
+    backgroundColor: colors.background, borderRadius: 14, padding: 12,
   },
   recipientAvatar: {
     width: 38, height: 38, borderRadius: 19,
@@ -253,10 +300,10 @@ const styles = StyleSheet.create({
   },
   recipientInitial: { fontSize: Typography.sm, fontWeight: '900', color: '#FFFFFF' },
   recipientLabel: {
-    fontSize: 9, fontWeight: '700', color: '#74777e',
+    fontSize: 9, fontWeight: '700', color: colors.textSecondary,
     letterSpacing: 1.5, textTransform: 'uppercase',
   },
-  recipientName: { fontSize: Typography.sm, fontWeight: '700', color: '#000D22' },
+  recipientName: { fontSize: Typography.sm, fontWeight: '700', color: colors.textPrimary },
   callBtn: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: '#0040e0', alignItems: 'center', justifyContent: 'center',
@@ -277,4 +324,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
   },
   arrivalBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
-});
+
+  chatFab: {
+    position: 'absolute', right: 16,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+  },
+  }); // end makeStyles
+}

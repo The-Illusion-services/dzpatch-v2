@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Verify Your Phone - Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline-variant": "#c4c6cf",
+                        "inverse-on-surface": "#eef1f3",
+                        "secondary-container": "#2e5bff",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#4a5f81",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-secondary-fixed-variant": "#0035be",
+                        "secondary-fixed": "#dde1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#341100",
+                        "surface-container": "#ebeef0",
+                        "on-primary-container": "#768baf",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#b2c7ef",
+                        "primary": "#000d22",
+                        "on-tertiary-container": "#e66100",
+                        "background": "#f7fafc",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#021c3a",
+                        "on-secondary-container": "#efefff",
+                        "surface-container-low": "#f1f4f6",
+                        "surface-container-high": "#e5e9eb",
+                        "surface": "#f7fafc",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#7a3000",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "secondary": "#0040e0",
+                        "surface-dim": "#d7dadc",
+                        "on-background": "#181c1e",
+                        "surface-bright": "#f7fafc",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#401600",
+                        "on-surface": "#181c1e",
+                        "inverse-primary": "#b2c7ef",
+                        "on-secondary-fixed": "#001356",
+                        "outline": "#74777e",
+                        "on-primary-fixed-variant": "#324768",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-surface-variant": "#44474e",
+                        "tertiary": "#1d0600",
+                        "primary-container": "#0a2342",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#d5e3ff",
+                        "secondary-fixed-dim": "#b8c3ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .otp-input:focus {
+            border-bottom-width: 2px;
+            border-bottom-color: #ffdbcb;
+        }
+        .glass-header {
+            background: rgba(247, 250, 252, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased min-h-screen flex flex-col">
+<!-- TopAppBar (Transactional: Back Arrow + Logo) -->
+<header class="fixed top-0 w-full z-50 bg-slate-50/70 backdrop-blur-xl flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/50 transition-colors active:scale-95 duration-200 text-[#000d22]">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-xl font-extrabold tracking-tighter text-[#000d22] font-headline">Dzpatch</span>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<span class="text-slate-400 font-headline font-bold tracking-tight">Step 2 of 5</span>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-6 pt-24 pb-12">
+<div class="w-full max-w-md">
+<!-- Progress Indicator -->
+<div class="mb-8">
+<div class="flex justify-between items-end mb-3">
+<span class="text-on-surface-variant font-label text-[10px] uppercase tracking-[0.2em] font-semibold">Verification Process</span>
+<span class="text-secondary font-headline font-extrabold text-lg">1.5 <span class="text-on-surface-variant/40 font-medium">/ 5</span></span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-secondary to-secondary-fixed w-[30%] rounded-full shadow-[0_0_8px_rgba(0,64,224,0.3)]"></div>
+</div>
+</div>
+<!-- Content Card -->
+<div class="bg-surface-container-lowest p-8 md:p-10 rounded-xl shadow-[0_4px_32px_rgba(0,13,34,0.04)] border border-outline-variant/10">
+<div class="mb-10 text-center">
+<h1 class="font-headline text-3xl font-extrabold text-primary tracking-tight mb-3">Verify Your Phone</h1>
+<p class="text-on-surface-variant text-sm leading-relaxed max-w-[280px] mx-auto">
+                        Enter the 6-digit code we sent to <span class="text-primary font-semibold">+234 800 000 0000</span>
+</p>
+</div>
+<form class="space-y-10">
+<!-- OTP Grid -->
+<div class="grid grid-cols-6 gap-2 md:gap-3">
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+<input class="otp-input w-full aspect-square text-center font-headline text-2xl font-bold bg-surface-container-highest border-none rounded-xl focus:ring-0 focus:bg-surface-container-high transition-all" maxlength="1" placeholder="•" type="text"/>
+</div>
+<div class="space-y-4">
+<button class="w-full h-14 bg-secondary text-white font-headline font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2" type="submit">
+                            Verify Code
+                            <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<div class="flex flex-col items-center gap-2">
+<p class="text-on-surface-variant text-xs">Didn't receive a code?</p>
+<button class="text-secondary font-headline font-bold text-sm hover:underline decoration-2 underline-offset-4" type="button">
+                                Resend Code
+                            </button>
+</div>
+</div>
+</form>
+</div>
+<!-- Footer Meta -->
+<div class="mt-12 text-center flex flex-col items-center gap-6">
+<div class="flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-full">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-label font-bold uppercase tracking-widest text-on-primary-fixed-variant">Secure AES-256 Encryption</span>
+</div>
+<!-- Bottom Decorative Element -->
+<div class="w-32 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-surface-tint opacity-20 w-1/2"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Suppressed BottomNavBar & FAB per instructions (Transactional/Task-focused page) -->
+</body></html>

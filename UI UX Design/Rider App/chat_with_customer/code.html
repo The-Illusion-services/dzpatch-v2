@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-on-surface": "#eef1f3",
+              "tertiary-container": "#401600",
+              "surface-dim": "#d7dadc",
+              "surface": "#f7fafc",
+              "primary-container": "#0a2342",
+              "on-error": "#ffffff",
+              "on-surface": "#181c1e",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6",
+              "surface-container": "#ebeef0",
+              "secondary-fixed-dim": "#b8c3ff",
+              "on-tertiary-fixed": "#341100",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#768baf",
+              "on-secondary-container": "#efefff",
+              "on-tertiary-container": "#e66100",
+              "surface-container-highest": "#e0e3e5",
+              "error": "#ba1a1a",
+              "tertiary-fixed": "#ffdbcb",
+              "secondary-fixed": "#dde1ff",
+              "surface-bright": "#f7fafc",
+              "secondary": "#0040e0",
+              "outline": "#74777e",
+              "surface-container-high": "#e5e9eb",
+              "on-tertiary": "#ffffff",
+              "on-secondary": "#ffffff",
+              "background": "#f7fafc",
+              "surface-variant": "#e0e3e5",
+              "inverse-surface": "#2d3133",
+              "surface-tint": "#4a5f81",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-background": "#181c1e",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-primary-fixed": "#021c3a",
+              "tertiary-fixed-dim": "#ffb692",
+              "primary-fixed": "#d5e3ff",
+              "on-secondary-fixed": "#001356",
+              "secondary-container": "#2e5bff",
+              "inverse-primary": "#b2c7ef",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#c4c6cf",
+              "tertiary": "#1d0600",
+              "surface-container-low": "#f1f4f6",
+              "primary-fixed-dim": "#b2c7ef",
+              "on-primary-fixed-variant": "#324768",
+              "on-surface-variant": "#44474e",
+              "primary": "#000d22"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .chat-gradient {
+            background: linear-gradient(180deg, rgba(247, 250, 252, 1) 0%, rgba(241, 244, 246, 1) 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm h-16 flex items-center justify-between px-6 border-b border-surface-container">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-blue-700">arrow_back</span>
+</button>
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Sarah Williams" class="w-10 h-10 rounded-full object-cover border border-surface-container-highest" data-alt="professional portrait of a young woman with a friendly smile, clean studio lighting, neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGqTOmH90UC2sEBjwgoyqxmOl8T_B32j6Sj3kYd_55foIZJOX9WLgY1iiKJHuWCAiLp5cuSB0mZsMPQqHtEjU8gc0mkRlGXovGi7XLQT8UIa7uVjyyjD2HluijewBndqb4LD4-MMSz2rUPQsSsGglHVq8_HC6_0hMawPMeE_3P7nlC-f9iUBe7m_Rkhl2l-7fhIjrINe2ftVl4q8AzzAKl7ZG5M5U7jfDDYICyAlfIatfoBHsINGiQ5KMpYBlnH9ujHWuO_5UnZbSJ"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<h1 class="font-headline font-bold text-lg tracking-tight text-slate-900 leading-tight">Sarah Williams</h1>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-[10px] font-bold tracking-widest uppercase text-secondary">ACTIVE TRIP</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-50 active:scale-95 transition-all">
+<span class="material-symbols-outlined">call</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-50 active:scale-95 transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Chat Canvas -->
+<main class="pt-20 pb-24 px-6 min-h-screen chat-gradient flex flex-col gap-8 max-w-3xl mx-auto overflow-y-auto hide-scrollbar">
+<!-- Date Indicator -->
+<div class="flex justify-center my-4">
+<span class="px-4 py-1.5 bg-surface-container-high rounded-full text-[11px] font-semibold text-on-surface-variant uppercase tracking-widest">Today</span>
+</div>
+<!-- Message: Incoming -->
+<div class="flex flex-col gap-2 max-w-[85%] self-start group">
+<div class="bg-surface-container-lowest p-4 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/10">
+<p class="text-[15px] leading-relaxed text-on-surface">Hi Marcus! I see you're nearby. Just wanted to let you know I'm waiting at the West entrance of the terminal.</p>
+</div>
+<div class="flex items-center gap-2 px-1">
+<span class="text-[10px] font-medium text-on-surface-variant">10:42 AM</span>
+</div>
+</div>
+<!-- Message: Outgoing -->
+<div class="flex flex-col gap-2 max-w-[85%] self-end">
+<div class="bg-primary text-white p-4 rounded-2xl rounded-tr-none shadow-md">
+<p class="text-[15px] leading-relaxed">Perfect, thank you for the heads up, Sarah! I'm about 3 minutes away. Traffic is light.</p>
+</div>
+<div class="flex items-center justify-end gap-1 px-1">
+<span class="text-[10px] font-medium text-on-surface-variant">10:43 AM</span>
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</div>
+</div>
+<!-- Location Shared Bubble (Special Component) -->
+<div class="flex flex-col gap-2 max-w-[85%] self-start group">
+<div class="bg-surface-container-lowest p-1 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/10 overflow-hidden">
+<div class="relative h-40 w-full rounded-xl bg-slate-200 overflow-hidden">
+<img alt="Map location" class="w-full h-full object-cover" data-alt="clean vector style map showing a pin at a city terminal entrance with soft blue and gray tones" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUH8G2mQu4agr5SuNhSb1ZImQisSNDh3lbdYbI7HivopnHWINjIVuBUazDk2X1JrLwLU5SvcnRSSdZWr9Dwt0NvFt1vOmnPCzEw_tlyGE7euViiqkk7IKNx_QeSncrEuXVbs6-VWeTWPPrggVbIaWWSHLKE1vAI9pc011n7gYfvOm0gzRZyjoBhq3tJg9cS3tMCOBR8P3jbFg76eGb7NroJf1CTWiHlLM3LfnoZARD67FE5Fpyi2zokAOX9F9NXsvUjBIa8Nqi8fwM"/>
+<div class="absolute inset-0 bg-primary/10 flex items-center justify-center">
+<div class="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-white shadow-lg animate-pulse">
+<span class="material-symbols-outlined">person_pin_circle</span>
+</div>
+</div>
+</div>
+<div class="p-3">
+<p class="text-[13px] font-bold text-primary">Terminal West Entrance</p>
+<p class="text-[11px] text-on-surface-variant">Shared Location</p>
+</div>
+</div>
+<div class="flex items-center gap-2 px-1">
+<span class="text-[10px] font-medium text-on-surface-variant">10:44 AM</span>
+</div>
+</div>
+<!-- Message: Outgoing -->
+<div class="flex flex-col gap-2 max-w-[85%] self-end">
+<div class="bg-primary text-white p-4 rounded-2xl rounded-tr-none shadow-md">
+<p class="text-[15px] leading-relaxed">Arriving now. I'm in a black sedan, plate 8829-QX.</p>
+</div>
+<div class="flex items-center justify-end gap-1 px-1">
+<span class="text-[10px] font-medium text-on-surface-variant">10:47 AM</span>
+<span class="material-symbols-outlined text-[14px] text-on-primary-container">done_all</span>
+</div>
+</div>
+<!-- Delivery Alert Status -->
+<div class="mx-auto flex items-center gap-3 px-6 py-3 bg-tertiary-container/10 border border-tertiary-container/20 rounded-full">
+<span class="material-symbols-outlined text-on-tertiary-container text-sm">info</span>
+<span class="text-[12px] font-semibold text-on-tertiary-container">Sarah is moving toward the pickup point.</span>
+</div>
+</main>
+<!-- Chat Input Bar -->
+<footer class="fixed bottom-0 w-full bg-white/80 backdrop-blur-md border-t border-surface-container py-3 px-4 z-50">
+<div class="max-w-3xl mx-auto flex items-end gap-3">
+<button class="w-12 h-12 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-all active:scale-90">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<div class="flex-1 bg-surface-container rounded-[24px] px-4 py-2.5 flex items-center gap-3 focus-within:ring-2 ring-secondary/20 transition-all border border-transparent focus-within:bg-white focus-within:border-secondary/30">
+<textarea class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-[15px] resize-none max-h-32 hide-scrollbar py-1 leading-normal" placeholder="Message Sarah..." rows="1"></textarea>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined">sentiment_satisfied</span>
+</button>
+</div>
+<button class="w-12 h-12 bg-secondary text-white rounded-full flex items-center justify-center shadow-lg shadow-secondary/20 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<!-- Safe Area for Mobile -->
+<div class="h-safe"></div>
+</footer>
+<!-- BottomNavBar (Hidden on Focused Chat View as per Shell Suppression Rule, but included for context/return) -->
+<nav class="hidden">
+<div class="style_shell_layout">
+<!-- Navigation items suppressed to prioritize the task-focused chat interface -->
+</div>
+</nav>
+</body></html>

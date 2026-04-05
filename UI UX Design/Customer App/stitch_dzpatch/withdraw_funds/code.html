@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Withdraw - Dzpatch</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container": "#ebeef0",
+              "secondary-container": "#2e5bff",
+              "surface-container-low": "#f1f4f6",
+              "surface-container-high": "#e5e9eb",
+              "on-tertiary-fixed": "#341100",
+              "tertiary-container": "#401600",
+              "on-tertiary": "#ffffff",
+              "on-primary-fixed-variant": "#324768",
+              "on-secondary-container": "#efefff",
+              "outline-variant": "#c4c6cf",
+              "secondary": "#0040e0",
+              "surface-container-lowest": "#ffffff",
+              "on-surface": "#181c1e",
+              "on-secondary-fixed": "#001356",
+              "on-tertiary-container": "#e66100",
+              "on-surface-variant": "#44474e",
+              "surface-dim": "#d7dadc",
+              "inverse-surface": "#2d3133",
+              "primary-fixed-dim": "#b2c7ef",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface": "#f7fafc",
+              "on-secondary": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-error-container": "#93000a",
+              "on-primary": "#ffffff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-background": "#181c1e",
+              "on-error": "#ffffff",
+              "on-primary-container": "#768baf",
+              "primary": "#000d22",
+              "secondary-fixed-dim": "#b8c3ff",
+              "background": "#f7fafc",
+              "surface-tint": "#4a5f81",
+              "error": "#ba1a1a",
+              "primary-container": "#0a2342",
+              "inverse-primary": "#b2c7ef",
+              "outline": "#74777e",
+              "secondary-fixed": "#dde1ff",
+              "tertiary-fixed": "#ffdbcb",
+              "on-primary-fixed": "#021c3a",
+              "surface-bright": "#f7fafc",
+              "primary-fixed": "#d5e3ff",
+              "surface-container-highest": "#e0e3e5",
+              "tertiary": "#1d0600",
+              "on-secondary-fixed-variant": "#0035be",
+              "inverse-on-surface": "#eef1f3",
+              "surface-variant": "#e0e3e5"
+            },
+            fontFamily: {
+              "headline": ["Manrope", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm h-16 flex items-center justify-between px-6">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-blue-700">arrow_back</span>
+</button>
+<h1 class="font-manrope font-bold text-lg tracking-tight text-slate-900">Withdraw</h1>
+</div>
+<div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50">
+<span class="material-symbols-outlined text-blue-700" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-xl mx-auto space-y-8">
+<!-- Balance Card - Kinetic Momentum -->
+<section class="relative overflow-hidden bg-primary-container p-8 rounded-xl text-white shadow-lg">
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl"></div>
+<div class="relative z-10">
+<p class="text-on-primary-container font-label text-sm uppercase tracking-widest mb-2">Available Balance</p>
+<h2 class="font-headline font-extrabold text-4xl tracking-tighter">₦142,850.00</h2>
+</div>
+<div class="mt-6 flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full w-fit backdrop-blur-md">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-xs font-medium">Secured Wallet</span>
+</div>
+</section>
+<!-- Form Section - Tonal Layering -->
+<div class="space-y-6">
+<!-- Amount Input -->
+<div class="group">
+<label class="block text-on-surface-variant font-label font-medium text-xs uppercase tracking-widest mb-3 ml-1">Withdrawal Amount</label>
+<div class="relative flex items-center">
+<span class="absolute left-5 font-headline font-bold text-2xl text-on-surface-variant">₦</span>
+<input class="w-full h-20 pl-12 pr-6 bg-surface-container-highest border-none rounded-xl font-headline font-bold text-3xl focus:ring-0 placeholder:text-surface-dim transition-all text-primary" placeholder="0.00" type="number"/>
+<div class="absolute bottom-0 left-0 w-full h-0.5 bg-surface-container-high group-focus-within:bg-tertiary-fixed transition-all"></div>
+</div>
+<div class="flex justify-between mt-3 px-1">
+<p class="text-[11px] font-medium text-on-surface-variant">Min: ₦1,000.00</p>
+<button class="text-secondary font-bold text-[11px] uppercase tracking-wider hover:opacity-70 transition-opacity">Max Amount</button>
+</div>
+</div>
+<!-- Bank Selection Bento Grid Style -->
+<div class="grid grid-cols-1 gap-4">
+<div class="bg-surface-container-low p-6 rounded-xl space-y-5">
+<div class="space-y-2">
+<label class="block text-on-surface-variant font-label font-medium text-[10px] uppercase tracking-widest">Bank Destination</label>
+<div class="relative">
+<select class="w-full h-14 bg-surface-container-lowest border-none rounded-lg px-4 font-body font-medium text-on-surface appearance-none focus:ring-2 focus:ring-secondary/10">
+<option>Select Bank</option>
+<option>Access Bank</option>
+<option>Zenith Bank</option>
+<option>GTBank</option>
+<option>Kuda MFB</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-on-surface-variant font-label font-medium text-[10px] uppercase tracking-widest">Account Number</label>
+<input class="w-full h-14 bg-surface-container-lowest border-none rounded-lg px-4 font-body font-medium text-on-surface focus:ring-2 focus:ring-secondary/10" maxlength="10" placeholder="10 digits" type="text"/>
+</div>
+<div class="p-4 bg-surface-container-high/50 rounded-lg flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-secondary">person</span>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-medium uppercase tracking-tight">Account Name</p>
+<p class="text-sm font-semibold text-primary">---</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Transaction Notice -->
+<div class="bg-tertiary-fixed/30 p-4 rounded-xl border-l-4 border-on-tertiary-container flex items-start gap-4">
+<span class="material-symbols-outlined text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">info</span>
+<div>
+<p class="text-on-tertiary-container text-sm font-semibold">Transaction Fee: ₦50.00</p>
+<p class="text-on-tertiary-container/80 text-xs">A flat fee will be deducted from your total withdrawal amount for bank processing.</p>
+</div>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="pt-4">
+<button class="w-full h-16 bg-secondary text-white rounded-xl font-headline font-bold text-lg shadow-xl shadow-secondary/20 hover:bg-on-secondary-fixed-variant transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+<span>Withdraw to Bank</span>
+<span class="material-symbols-outlined">trending_flat</span>
+</button>
+<p class="text-center mt-6 text-on-surface-variant text-xs font-medium">Funds usually arrive within 15 minutes.</p>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Anchor Component) -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-3xl bg-white shadow-[0_-4px_20px_rgba(0,13,34,0.06)] border-t border-slate-100 h-20 px-4 pb-safe flex justify-around items-center">
+<div class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase mt-1">Shipments</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-blue-50 text-blue-700 rounded-2xl px-5 py-2 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="font-manrope text-[11px] font-bold tracking-wide uppercase mt-1">Wallet</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 px-5 py-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide uppercase mt-1">Profile</span>
+</div>
+</nav>
+<!-- Hidden Map Context (Optional for logistics background depth) -->
+<img class="hidden" data-alt="Digital currency and abstract financial nodes background" data-location="Lagos" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbuq1DkPJJvs21PbHH_-W2pt_VCk0J1ehOId4e6BbJkErFXqYQJ2_303-JbQL7dC4pJJXwIKDQNvrQT_zCZ_b4239DZhWh8qCA1712kyCJ3MXx09cT2Tdtx_QOTsU0gvKbQVyan4Ix_9IuHZiuz-zDpPD-yGWGGF80n8DxqoxSLzSwXzLuN08ZohxO48EO-yd9ckLdEa9JyP0W4yCsNv8Qq5qkxl0Og9GCs58HgAeHyvzD945n13ugDBICDogiwtWRS4I40D0dZbs_"/>
+</body></html>

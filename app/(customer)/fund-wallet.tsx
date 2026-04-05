@@ -17,6 +17,7 @@ import WebView from 'react-native-webview';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { isWalletFundingCallback, waitForWalletFundingConfirmation } from '@/lib/wallet-funding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,6 @@ type PayMethod = 'card' | 'bank_transfer' | 'ussd';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const QUICK_AMOUNTS = [1000, 2500, 5000, 10000];
-const CALLBACK_URL = 'https://dzpatch.co/paystack-callback';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,8 @@ export default function FundWalletScreen() {
   const [balance, setBalance] = useState<number | null>(null);
   const [walletId, setWalletId] = useState<string | null>(null);
   const [paystackUrl, setPaystackUrl] = useState<string | null>(null);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const webViewRef = useRef(null);
 
   // ── Load balance on mount ──────────────────────────────────────────────────
@@ -91,27 +93,78 @@ export default function FundWalletScreen() {
     const result = await res.json();
     setLoading(false);
 
-    if (!res.ok || !result.authorization_url) {
+    if (!res.ok || !result.authorization_url || !result.reference) {
       Alert.alert('Payment Error', result.error ?? 'Could not initiate payment. Please try again.');
       return;
     }
 
+    setPaymentReference(result.reference);
     setPaystackUrl(result.authorization_url);
   };
 
   // ── Handle WebView navigation ──────────────────────────────────────────────
 
-  const handleWebViewNav = (url: string) => {
-    if (url.startsWith(CALLBACK_URL) || url.includes('paystack.com/complete')) {
+  const confirmWalletFunding = async () => {
+    if (!walletId || !paymentReference) {
       setPaystackUrl(null);
-      // Webhook will update wallet; just navigate back with success
-      router.replace('/(customer)/wallet' as any);
-      return false; // block webview from navigating
+      return;
+    }
+
+    setPaystackUrl(null);
+    setConfirmingPayment(true);
+
+    try {
+      const result = await waitForWalletFundingConfirmation(paymentReference, walletId);
+
+      if (result.balance !== null) {
+        setBalance(result.balance);
+      }
+
+      if (result.confirmed) {
+        Alert.alert('Wallet Funded', 'Your wallet has been credited successfully.', [
+          { text: 'Done', onPress: () => router.replace('/(customer)/wallet' as any) },
+        ]);
+        return;
+      }
+
+      Alert.alert(
+        'Payment Received',
+        'Your payment is still being confirmed. We will update your wallet as soon as the payment provider confirms it.',
+        [{ text: 'OK', onPress: () => router.replace('/(customer)/wallet' as any) }],
+      );
+    } catch {
+      Alert.alert(
+        'Payment Processing',
+        'We could not confirm your wallet credit yet. Please check your wallet shortly.',
+        [{ text: 'OK', onPress: () => router.replace('/(customer)/wallet' as any) }],
+      );
+    } finally {
+      setConfirmingPayment(false);
+      setPaymentReference(null);
+    }
+  };
+
+  const handleWebViewNav = (url: string) => {
+    if (isWalletFundingCallback(url)) {
+      void confirmWalletFunding();
+      return false;
     }
     return true;
   };
 
   // ── Paystack WebView ───────────────────────────────────────────────────────
+
+  if (confirmingPayment) {
+    return (
+      <View style={[styles.webviewLoading, { flex: 1, paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color="#0040e0" />
+        <Text style={styles.confirmingTitle}>Confirming Payment</Text>
+        <Text style={styles.confirmingText}>
+          We are waiting for the wallet credit confirmation from the backend.
+        </Text>
+      </View>
+    );
+  }
 
   if (paystackUrl) {
     return (
@@ -526,10 +579,22 @@ const styles = StyleSheet.create({
   webviewLock: { width: 32, alignItems: 'center' },
   webviewLockText: { fontSize: 16 },
   webviewLoading: {
-    position: 'absolute',
-    inset: 0,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F7FAFC',
+  },
+  confirmingTitle: {
+    marginTop: 16,
+    fontSize: Typography.lg,
+    fontWeight: Typography.bold,
+    color: '#000D22',
+  },
+  confirmingText: {
+    marginTop: 8,
+    paddingHorizontal: Spacing[6],
+    textAlign: 'center',
+    fontSize: Typography.sm,
+    color: '#44474e',
   },
 });

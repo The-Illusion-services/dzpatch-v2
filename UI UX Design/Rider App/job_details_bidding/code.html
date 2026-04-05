@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OmniRoute - Order Details</title>
+<!-- Google Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-container": "#768baf",
+              "inverse-surface": "#2d3133",
+              "tertiary": "#1d0600",
+              "on-primary-fixed-variant": "#324768",
+              "on-background": "#181c1e",
+              "on-surface-variant": "#44474e",
+              "surface-variant": "#e0e3e5",
+              "inverse-primary": "#b2c7ef",
+              "tertiary-fixed-dim": "#ffb692",
+              "error-container": "#ffdad6",
+              "surface-container-lowest": "#ffffff",
+              "surface-dim": "#d7dadc",
+              "secondary-fixed": "#dde1ff",
+              "on-surface": "#181c1e",
+              "on-primary": "#ffffff",
+              "on-error-container": "#93000a",
+              "primary": "#000d22",
+              "on-secondary-container": "#efefff",
+              "secondary-fixed-dim": "#b8c3ff",
+              "primary-fixed-dim": "#b2c7ef",
+              "outline": "#74777e",
+              "outline-variant": "#c4c6cf",
+              "on-tertiary-fixed": "#341100",
+              "on-secondary-fixed": "#001356",
+              "surface-container-high": "#e5e9eb",
+              "inverse-on-surface": "#eef1f3",
+              "surface-container": "#ebeef0",
+              "background": "#f7fafc",
+              "tertiary-container": "#401600",
+              "secondary": "#0040e0",
+              "on-primary-fixed": "#021c3a",
+              "primary-container": "#0a2342",
+              "secondary-container": "#2e5bff",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f1f4f6",
+              "tertiary-fixed": "#ffdbcb",
+              "on-tertiary-container": "#e66100",
+              "error": "#ba1a1a",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-secondary": "#ffffff",
+              "surface-tint": "#4a5f81",
+              "surface-container-highest": "#e0e3e5",
+              "surface-bright": "#f7fafc",
+              "surface": "#f7fafc",
+              "primary-fixed": "#d5e3ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased leading-relaxed">
+<!-- TopAppBar -->
+<header class="bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl fixed top-0 w-full z-50 shadow-sm dark:shadow-none transition-all duration-300 ease-in-out">
+<div class="flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center p-2 text-blue-700 dark:text-blue-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold tracking-tight text-xl font-extrabold tracking-tighter text-slate-900 dark:text-slate-50">OmniRoute</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200">
+<img alt="Driver Profile" class="w-full h-full object-cover" data-alt="professional portrait of a delivery driver with a friendly expression and neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSRY9AKbtabJFGhyC-L8Rr8cZOwm5ErgnfJdaV2ygSn81n3UUS5MdfUZcsx9tFAs8g_UedQsovMnRWmCVcTlHZXQBATc_DOVOru_QgHR8nLQ7r9iV24FkQqyDC3CEll-TKXQMWkHo-CgIzPiI7CXojROyco59fF2AxJ3tCKHO6LNm8Z-pEXg0HZtw_-Pru8PVQnJcNt_4Sp7F4YLUGVh-S4JWY2vcAp12U1DzQPdlRdAK33Ix-aa7BxfLpOvRBD1dPTCDpbp46psRr"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-16 pb-32 max-w-7xl mx-auto px-6 md:px-12">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+<!-- Left Column: Map & Route Details (Bento Grid Style) -->
+<div class="lg:col-span-7 space-y-6">
+<!-- Map Container -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm aspect-[4/3] md:aspect-video relative">
+<div class="absolute inset-0 bg-slate-200">
+<img alt="Route Map" class="w-full h-full object-cover" data-alt="detailed city street map with a highlighted navigation route from point A to point B through urban grid" data-location="Lagos, Nigeria" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaM1beB6PXzSHmrlp-UhPMhwLc6cFqY9k8VsFXuF57YNjs2hj3QT9DHrOwwYB5qHUK0KEbLx9GX0suoo3gqro7z2dq7ZsDkCR15nhGYSFLPcL_8_t5Inz9dCoN00db7WE976D1vHZKR6scz3ZNoIG6LczKG0qjma9YSHtJ9qUUiX0Mu42Mfu0LTNCiYuM0-5QpUQtk7Vn_62lDAVj-mz9jx2bBfx-KyxgTQQnOotDzS3k5QIIEfLe5QVwXMGsYj5Bco5HAzOqpRorO"/>
+</div>
+<!-- Map Overlay Badges -->
+<div class="absolute top-4 left-4 flex flex-col gap-2">
+<span class="bg-primary text-white px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 12.4 KM
+                        </span>
+</div>
+</section>
+<!-- Route Addresses (Asymmetric Layout) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-secondary">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-secondary" data-icon="location_on" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="font-headline font-bold text-sm tracking-wider uppercase text-on-surface-variant">Pickup Location</span>
+</div>
+<p class="text-on-surface font-semibold text-lg leading-tight">12B Admiralty Way, Lekki Phase 1</p>
+<p class="text-on-surface-variant text-sm mt-1">Lagos, Nigeria • Gate 4 Entrance</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-tertiary-fixed-dim">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="flag" style="font-variation-settings: 'FILL' 1;">flag</span>
+<span class="font-headline font-bold text-sm tracking-wider uppercase text-on-surface-variant">Drop-off Destination</span>
+</div>
+<p class="text-on-surface font-semibold text-lg leading-tight">Plot 1024, Herbert Macaulay Way</p>
+<p class="text-on-surface-variant text-sm mt-1">Central Business District, Abuja</p>
+</div>
+</section>
+</div>
+<!-- Right Column: Order Info & Bidding -->
+<aside class="lg:col-span-5 space-y-6">
+<!-- Package Detail Card -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-8">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-headline text-3xl font-extrabold text-primary leading-none tracking-tighter">Order #OR-99281</h2>
+<p class="text-on-surface-variant font-medium mt-2">Requested 5 mins ago</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-secondary font-headline text-2xl font-bold tracking-tight">₦4,500.00</span>
+<span class="text-on-surface-variant text-xs uppercase font-bold tracking-widest">Estimated Value</span>
+</div>
+</div>
+<!-- Specs Bento -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container p-4 rounded-full flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="weight">weight</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant leading-none">Weight</p>
+<p class="font-headline font-bold text-primary">4.5 kg</p>
+</div>
+</div>
+<div class="bg-surface-container p-4 rounded-full flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+</div>
+<div>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant leading-none">Category</p>
+<p class="font-headline font-bold text-primary">Fragile</p>
+</div>
+</div>
+</div>
+<!-- Customer Info -->
+<div class="flex items-center justify-between p-4 bg-primary-container rounded-xl text-white">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full border-2 border-secondary overflow-hidden bg-slate-400">
+<img alt="Customer Profile" class="w-full h-full object-cover" data-alt="close-up of a smiling male customer with a professional and friendly look" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9tGEdxX19Jj7tqC2HgQQ4IsrEJgXeXpVA6SqN7fabhf8piA19zRLGwuOHb8QiufWhjJoBvlHIXq-6jXB-4fnSUJL6JZWRegWMpPWT2z1MC71xDyWf37k2eyaWeCl0X0NPz2eqov3LReho01AQWQVrbYZFULKpRGDvuf5uzurS5nAAsf_lyVCb3l-4sSF3iFJHPqdnd9jHZU-HgWUwfSg9S-kQMaeSpKcETN8WWQx7nmQNX0RnylKLUjQ4PZlRbmOeQ13IgdzoTTtX"/>
+</div>
+<div>
+<p class="font-headline font-bold text-lg leading-none">Chidi Benson</p>
+<div class="flex items-center gap-1 mt-1 text-tertiary-fixed">
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.9</span>
+<span class="text-on-primary-container text-xs ml-1">(124 trips)</span>
+</div>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-white" data-icon="chat">chat</span>
+</button>
+</div>
+<!-- Action Buttons -->
+<div class="space-y-3">
+<button class="w-full bg-secondary text-white py-5 rounded-full font-headline font-bold text-lg hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-secondary/20">
+                            Accept for ₦4,500.00
+                        </button>
+<button class="w-full bg-transparent border-2 border-outline-variant text-primary py-4 rounded-full font-headline font-bold text-md hover:bg-surface-container-low active:scale-95 transition-all">
+                            Counter-Offer
+                        </button>
+</div>
+<p class="text-center text-on-surface-variant text-xs font-medium px-4 leading-relaxed">
+                        By accepting, you agree to our Service Terms. Standard delivery time: 45-60 mins.
+                    </p>
+</div>
+</aside>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Responsive Hidden on MD+) -->
+<nav class="md:hidden fixed bottom-0 w-full rounded-t-3xl z-50 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,13,34,0.06)]">
+<div class="flex justify-around items-center h-20 px-4 pb-safe w-full">
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl px-4 py-1.5 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider">Explorer</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 hover:text-blue-500 dark:hover:text-blue-300 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 hover:text-blue-500 dark:hover:text-blue-300 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider">Schedule</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-1.5 hover:text-blue-500 dark:hover:text-blue-300 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Inter'] text-[11px] font-medium uppercase tracking-wider">Account</span>
+</a>
+</div>
+</nav>
+<!-- Navigation Drawer (Desktop-Ready Side Logic) -->
+<div class="hidden fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm" id="drawer">
+<aside class="h-full w-80 rounded-r-2xl bg-slate-50 dark:bg-slate-900 shadow-2xl flex flex-col h-full overflow-y-auto">
+<div class="p-8 flex flex-col items-start gap-4">
+<div class="w-16 h-16 rounded-full bg-slate-300 overflow-hidden">
+<img alt="Alex Rivera" class="w-full h-full object-cover" data-alt="professional portrait of driver alex rivera with a slight smile in a modern office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqjUmxLQXHk8u26JXIqNua4ZeXoCDhyO-MIHVy8k-yQ5-EWj8gviVneKiK7cTVLJgbbChLd4Oh4KzsX3iN8OZEdJTpOB3wPC6cQETMhK0jF_1dZc09rK_9gz9jTx75Z92falQ-nRThWHuUNc9GVyMoqY2gHVnlNmaPcah9Sxx4jemgDLFsrrlmDlVBcII0cRBtfTrYD__G0UgfbPaOTxK0I-Zn3GJVqek-IhTUVCWvuDdkohriy3u3uqO_LDS4VwxSXzS37GbdlcdK"/>
+</div>
+<div>
+<h3 class="font-headline text-lg font-bold text-primary">Alex Rivera</h3>
+<p class="text-on-surface-variant text-sm font-semibold">ID: OR-99281</p>
+<span class="mt-2 inline-block px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded-full tracking-widest">Active Duty</span>
+</div>
+</div>
+<nav class="flex-1 divide-y divide-slate-100 dark:divide-slate-800">
+<div class="py-4">
+<a class="flex items-center gap-4 px-6 py-4 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="power_settings_new">power_settings_new</span>
+<span class="font-headline text-sm font-semibold">Duty Status</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 bg-blue-600 text-white rounded-lg mx-4 my-1 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-headline text-sm font-semibold">Route History</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-headline text-sm font-semibold">Vehicle Info</span>
+</a>
+</div>
+<div class="py-4">
+<a class="flex items-center gap-4 px-6 py-4 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-headline text-sm font-semibold">Support</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-headline text-sm font-semibold">Settings</span>
+</a>
+</div>
+</nav>
+</aside>
+</div>
+</body></html>

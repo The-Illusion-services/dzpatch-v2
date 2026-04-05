@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Review Application | Dzpatch Rider</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdbcb",
+              "on-secondary-fixed": "#001356",
+              "surface-tint": "#4a5f81",
+              "tertiary-fixed-dim": "#ffb692",
+              "surface-container-lowest": "#ffffff",
+              "primary": "#000d22",
+              "on-tertiary-fixed": "#341100",
+              "tertiary": "#1d0600",
+              "inverse-primary": "#b2c7ef",
+              "primary-fixed-dim": "#b2c7ef",
+              "outline-variant": "#c4c6cf",
+              "outline": "#74777e",
+              "background": "#f7fafc",
+              "on-error": "#ffffff",
+              "inverse-on-surface": "#eef1f3",
+              "error-container": "#ffdad6",
+              "secondary-container": "#2e5bff",
+              "on-background": "#181c1e",
+              "on-secondary-fixed-variant": "#0035be",
+              "on-primary-fixed": "#021c3a",
+              "secondary-fixed-dim": "#b8c3ff",
+              "secondary-fixed": "#dde1ff",
+              "primary-container": "#0a2342",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed-variant": "#7a3000",
+              "on-secondary-container": "#efefff",
+              "on-tertiary": "#ffffff",
+              "on-primary-fixed-variant": "#324768",
+              "surface-container-low": "#f1f4f6",
+              "surface-variant": "#e0e3e5",
+              "on-surface-variant": "#44474e",
+              "on-primary": "#ffffff",
+              "surface": "#f7fafc",
+              "on-tertiary-container": "#e66100",
+              "on-surface": "#181c1e",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary-container": "#768baf",
+              "surface-container-high": "#e5e9eb",
+              "on-secondary": "#ffffff",
+              "surface-bright": "#f7fafc",
+              "secondary": "#0040e0",
+              "inverse-surface": "#2d3133",
+              "tertiary-container": "#401600",
+              "surface-dim": "#d7dadc",
+              "surface-container": "#ebeef0",
+              "primary-fixed": "#d5e3ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased pb-24">
+<!-- TopAppBar -->
+<header class="bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl fixed top-0 w-full z-50">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="text-blue-700 dark:text-blue-500 active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="font-['Manrope'] font-black text-2xl text-slate-900 dark:text-slate-50 tracking-tighter">Dzpatch</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-headline font-bold text-xl tracking-tight text-blue-700 dark:text-blue-500">Rider App</span>
+</div>
+</div>
+<div class="bg-slate-100 dark:bg-slate-800 h-px w-full"></div>
+</header>
+<!-- Content Canvas -->
+<main class="mt-24 px-6 md:px-12 lg:px-24 max-w-5xl mx-auto">
+<!-- Hero Section -->
+<div class="mb-12">
+<h1 class="text-display-md font-headline font-extrabold text-primary tracking-tight mb-2">Review Application</h1>
+<p class="text-body-md text-on-surface-variant font-medium">Please check your details before submitting for approval.</p>
+</div>
+<!-- Application Review Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Personal Details Card -->
+<section class="bg-surface-container-lowest rounded-xl p-8 border-none shadow-[0_4px_20px_0_rgba(0,13,34,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="person">person</span>
+<h2 class="font-headline font-bold text-lg tracking-tight">Personal Details</h2>
+</div>
+<button class="text-secondary font-label text-sm font-semibold hover:opacity-80 transition-opacity">Edit</button>
+</div>
+<div class="space-y-4">
+<div>
+<span class="text-label-sm uppercase tracking-widest text-on-surface-variant block mb-1">Full Name</span>
+<span class="text-title-md font-semibold text-primary">Alexander Rivera</span>
+</div>
+<div>
+<span class="text-label-sm uppercase tracking-widest text-on-surface-variant block mb-1">Email Address</span>
+<span class="text-title-md font-semibold text-primary">a.rivera@example.com</span>
+</div>
+<div>
+<span class="text-label-sm uppercase tracking-widest text-on-surface-variant block mb-1">Phone Number</span>
+<span class="text-title-md font-semibold text-primary">+1 (555) 012-3456</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Vehicle Details Card -->
+<section class="bg-surface-container-lowest rounded-xl p-8 border-none shadow-[0_4px_20px_0_rgba(0,13,34,0.04)]">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="two_wheeler">two_wheeler</span>
+<h2 class="font-headline font-bold text-lg tracking-tight">Vehicle Details</h2>
+</div>
+<button class="text-secondary font-label text-sm font-semibold hover:opacity-80 transition-opacity">Edit</button>
+</div>
+<div class="mb-6 rounded-xl overflow-hidden aspect-video bg-surface-container-low relative">
+<img class="w-full h-full object-cover" data-alt="Modern sports motorcycle Honda CBR 250R parked on a clean grey background with cinematic studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwhhcfk0_e4q0hpQPrWpvRFefidsqFkSJXWEfb4_orXZxiPVhbqOf0q8QGDVeX70N5TLTF4rdVw53oR4ZJV7ts4PgKZfIXPHkCZ-M1pnhYogSHXyLLzV6s0fT8hZp4r-NJ0xK6A7i77lWfxPYxOb5q3y9vlbnjwto3g38LpSLOV8P99O8ELM5QdptmmKQ55vYhsHUUdDkFYz8EhMIp_6CfyGiJzVYdj9DMtgPkIxOFsT434lkqdpBj6KhNkHEn96sK2PKBJpeGi7aO"/>
+<div class="absolute bottom-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">Motorcycle</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<span class="text-label-sm uppercase tracking-widest text-on-surface-variant block mb-1">Model</span>
+<span class="text-title-md font-semibold text-primary">Honda CBR 250R</span>
+</div>
+<div>
+<span class="text-label-sm uppercase tracking-widest text-on-surface-variant block mb-1">Plate Number</span>
+<span class="text-title-md font-semibold text-primary">ABC-123</span>
+</div>
+</div>
+</section>
+<!-- Documents Card -->
+<section class="bg-surface-container-low rounded-xl p-8">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="description">description</span>
+<h2 class="font-headline font-bold text-lg tracking-tight">Documents</h2>
+</div>
+<button class="text-secondary font-label text-sm font-semibold hover:opacity-80 transition-opacity">Edit</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="id_card">id_card</span>
+<span class="text-sm font-medium">Driver's License</span>
+</div>
+<div class="flex items-center gap-2 text-on-tertiary-container font-semibold text-xs bg-tertiary-container/10 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Uploaded
+                        </div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="receipt_long">receipt_long</span>
+<span class="text-sm font-medium">Vehicle Registration</span>
+</div>
+<div class="flex items-center gap-2 text-on-tertiary-container font-semibold text-xs bg-tertiary-container/10 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Uploaded
+                        </div>
+</div>
+</div>
+</section>
+<!-- Payout Details Card -->
+<section class="bg-primary-container text-on-primary-container rounded-xl p-8 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary-fixed" data-icon="account_balance">account_balance</span>
+<h2 class="font-headline font-bold text-lg tracking-tight text-white">Payout Details</h2>
+</div>
+<button class="text-secondary-fixed font-label text-sm font-semibold hover:opacity-80 transition-opacity">Edit</button>
+</div>
+<div class="space-y-4">
+<div class="p-5 border border-outline-variant/20 rounded-xl bg-primary/40 backdrop-blur-sm">
+<span class="text-label-sm uppercase tracking-widest text-on-primary-container block mb-2">Primary Bank</span>
+<div class="flex items-center justify-between">
+<span class="text-lg font-bold text-white">Global Merchant Bank</span>
+<span class="material-symbols-outlined opacity-40" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<div class="mt-4 flex items-center gap-2">
+<div class="flex gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-on-primary-container/40"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-on-primary-container/40"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-on-primary-container/40"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-on-primary-container/40"></span>
+</div>
+<span class="text-white font-mono tracking-widest">8842</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer & Submit -->
+<div class="mt-16 flex flex-col items-center gap-6 mb-12">
+<button class="w-full md:w-auto md:min-w-[320px] bg-secondary text-white py-5 px-12 rounded-full font-headline font-bold text-lg shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                Submit Application
+            </button>
+<p class="text-on-surface-variant text-sm text-center max-w-md leading-relaxed">
+                By submitting, you agree to Dzpatch's <a class="text-secondary font-semibold hover:underline" href="#">terms of service</a> and privacy policy. We will review your application within 2-3 business days.
+            </p>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 pb-safe bg-white dark:bg-slate-950 shadow-[0_-4px_20px_0_rgba(0,13,34,0.06)] border-t border-slate-100 dark:border-slate-900">
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1 hover:text-blue-600 dark:hover:text-blue-400 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="font-['Manrope'] font-semibold text-[10px] uppercase tracking-widest mt-1">Help</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1 hover:text-blue-600 dark:hover:text-blue-400 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="exit_to_app">exit_to_app</span>
+<span class="font-['Manrope'] font-semibold text-[10px] uppercase tracking-widest mt-1">Save &amp; Exit</span>
+</a>
+</nav>
+</body></html>
