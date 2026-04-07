@@ -29,6 +29,10 @@ interface Transaction {
   type: string;
   description: string | null;
   created_at: string;
+  order: {
+    final_price: number | null;
+    platform_commission_amount: number | null;
+  } | null;
 }
 
 interface DailyEntry {
@@ -39,7 +43,8 @@ interface DailyEntry {
   status: 'Settled' | 'Processing';
 }
 
-const COMMISSION_RATE = 0.18;
+// Commission is already deducted by complete_delivery before crediting the rider wallet.
+// Do not re-deduct here — grossRevenue IS net earnings.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -135,15 +140,10 @@ export default function RiderEarningsScreen() {
     [incomeTransactions]
   );
 
-  const commissionPaid = useMemo(
-    () => Math.round(grossRevenue * COMMISSION_RATE),
-    [grossRevenue]
-  );
-
-  const netPay = useMemo(
-    () => Math.round(grossRevenue * (1 - COMMISSION_RATE)),
-    [grossRevenue]
-  );
+  // Commission was already deducted by the backend before crediting the wallet.
+  // grossRevenue is already the rider's net pay — show it as-is.
+  const commissionPaid = 0; // not calculable from net earnings alone; omit from display
+  const netPay = useMemo(() => Math.round(grossRevenue), [grossRevenue]);
 
   const totalTrips = useMemo(
     () => incomeTransactions.filter((t) =>
@@ -194,7 +194,7 @@ export default function RiderEarningsScreen() {
       <View style={styles.heroCard}>
         <View style={styles.heroDecor} />
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroLabel}>Available Funds</Text>
+          <Text style={styles.heroLabel}>Available Balance</Text>
           <View style={styles.walletIconWrap}>
             <Ionicons name="wallet" size={18} color="rgba(255,255,255,0.7)" />
           </View>
@@ -259,9 +259,9 @@ export default function RiderEarningsScreen() {
             <Ionicons name="information-circle-outline" size={18} color="#0040e0" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.commissionTitle}>Dzpatch Commission (18%)</Text>
+            <Text style={styles.commissionTitle}>Dzpatch Commission</Text>
             <Text style={styles.commissionText}>
-              You paid {formatAmount(commissionPaid)} in platform fees. Net earnings: {formatAmount(netPay)}.
+              Platform commission is deducted before your earnings are credited. Your balance shows net pay only.
             </Text>
           </View>
         </View>

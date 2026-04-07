@@ -62,15 +62,51 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action.type === 'update_withdrawal') {
-    await supabase
+    // Fetch the withdrawal to get wallet_id + amount before updating
+    const { data: withdrawal, error: fetchError } = await supabase
+      .from('withdrawals')
+      .select('id, wallet_id, amount, status')
+      .eq('paystack_transfer_code', action.transferCode)
+      .single();
+
+    if (fetchError || !withdrawal) {
+      console.error('Failed to fetch withdrawal for transfer code:', action.transferCode, fetchError);
+      return new Response('Database error', { status: 500 });
+    }
+
+    const { error: updateError } = await supabase
       .from('withdrawals')
       .update(action.updates)
       .eq('paystack_transfer_code', action.transferCode);
 
+    if (updateError) {
+      console.error('Failed to update withdrawal state:', updateError);
+      return new Response('Database error', { status: 500 });
+    }
+
     if (action.updates.status === 'completed') {
       console.log('Transfer completed:', action.transferCode);
     } else {
-      console.warn(`Transfer ${action.updates.rejection_reason}:`, action.transferCode);
+      // F3: Transfer failed or reversed — refund the wallet
+      // Wallet was already debited when withdrawal was requested; restore it now
+      console.warn(`Transfer failed (${action.updates.rejection_reason}):`, action.transferCode);
+
+      if (withdrawal.wallet_id && withdrawal.amount > 0) {
+        const { error: refundError } = await supabase.rpc('credit_wallet', {
+          p_wallet_id:   withdrawal.wallet_id,
+          p_amount:      withdrawal.amount,
+          p_type:        'refund',
+          p_reference:   'WITHDRAW-REFUND-' + action.transferCode,
+          p_description: 'Withdrawal refund: transfer failed (' + (action.updates.rejection_reason ?? 'unknown') + ')',
+        });
+
+        if (refundError) {
+          // Log but don't return 500 — Paystack would retry and double-refund
+          console.error('CRITICAL: Failed to refund wallet for failed withdrawal:', action.transferCode, refundError);
+        } else {
+          console.log('Refunded ₦' + withdrawal.amount + ' to wallet ' + withdrawal.wallet_id + ' (failed transfer: ' + action.transferCode + ')');
+        }
+      }
     }
   }
 
