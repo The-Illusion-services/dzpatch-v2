@@ -22,8 +22,11 @@ export default function WaitingForCustomerScreen() {
   const { orderId, bidAmount } = useLocalSearchParams<{ orderId: string; bidAmount: string }>();
   const { riderId } = useAuthStore();
   const [remaining, setRemaining] = useState(300);
+  const [totalWindow, setTotalWindow] = useState(300);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  // Guard: prevent double-navigation from concurrent poll + realtime events
+  const navigatingRef = useRef(false);
 
   // ── Radar pulse animation ──────────────────────────────────────────────────
 
@@ -89,45 +92,70 @@ export default function WaitingForCustomerScreen() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('waiting-for-customer load bid expiry failed:', error.message);
+          return;
+        }
         if (data?.expires_at) {
           setExpiresAt(data.expires_at as string);
+          // Compute total window so progress bar drains correctly
+          const totalSec = Math.max(
+            1,
+            Math.round((new Date(data.expires_at as string).getTime() - Date.now()) / 1000)
+          );
+          setTotalWindow(totalSec);
         }
       });
 
+    const navigate = (fn: () => void) => {
+      if (navigatingRef.current) return;
+      navigatingRef.current = true;
+      fn();
+    };
+
     // Poll every 5s — realtime RLS may block bid UPDATE events
     const poll = setInterval(async () => {
+      if (navigatingRef.current) return;
+
       // Check order status first (catches customer cancellation or match)
-      const { data: orderRow } = await supabase
+      const { data: orderRow, error: orderError } = await supabase
         .from('orders')
         .select('status, cancellation_reason, rider_id')
         .eq('id', orderId)
         .single();
-        
+      if (orderError) {
+        console.warn('waiting-for-customer poll order failed:', orderError.message);
+      }
+
+      if (navigatingRef.current) return;
+
       if (orderRow) {
         const status = (orderRow as any).status;
         if (status === 'cancelled') {
-          clearInterval(poll);
-          router.replace({
+          navigate(() => router.replace({
             pathname: '/(rider)/bid-declined' as any,
             params: { orderId, cancellationReason: (orderRow as any).cancellation_reason ?? 'Customer cancelled the order' },
-          });
+          }));
           return;
         }
         if (status === 'matched' && (orderRow as any).rider_id === riderId) {
-          clearInterval(poll);
-          router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
+          navigate(() => router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } }));
           return;
         }
       }
 
-      const { data: bids } = await supabase
+      const { data: bids, error: bidsError } = await supabase
         .from('bids')
         .select('id, status, amount, expires_at, negotiation_round')
         .eq('order_id', orderId)
         .eq('rider_id', riderId)
         .order('created_at', { ascending: false })
         .limit(2);
+      if (bidsError) {
+        console.warn('waiting-for-customer poll bids failed:', bidsError.message);
+        return;
+      }
 
       if (!bids || bids.length === 0) return;
       const allBids = bids as any[];
@@ -135,28 +163,27 @@ export default function WaitingForCustomerScreen() {
         setExpiresAt(allBids[0].expires_at);
       }
 
+      if (navigatingRef.current) return;
+
       // Check for accepted bid (could be any bid in the list)
-      const accepted = allBids.find((b) => b.status === 'accepted');
+      const accepted = allBids.find((b: any) => b.status === 'accepted');
       if (accepted) {
-        clearInterval(poll);
-        router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
+        navigate(() => router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } }));
         return;
       }
 
       // Check for rejected/expired — all bids for this rider are done
       const latest = allBids[0];
       if (latest.status === 'rejected' || latest.status === 'expired') {
-        clearInterval(poll);
-        router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } });
+        navigate(() => router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } }));
         return;
       }
 
       // Check if customer sent a counter: original bid is 'countered', counter bid is 'pending'
-      const counteredBid = allBids.find((b) => b.status === 'countered');
-      const counterBid = allBids.find((b) => b.status === 'pending');
+      const counteredBid = allBids.find((b: any) => b.status === 'countered');
+      const counterBid = allBids.find((b: any) => b.status === 'pending');
       if (counteredBid && counterBid) {
-        clearInterval(poll);
-        router.replace({
+        navigate(() => router.replace({
           pathname: '/(rider)/counter-offer' as any,
           params: {
             orderId,
@@ -166,7 +193,7 @@ export default function WaitingForCustomerScreen() {
             myOriginalAmount: String(counteredBid.amount),
             negotiationRound: String((counterBid as any).negotiation_round ?? 2),
           },
-        });
+        }));
       }
     }, 5000);
 
@@ -188,21 +215,24 @@ export default function WaitingForCustomerScreen() {
           }
 
           if (bid.status === 'accepted') {
-            router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } });
+            navigate(() => router.replace({ pathname: '/(rider)/navigate-to-pickup' as any, params: { orderId } }));
           } else if (bid.status === 'rejected' || bid.status === 'expired') {
-            router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } });
+            navigate(() => router.replace({ pathname: '/(rider)/bid-declined' as any, params: { orderId } }));
           } else if (bid.status === 'countered') {
             // Customer sent a counter-offer — fetch the new counter bid amount
-            const { data: counterBid } = await supabase
+            const { data: counterBid, error } = await supabase
               .from('bids')
-              .select('id, amount')
+              .select('id, amount, negotiation_round')
               .eq('order_id', orderId)
               .eq('rider_id', riderId)
               .eq('status', 'pending')
               .order('created_at', { ascending: false })
               .limit(1)
               .single();
-            router.replace({
+            if (error) {
+              console.warn('waiting-for-customer load counter bid failed:', error.message);
+            }
+            navigate(() => router.replace({
               pathname: '/(rider)/counter-offer' as any,
               params: {
                 orderId,
@@ -212,7 +242,7 @@ export default function WaitingForCustomerScreen() {
                 myOriginalAmount: String(bid.amount),
                 negotiationRound: String((counterBid as any)?.negotiation_round ?? 2),
               },
-            });
+            }));
           }
         }
       )
@@ -229,16 +259,16 @@ export default function WaitingForCustomerScreen() {
           const order = payload.new as { status: string; rider_id: string };
           // order.rider_id is riders.id UUID — compare against riderId (not profile.id)
           if (order.status === 'matched' && order.rider_id === riderId) {
-            router.replace({
+            navigate(() => router.replace({
               pathname: '/(rider)/navigate-to-pickup' as any,
               params: { orderId },
-            });
+            }));
           } else if (order.status === 'cancelled') {
             const reason = (payload.new as any).cancellation_reason as string | null;
-            router.replace({
+            navigate(() => router.replace({
               pathname: '/(rider)/bid-declined' as any,
               params: { orderId, cancellationReason: reason ?? 'Customer cancelled the order' },
-            });
+            }));
           }
         }
       )
@@ -329,7 +359,7 @@ export default function WaitingForCustomerScreen() {
 
         {/* Progress bar — drains from full to empty as time runs out */}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressBar, { width: `${(remaining / 300) * 100}%` }]} />
+          <View style={[styles.progressBar, { width: `${(remaining / totalWindow) * 100}%` }]} />
         </View>
         <Text style={styles.progressLabel}>
           {remaining > 0 ? `Bid window closes in ${formatRemaining()}` : 'Bid window expired'}

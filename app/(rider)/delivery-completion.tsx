@@ -71,7 +71,16 @@ export default function DeliveryCompletionScreen() {
             p_new_status: 'arrived_dropoff',
             p_changed_by: profile.id,
           });
-          if (statusError) console.warn('arrived_dropoff auto-update failed:', statusError.message);
+          if (statusError) {
+            Alert.alert(
+              'Status Update Failed',
+              `Could not mark arrival at drop-off: ${statusError.message}. Please contact support if this persists.`,
+            );
+            return;
+          }
+          // Reflect updated status in local state
+          setOrder({ ...orderData, status: 'arrived_dropoff' });
+          return;
         }
       });
   }, [orderId, profile?.id]);
@@ -134,7 +143,7 @@ export default function DeliveryCompletionScreen() {
       if (!verified) {
         Alert.alert(
           'Wrong Code',
-          'The delivery code is incorrect. Please ask the customer for their correct code.\n\nAfter 3 wrong attempts, code entry will be locked for 1 hour.',
+          'The delivery code is incorrect. Please ask the customer for their correct code.\n\nAfter 3 wrong attempts, code entry will be locked for 15 minutes.',
         );
         setCompleting(false);
         return;
@@ -200,7 +209,7 @@ export default function DeliveryCompletionScreen() {
       if (msg.includes('locked')) {
         Alert.alert(
           'Code Entry Locked',
-          'Too many incorrect attempts. Code entry is locked for 1 hour. Contact support if needed.',
+          'Too many incorrect attempts. Code entry is locked for 15 minutes. Contact support if needed.',
         );
       } else if (msg.includes('verified')) {
         Alert.alert('Code Required', 'Delivery code must be verified before completing the delivery.');

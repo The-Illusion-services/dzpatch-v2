@@ -13,10 +13,11 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Spacing, Typography } from '@/constants/theme';
-import type { Order } from '@/types/database';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useTheme } from '@/hooks/use-theme';
+import { ACTIVE_TRACKING_ETA_TICK_MS, ACTIVE_TRACKING_STALE_LOCATION_TICK_MS } from '@/constants/timing';
+import { parsePostgisPoint } from '@/lib/location';
 
 // ─── Status timeline ──────────────────────────────────────────────────────────
 
@@ -52,6 +53,18 @@ interface RiderProfile {
   vehicle_plate?: string;
 }
 
+interface ActiveTrackingOrder {
+  id: string;
+  status: string;
+  rider_id: string | null;
+  final_price: number | null;
+  dropoff_address: string;
+  dropoff_location: unknown;
+  created_at: string;
+  delivery_code: string | null;
+  distance_km?: number | null;
+}
+
 // Default Calabar coordinates
 const LAGOS_DEFAULT: LatLng = { latitude: 5.9631, longitude: 8.3271 };
 
@@ -62,7 +75,7 @@ export default function ActiveOrderTrackingScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<ActiveTrackingOrder | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
   const [riderLocation, setRiderLocation] = useState<LatLng>(LAGOS_DEFAULT);
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
@@ -70,6 +83,7 @@ export default function ActiveOrderTrackingScreen() {
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
   const [staleSeconds, setStaleSeconds] = useState<number>(0);
+  const [locationPending, setLocationPending] = useState(false);
   const mapRef = useRef<MapView>(null);
   const orderChannelRef = useRef<RealtimeChannel | null>(null);
   const locationChannelRef = useRef<RealtimeChannel | null>(null);
@@ -89,17 +103,19 @@ export default function ActiveOrderTrackingScreen() {
   // ── Fetch order ───────────────────────────────────────────────────────────
 
   const fetchOrder = useCallback(async (id: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
-      .select('id, status, rider_id, final_price, dropoff_address, dropoff_lat, dropoff_lng, created_at, delivery_code, distance_km')
+      .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, delivery_code, distance_km')
       .eq('id', id)
-      .single();
+      .maybeSingle();
+    if (error) {
+      console.warn('active-tracking load order failed:', error.message);
+      return;
+    }
     if (data) {
-      const o = data as { rider_id: string | null; status: string; distance_km?: number; [key: string]: any };
-      setOrder(o as unknown as Order);
-      if (o.dropoff_lat && o.dropoff_lng) {
-        setDropoffLocation({ latitude: o.dropoff_lat, longitude: o.dropoff_lng });
-      }
+      const o = data as ActiveTrackingOrder;
+      setOrder(o);
+      setDropoffLocation(parsePostgisPoint(o.dropoff_location));
       if (o.distance_km) {
         setEtaMinutes(Math.round((o.distance_km / 20) * 60));
       }
@@ -110,12 +126,16 @@ export default function ActiveOrderTrackingScreen() {
     }
   }, []);
 
-  const fetchRider = async (riderId: string) => {
-    const { data } = await supabase
+  async function fetchRider(riderId: string) {
+    const { data, error } = await supabase
       .from('riders')
       .select('average_rating, vehicle_plate, profiles(full_name, phone)')
       .eq('id', riderId)
-      .single();
+      .maybeSingle();
+    if (error) {
+      console.warn('active-tracking load rider failed:', error.message);
+      return;
+    }
     if (data && (data as any).profiles) {
       setRiderProfile({
         ...(data as any).profiles,
@@ -123,19 +143,24 @@ export default function ActiveOrderTrackingScreen() {
         vehicle_plate: (data as any).vehicle_plate,
       });
     }
-  };
+  }
 
-  const fetchRiderLocation = async (riderId: string) => {
-    const { data } = await supabase
+  async function fetchRiderLocation(riderId: string) {
+    const { data, error } = await supabase
       .from('rider_locations')
       .select('latitude, longitude')
       .eq('rider_id', riderId)
-      .single();
+      .maybeSingle();
+    if (error) {
+      console.warn('active-tracking load rider location failed:', error.message);
+    }
+    setLocationPending(!data);
     if (data) {
       const loc = data as { latitude: number; longitude: number };
       setRiderLocation({ latitude: loc.latitude, longitude: loc.longitude });
+      setLastLocationUpdate(new Date());
     }
-  };
+  }
 
   // ── Realtime — order status ────────────────────────────────────────────────
 
@@ -150,26 +175,41 @@ export default function ActiveOrderTrackingScreen() {
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         async (payload) => {
           // Re-fetch full row — payload.new is partial and may omit unchanged columns
-          const { data: fresh } = await supabase
+          const { data: fresh, error } = await supabase
             .from('orders')
-            .select('id, status, rider_id, final_price, dropoff_address, dropoff_lat, dropoff_lng, created_at, delivery_code, distance_km')
+            .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, delivery_code, distance_km')
             .eq('id', orderId)
-            .single();
+            .maybeSingle();
+          if (error) {
+            console.warn('active-tracking realtime order refresh failed:', error.message);
+            return;
+          }
           if (!fresh) return;
-          const updated = fresh as { rider_id: string | null; status: string; [key: string]: any };
-          setOrder(updated as unknown as Order);
+          const updated = fresh as ActiveTrackingOrder;
+          setOrder(updated);
+          setDropoffLocation(parsePostgisPoint(updated.dropoff_location));
           if (updated.rider_id) fetchRider(updated.rider_id);
           if (updated.status === 'delivered' || updated.status === 'completed') {
             const deliveryMins = updated.created_at
               ? Math.round((Date.now() - new Date(updated.created_at).getTime()) / 60000)
               : null;
+            // Fetch rider name fresh — riderProfile state may not be set yet on fast delivery
+            let resolvedRiderName = riderProfile?.full_name ?? '';
+            if (!resolvedRiderName && updated.rider_id) {
+              const { data: riderRow } = await supabase
+                .from('riders')
+                .select('profiles(full_name)')
+                .eq('id', updated.rider_id)
+                .maybeSingle();
+              resolvedRiderName = (riderRow as any)?.profiles?.full_name ?? '';
+            }
             router.replace({
               pathname: '/(customer)/delivery-success',
               params: {
                 orderId,
                 finalPrice: String(updated.final_price ?? 0),
                 riderId: updated.rider_id ?? '',
-                riderName: riderProfile?.full_name ?? '',
+                riderName: resolvedRiderName,
                 deliveryTime: deliveryMins ? `${deliveryMins} min` : undefined,
               },
             } as any);
@@ -202,6 +242,7 @@ export default function ActiveOrderTrackingScreen() {
           const newLoc: LatLng = { latitude: (payload.new as any).latitude, longitude: (payload.new as any).longitude };
           setRiderLocation(newLoc);
           setLastLocationUpdate(new Date());
+          setLocationPending(false);
           setStaleSeconds(0);
           mapRef.current?.animateCamera({ center: newLoc }, { duration: 800 });
         }
@@ -213,15 +254,23 @@ export default function ActiveOrderTrackingScreen() {
     return () => { supabase.removeChannel(locationChannel); };
   }, [order?.rider_id]);
 
-  useAppStateChannels([orderChannelRef.current, locationChannelRef.current]);
+  useAppStateChannels([orderChannelRef.current, locationChannelRef.current], {
+    onForeground: async () => {
+      if (!orderId) return;
+      await fetchOrder(orderId);
+      if (order?.rider_id) {
+        await fetchRiderLocation(order.rider_id);
+      }
+    },
+  });
 
   // ── ETA countdown — decrement 1 min every 60s while in active statuses ────
   useEffect(() => {
     const activeStatuses = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit'];
     if (!order || !activeStatuses.includes(order.status)) return;
     const interval = setInterval(() => {
-      setEtaMinutes((prev) => (prev !== null && prev > 1 ? prev - 1 : prev));
-    }, 60000);
+      setEtaMinutes((prev) => (prev !== null ? Math.max(prev - 1, 0) : prev));
+    }, ACTIVE_TRACKING_ETA_TICK_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.status]);
@@ -231,9 +280,17 @@ export default function ActiveOrderTrackingScreen() {
     if (!lastLocationUpdate) return;
     const tick = setInterval(() => {
       setStaleSeconds(Math.floor((Date.now() - lastLocationUpdate.getTime()) / 1000));
-    }, 1000);
+    }, ACTIVE_TRACKING_STALE_LOCATION_TICK_MS);
     return () => clearInterval(tick);
   }, [lastLocationUpdate]);
+
+  useEffect(() => {
+    if (!order?.rider_id || !locationPending) return;
+    const retry = setTimeout(() => {
+      void fetchRiderLocation(order.rider_id!);
+    }, 5000);
+    return () => clearTimeout(retry);
+  }, [locationPending, order?.rider_id]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -323,6 +380,9 @@ export default function ActiveOrderTrackingScreen() {
           {etaMinutes !== null && etaMinutes > 0 && ['matched', 'pickup_en_route', 'in_transit'].includes(order.status) && (
             <Text style={styles.etaMinText}>Rider arrives in ~{etaMinutes} min</Text>
           )}
+          {locationPending && (
+            <Text style={styles.staleText}>Waiting for rider location...</Text>
+          )}
           {staleSeconds > 15 && (
             <Text style={styles.staleText}>📡 Last update {staleSeconds}s ago</Text>
           )}
@@ -389,13 +449,13 @@ export default function ActiveOrderTrackingScreen() {
         )}
 
         {/* Delivery code — visible once rider is assigned, urgent at dropoff */}
-        {(order as any).delivery_code && ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'].includes(order.status) && (
+        {order.delivery_code && ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'].includes(order.status) && (
           <View style={[
             styles.deliveryCodeCard,
             order.status === 'arrived_dropoff' && styles.deliveryCodeCardUrgent,
           ]}>
             <Text style={styles.deliveryCodeLabel}>DELIVERY CODE</Text>
-            <Text style={styles.deliveryCodeValue}>{(order as any).delivery_code}</Text>
+            <Text style={styles.deliveryCodeValue}>{order.delivery_code}</Text>
             <Text style={styles.deliveryCodeHint}>
               {order.status === 'arrived_dropoff'
                 ? '⚠️ Rider is here — share this code now'

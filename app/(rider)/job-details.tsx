@@ -32,10 +32,6 @@ type OrderDetail = {
   distance_km: number | null;
   created_at: string;
   expires_at: string | null;
-  customer: {
-    full_name: string;
-    phone: string;
-  } | null;
   category: { name: string } | null;
 };
 
@@ -51,27 +47,40 @@ export default function JobDetailsScreen() {
   useEffect(() => {
     if (!orderId) return;
     setLoading(true);
-    supabase
-      .from('orders')
-      .select(`
-        id, status, pickup_address, dropoff_address,
-        package_size, package_description, package_notes,
-        dynamic_price, suggested_price, platform_commission_rate, platform_commission_amount, rider_net_amount, distance_km,
-        created_at, expires_at,
-        customer:customer_id(full_name, phone),
-        category:category_id(name)
-      `)
-      .eq('id', orderId)
-      .single()
-      .then(({ data, error }) => {
-        setLoading(false);
-        if (error || !data) {
-          Alert.alert('Error', 'Order not found.');
-          router.back();
-          return;
+    let isActive = true;
+
+    const loadOrder = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id, status, pickup_address, dropoff_address,
+          package_size, package_description, package_notes,
+          dynamic_price, suggested_price, platform_commission_rate, platform_commission_amount, rider_net_amount, distance_km,
+          created_at, expires_at,
+          category:category_id(name)
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (!isActive) return;
+
+      setLoading(false);
+      if (error || !data) {
+        if (error) {
+          console.warn('job-details load failed:', error.message);
         }
-        setOrder(data as any);
-      });
+        Alert.alert('Error', 'Order not found.');
+        router.back();
+        return;
+      }
+      setOrder(data as any);
+    };
+
+    void loadOrder();
+
+    return () => {
+      isActive = false;
+    };
   }, [orderId]);
 
   const formatPrice = (price: number | null, fallback: number | null) => {
@@ -87,7 +96,11 @@ export default function JobDetailsScreen() {
   };
 
   const handleAccept = async () => {
-    if (!riderId || !orderId || !order) return;
+    if (!orderId || !order) return;
+    if (!riderId) {
+      Alert.alert('Not Ready', 'Your rider profile is still loading. Please wait a moment and try again.');
+      return;
+    }
     // Use suggested_price (customer's agreed price) first; fall back to dynamic_price
     const price = order.suggested_price ?? order.dynamic_price;
     if (!price) {
@@ -107,8 +120,8 @@ export default function JobDetailsScreen() {
         pathname: '/(rider)/waiting-for-customer' as any,
         params: { orderId, bidAmount: String(price) },
       });
-    } catch (err: any) {
-      Alert.alert('Could not place bid', err.message ?? 'Please try again.');
+    } catch (error: any) {
+      Alert.alert('Could not place bid', error.message ?? 'Please try again.');
     } finally {
       setAccepting(false);
     }
@@ -136,9 +149,7 @@ export default function JobDetailsScreen() {
     commissionAmount: order.platform_commission_amount,
     commissionRatePercentage: order.platform_commission_rate,
   });
-  const estimatedNet = order.rider_net_amount != null
-    ? Math.round(order.rider_net_amount)
-    : earningsBreakdown.net;
+  const estimatedNet = order.rider_net_amount ? Math.round(order.rider_net_amount) : earningsBreakdown.net;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -238,19 +249,6 @@ export default function JobDetailsScreen() {
             </View>
           )}
         </View>
-
-        {/* Customer card */}
-        {order.customer && (
-          <View style={[styles.card, styles.customerCard]}>
-            <View style={styles.customerAvatar}>
-              <Ionicons name="person" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.customerInfo}>
-              <Text style={styles.customerName}>{order.customer.full_name}</Text>
-              <Text style={styles.customerPhone}>{order.customer.phone}</Text>
-            </View>
-          </View>
-        )}
 
         {/* Earnings breakdown */}
         <View style={styles.card}>
@@ -391,16 +389,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF', borderRadius: 12, padding: 10,
   },
   instructionsText: { flex: 1, fontSize: Typography.xs, color: '#000D22', lineHeight: 18 },
-
-  // Customer
-  customerCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#0A2342' },
-  customerAvatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#0040e0', alignItems: 'center', justifyContent: 'center',
-  },
-  customerInfo: { flex: 1, gap: 2 },
-  customerName: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
-  customerPhone: { fontSize: Typography.xs, color: 'rgba(168,196,255,0.7)' },
 
   // Earnings
   earningsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

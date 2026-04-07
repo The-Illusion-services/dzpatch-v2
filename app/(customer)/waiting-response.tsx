@@ -30,6 +30,11 @@ export default function WaitingResponseScreen() {
   }>();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  const belongsToActiveRider = (bidRiderId?: string | null) => {
+    if (!riderId) return true;
+    return bidRiderId === riderId;
+  };
+
 
   // ── 5-min counter-offer countdown ─────────────────────────────────────────
   const [countdown, setCountdown] = useState(BID_RESPONSE_WINDOW_SECONDS);
@@ -133,7 +138,7 @@ export default function WaitingResponseScreen() {
 
     const allBids = recentBids as any[];
     const latestPending = allBids.find((bid) => bid.status === 'pending');
-    if (latestPending && latestPending.parent_bid_id && latestPending.negotiation_round % 2 !== 0) {
+    if (latestPending && latestPending.parent_bid_id) {
       router.replace({
         pathname: '/(customer)/counter-offer',
         params: {
@@ -206,7 +211,7 @@ export default function WaitingResponseScreen() {
       const latestPending = allBids.find((b) => b.status === 'pending');
 
       // Rider countered our offer: a new pending bid exists with parent_bid_id
-      if (latestPending && latestPending.parent_bid_id && latestPending.negotiation_round % 2 !== 0) {
+      if (latestPending && latestPending.parent_bid_id) {
         clearInterval(poll);
         router.replace({
           pathname: '/(customer)/counter-offer',
@@ -258,7 +263,7 @@ export default function WaitingResponseScreen() {
           if ((reliableBid as any).status !== 'pending') return;
           
           const bid = reliableBid as any;
-          if ((!riderId || bid.rider_id === riderId) && bid.parent_bid_id && bid.negotiation_round % 2 !== 0) {
+          if (belongsToActiveRider(bid.rider_id) && bid.parent_bid_id) {
             // Rider countered our offer — take customer to counter-offer screen
             router.replace({
               pathname: '/(customer)/counter-offer',
@@ -280,6 +285,7 @@ export default function WaitingResponseScreen() {
         { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         (payload) => {
           const bid = payload.new as any;
+          if (!belongsToActiveRider(bid.rider_id)) return;
           if (bid.status === 'expired' || bid.status === 'rejected') goBidding();
         }
       )

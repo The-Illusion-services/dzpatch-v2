@@ -17,6 +17,10 @@ import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import { DEFAULT_COUNTDOWN_TICK_MS } from '@/constants/timing';
+import type { LatLng } from '@/lib/location';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +38,28 @@ type Bid = {
   vehicle_type: string;
   negotiation_round: number;
 };
+
+function normalizeBidRow(row: any): Bid | null {
+  const negotiationRound = Number(row?.negotiation_round ?? 1) || 1;
+  if (negotiationRound % 2 === 0) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    order_id: row.order_id,
+    rider_id: row.rider_id,
+    amount: row.amount,
+    status: row.status,
+    created_at: row.created_at,
+    rider_name: row.riders?.profiles?.full_name ?? 'Rider',
+    rider_avatar: row.riders?.profiles?.avatar_url ?? null,
+    rider_rating: row.riders?.average_rating ?? 0,
+    rider_trips: row.riders?.total_trips ?? 0,
+    vehicle_type: row.riders?.vehicle_type ?? 'motorcycle',
+    negotiation_round: negotiationRound,
+  };
+}
 
 const DEFAULT_CENTER = { latitude: 5.9631, longitude: 8.3271 };
 
@@ -80,7 +106,54 @@ export default function LiveBiddingScreen() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [bidLocations, setBidLocations] = useState<Record<string, LatLng>>({});
   const [selectedBid, setSelectedBid] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  const fetchBidById = useCallback(async (bidId: string) => {
+    const { data } = await supabase
+      .from('bids')
+      .select(`
+        id, order_id, rider_id, amount, status, created_at, negotiation_round,
+        riders(
+          average_rating, total_trips, vehicle_type,
+          profiles(full_name, avatar_url)
+        )
+      `)
+      .eq('id', bidId)
+      .maybeSingle();
+
+    return data ? normalizeBidRow(data as any) : null;
+  }, []);
+
+  const fetchBidLocations = useCallback(async (rows: Bid[]) => {
+    const riderIds = Array.from(new Set(rows.map((bid) => bid.rider_id))).filter(Boolean);
+    if (riderIds.length === 0) {
+      setBidLocations({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('rider_locations')
+      .select('rider_id, latitude, longitude')
+      .in('rider_id', riderIds);
+
+    if (error) {
+      console.warn('live-bidding load rider locations failed:', error.message);
+      return;
+    }
+
+    const nextLocations = ((data ?? []) as { rider_id: string; latitude: number; longitude: number }[]).reduce<Record<string, LatLng>>(
+      (acc, row) => {
+        acc[row.rider_id] = { latitude: row.latitude, longitude: row.longitude };
+        return acc;
+      },
+      {}
+    );
+
+    setBidLocations(nextLocations);
+  }, []);
 
   // Live ping animation
   const pingAnim = useRef(new Animated.Value(0)).current;
@@ -101,14 +174,19 @@ export default function LiveBiddingScreen() {
       if (status !== 'granted') return;
       const last = await Location.getLastKnownPositionAsync();
       if (last) setCenter({ latitude: last.coords.latitude, longitude: last.coords.longitude });
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      } catch {
+        // GPS unavailable — stay on last known or default center
+      }
     })();
   }, []);
 
   // ── Fetch order + bids ────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
+    if (!orderId) return;
     const [orderRes, bidsRes] = await Promise.all([
       supabase
         .from('orders')
@@ -129,30 +207,26 @@ export default function LiveBiddingScreen() {
         .order('amount', { ascending: true }),
     ]);
 
-    if (orderRes.data) setOrder((orderRes as any).data as any);
+    if (orderRes.error) {
+      console.warn('live-bidding load order failed:', orderRes.error.message);
+    } else if (orderRes.data) {
+      setOrder((orderRes as any).data as any);
+    }
 
-    if (bidsRes.data) {
-      const mapped: Bid[] = (bidsRes.data as any[]).filter(b => b.negotiation_round % 2 !== 0).map((b) => ({
-        id: b.id,
-        order_id: b.order_id,
-        rider_id: b.rider_id,
-        amount: b.amount,
-        status: b.status,
-        created_at: b.created_at,
-        rider_name: b.riders?.profiles?.full_name ?? 'Rider',
-        rider_avatar: b.riders?.profiles?.avatar_url ?? null,
-        rider_rating: b.riders?.average_rating ?? 0,
-        rider_trips: b.riders?.total_trips ?? 0,
-        vehicle_type: b.riders?.vehicle_type ?? 'motorcycle',
-        negotiation_round: b.negotiation_round ?? 1,
-      }));
+    if (bidsRes.error) {
+      console.warn('live-bidding load bids failed:', bidsRes.error.message);
+    } else if (bidsRes.data) {
+      const mapped = (bidsRes.data as any[])
+        .map((bidRow) => normalizeBidRow(bidRow))
+        .filter((bid): bid is Bid => bid !== null);
       setBids(mapped);
+      void fetchBidLocations(mapped);
       if (mapped.length > 0) setSelectedBid((s) => s ?? mapped[0].id);
     }
-  }, [orderId]);
+  }, [fetchBidLocations, orderId]);
 
   useEffect(() => {
-    fetchData();
+    fetchData().finally(() => setLoading(false));
 
     const channel = supabase
       .channel(`bids:${orderId}`)
@@ -161,36 +235,9 @@ export default function LiveBiddingScreen() {
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         async (payload) => {
           const newBidId = (payload.new as any).id;
-          
-          const { data: reliableBid } = await supabase
-            .from('bids')
-            .select('status, amount, rider_id, negotiation_round')
-            .eq('id', newBidId)
-            .single();
-            
-          if (!reliableBid) return;
-          if ((reliableBid as any).negotiation_round % 2 === 0) return;
-
-          const { data: riderData } = await supabase
-            .from('riders')
-            .select('average_rating, total_trips, vehicle_type, profiles(full_name, avatar_url)')
-            .eq('id', (reliableBid as any).rider_id)
-            .maybeSingle();
-
-          const newBid: Bid = {
-            id: newBidId,
-            order_id: orderId,
-            rider_id: (reliableBid as any).rider_id,
-            amount: (reliableBid as any).amount,
-            status: (reliableBid as any).status,
-            created_at: (payload.new as any).created_at,
-            rider_name: (riderData as any)?.profiles?.full_name ?? 'Rider',
-            rider_avatar: (riderData as any)?.profiles?.avatar_url ?? null,
-            rider_rating: (riderData as any)?.average_rating ?? 0,
-            rider_trips: (riderData as any)?.total_trips ?? 0,
-            vehicle_type: (riderData as any)?.vehicle_type ?? 'motorcycle',
-            negotiation_round: (reliableBid as any).negotiation_round ?? 1,
-          };
+          const newBid = await fetchBidById(newBidId);
+          if (!newBid) return;
+          void fetchBidLocations([newBid]);
 
           setBids((prev) => {
             const exists = prev.find((b) => b.id === newBid.id);
@@ -204,21 +251,33 @@ export default function LiveBiddingScreen() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as any;
-          if (updated.status === 'rejected' || updated.status === 'countered') {
-            // Remove rejected/countered bids — they're truly gone
+          if (updated.status === 'rejected') {
+            // Rejected — truly gone
             setBids((prev) => {
               const next = prev.filter((b) => b.id !== updated.id);
               setSelectedBid((s) => s === updated.id ? (next[0]?.id ?? null) : s);
               return next;
             });
+          } else if (updated.status === 'countered') {
+            // Customer sent a counter — keep card visible as "negotiating" so screen isn't blank
+            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, status: 'countered' } : b));
           } else if (updated.status === 'expired') {
             // Keep expired bids visible with Expired label — customer can still see what was offered
             setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, status: 'expired' } : b));
           } else if (updated.status === 'pending') {
             // Amount updated — refresh
-            setBids((prev) => prev.map((b) => b.id === updated.id ? { ...b, amount: updated.amount, status: 'pending' } : b));
+            const refreshedBid = await fetchBidById(updated.id);
+            if (!refreshedBid) return;
+            void fetchBidLocations([refreshedBid]);
+            setBids((prev) => {
+              const exists = prev.some((bid) => bid.id === refreshedBid.id);
+              const next = exists
+                ? prev.map((bid) => (bid.id === refreshedBid.id ? refreshedBid : bid))
+                : [...prev, refreshedBid];
+              return next.sort((a, b) => a.amount - b.amount);
+            });
           }
         }
       )
@@ -234,9 +293,14 @@ export default function LiveBiddingScreen() {
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => { supabase.removeChannel(channel); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  }, [orderId, fetchBidById, fetchBidLocations, fetchData]);
+
+  useAppStateChannels([channelRef.current], {
+    onForeground: fetchData,
+  });
 
   // ── Countdown ─────────────────────────────────────────────────────────────
 
@@ -246,7 +310,7 @@ export default function LiveBiddingScreen() {
       const secs = Math.max(0, Math.floor((new Date(order.expires_at!).getTime() - Date.now()) / 1000));
       setTimeLeft(secs);
       if (secs === 0) clearInterval(tick);
-    }, 1000);
+    }, DEFAULT_COUNTDOWN_TICK_MS);
     return () => clearInterval(tick);
   }, [order?.expires_at]);
 
@@ -281,7 +345,14 @@ export default function LiveBiddingScreen() {
   const handleNegotiate = (bid: Bid) => {
     router.push({
       pathname: '/(customer)/counter-offer',
-      params: { orderId, bidId: bid.id, riderName: bid.rider_name, bidAmount: bid.amount.toString(), negotiationRound: String(bid.negotiation_round ?? 1) },
+      params: {
+        orderId,
+        bidId: bid.id,
+        riderId: bid.rider_id,
+        riderName: bid.rider_name,
+        bidAmount: bid.amount.toString(),
+        negotiationRound: String(bid.negotiation_round ?? 1),
+      },
     } as any);
   };
 
@@ -299,6 +370,11 @@ export default function LiveBiddingScreen() {
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay} pointerEvents="none">
+          <Text style={styles.loadingText}>Refreshing offers...</Text>
+        </View>
+      )}
       {/* ── Full-screen Map ─────────────────────────────────────────────── */}
       <MapView
         style={StyleSheet.absoluteFill}
@@ -321,7 +397,7 @@ export default function LiveBiddingScreen() {
         {bids.map((bid) => (
           <Marker
             key={bid.id}
-            coordinate={scatterCoord(bid.id, center)}
+            coordinate={bidLocations[bid.rider_id] ?? scatterCoord(bid.id, center)}
             anchor={{ x: 0.5, y: 0.5 }}
             tracksViewChanges={false}
             onPress={() => setSelectedBid(bid.id)}
@@ -387,19 +463,23 @@ export default function LiveBiddingScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bidTabs}>
               {bids.map((bid, idx) => {
                 const isExpired = bid.status === 'expired';
+                const isCountered = bid.status === 'countered';
                 return (
                   <Pressable
                     key={bid.id}
                     style={[
                       styles.bidTab,
                       isExpired && styles.bidTabExpired,
-                      !isExpired && bid.negotiation_round > 1 && styles.bidTabCounter,
-                      bid.id === selectedBid && !isExpired && styles.bidTabActive,
+                      isCountered && styles.bidTabCounter,
+                      !isExpired && !isCountered && bid.negotiation_round > 1 && styles.bidTabCounter,
+                      bid.id === selectedBid && !isExpired && !isCountered && styles.bidTabActive,
                     ]}
                     onPress={() => setSelectedBid(bid.id)}
                   >
                     {isExpired ? (
                       <Text style={styles.expiredLabel}>EXPIRED</Text>
+                    ) : isCountered ? (
+                      <Text style={styles.counterLabel}>COUNTERED</Text>
                     ) : bid.negotiation_round > 1 ? (
                       <Text style={styles.counterLabel}>COUNTER</Text>
                     ) : idx === 0 && bids.length > 1 ? (
@@ -440,6 +520,10 @@ export default function LiveBiddingScreen() {
                 {activeBid.status === 'expired' ? (
                   <View style={styles.expiredNotice}>
                     <Text style={styles.expiredNoticeText}>This bid expired — the rider can rebid on your order</Text>
+                  </View>
+                ) : activeBid.status === 'countered' ? (
+                  <View style={styles.expiredNotice}>
+                    <Text style={styles.expiredNoticeText}>Counter sent — waiting for rider to respond</Text>
                   </View>
                 ) : (
                   <View style={styles.bidDetailActions}>
@@ -496,6 +580,17 @@ export default function LiveBiddingScreen() {
 function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useTheme>['colors']) {
   return StyleSheet.create({
   container: { flex: 1 },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 72,
+    alignSelf: 'center',
+    zIndex: 40,
+    backgroundColor: 'rgba(0, 13, 34, 0.82)',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  loadingText: { color: '#FFFFFF', fontSize: Typography.xs, fontWeight: Typography.bold },
 
   // Header overlay
   header: {

@@ -511,12 +511,12 @@ Bidding/counter-offer is the product's core mechanic — must be airtight.
 
 | # | Issue | Status |
 |---|-------|--------|
-| 10 | waiting-response — fragile modulo counter-offer detection | ⬜ |
-| 11 | Timer mismatch — UI 5 min vs backend 15 min | ⬜ |
-| 12 | Price mismatch — frontend multipliers don't match backend | ⬜ |
-| 22 | live-bidding — realtime drops customer counter bids | ⬜ |
-| 23 | counter-offer (customer) — negotiationRound param unguarded | ⬜ |
-| 24 | counter-offer (rider) — wrong prefill on customer counter | ⬜ |
+| 10 | waiting-response — fragile modulo counter-offer detection | ✅ |
+| 11 | Timer mismatch — UI 5 min vs backend 15 min | ✅ |
+| 12 | Price mismatch — frontend multipliers don't match backend | ✅ |
+| 22 | live-bidding — realtime drops customer counter bids | ✅ |
+| 23 | counter-offer (customer) — negotiationRound param unguarded | ✅ |
+| 24 | counter-offer (rider) — wrong prefill on customer counter | ✅ |
 
 ---
 
@@ -525,14 +525,14 @@ Must be done before any real users or real money touches the system.
 
 | # | Issue | Status |
 |---|-------|--------|
-| S1 | Rider onboarding can self-upgrade role and KYC state | ⬜ |
-| S2 | Pending-order access too broad — customer data exposed | ⬜ |
-| S3 | Delivery code readable by the rider verifying it | ⬜ |
-| S4 | SECURITY DEFINER RPCs have overly broad anon grants | ⬜ |
-| S5 | Cancel order hides 20% late-cancel penalty | ⬜ |
-| S6 | update_order_status is participant-based not actor-based | ⬜ |
-| S7 | Disputes under-protected and under-built | ⬜ |
-| S8 | Rider onboarding can leave accounts in broken partial state | ⬜ |
+| S1 | Rider onboarding can self-upgrade role and KYC state | ✅ |
+| S2 | Pending-order access too broad — customer data exposed | ✅ |
+| S3 | Delivery code readable by the rider verifying it | ✅ |
+| S4 | SECURITY DEFINER RPCs have overly broad anon grants | ✅ |
+| S5 | Cancel order hides 20% late-cancel penalty | ✅ |
+| S6 | update_order_status is participant-based not actor-based | ✅ |
+| S7 | Disputes under-protected and under-built | ✅ |
+| S8 | Rider onboarding can leave accounts in broken partial state | ✅ |
 
 ---
 
@@ -541,22 +541,22 @@ Polish for real-world resilience — surfaces on first real test run.
 
 | # | Issue | Status |
 |---|-------|--------|
-| 13 | Expired orders — no automatic wallet refund on expiry | ⬜ |
-| 14 | waiting-for-customer — poll race condition | ⬜ |
-| 15 | job-details — riderId undefined on fast mount | ⬜ |
-| 16 | active-order-tracking — riderName empty on fast delivery | ⬜ |
-| 17 | delivery-completion — silent arrived_dropoff failure | ⬜ |
-| 18 | OTP lockout — 1-hour penalty too punitive, no override | ⬜ |
-| 19 | POD not enforced server-side | ⬜ |
-| 20 | Job map — wrong pickup coordinates shown to riders | ⬜ |
-| 21 | Customer phone exposed before match | ⬜ |
-| 25 | delivery-success — profile.id unguarded before dispute insert | ⬜ |
-| 26 | active-order-tracking — useEffect over-dependency channel churn | ⬜ |
-| 27 | No surge price warning on order retry | ⬜ |
-| F13 | OTP lockout financial impact | ⬜ |
-| F14 | No surge price warning on retry | ⬜ |
-| F15 | Promo code race condition — double application possible | ⬜ |
-| F16 | Withdrawal — no explicit fee deduction logic | ⬜ |
+| 13 | Expired orders — no automatic wallet refund on expiry | ✅ |
+| 14 | waiting-for-customer — poll race condition | ✅ |
+| 15 | job-details — riderId undefined on fast mount | ✅ |
+| 16 | active-order-tracking — riderName empty on fast delivery | ✅ |
+| 17 | delivery-completion — silent arrived_dropoff failure | ✅ |
+| 18 | OTP lockout — 1-hour penalty too punitive, no override | ✅ |
+| 19 | POD not enforced server-side | ✅ |
+| 20 | Job map — wrong pickup coordinates shown to riders | ✅ |
+| 21 | Customer phone exposed before match | ✅ |
+| 25 | delivery-success — profile.id unguarded before dispute insert | ✅ |
+| 26 | active-order-tracking — useEffect over-dependency channel churn | ✅ |
+| 27 | No surge price warning on order retry | ✅ |
+| F13 | OTP lockout financial impact | ✅ |
+| F14 | No surge price warning on retry | ✅ |
+| F15 | Promo code race condition — double application possible | ✅ |
+| F16 | Withdrawal — no explicit fee deduction logic | ✅ |
 
 ---
 

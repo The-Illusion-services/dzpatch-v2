@@ -34,13 +34,13 @@ type PricingRule = {
 };
 
 const SIZES: { value: PackageSize; label: string; icon: string; desc: string }[] = [
-  { value: 'small',  label: 'Small',  icon: '📦', desc: 'Docs, phone' },
-  { value: 'medium', label: 'Medium', icon: '🎒', desc: 'Clothes, books' },
-  { value: 'large',  label: 'Large',  icon: '📫', desc: 'Big parcels' },
+  { value: 'small',  label: 'Small',  icon: '??', desc: 'Docs, phone' },
+  { value: 'medium', label: 'Medium', icon: '??', desc: 'Clothes, books' },
+  { value: 'large',  label: 'Large',  icon: '??', desc: 'Big parcels' },
 ];
 
 const SIZE_MULTIPLIER: Record<PackageSize, number> = {
-  small: 1, medium: 1.3, large: 1.6, extra_large: 2,
+  small: 1, medium: 1.5, large: 2.0, extra_large: 2,
 };
 
 export default function CreateOrderScreen() {
@@ -81,47 +81,51 @@ export default function CreateOrderScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState('');
 
-  // ─── Get current location ─────────────────────────────────────────────────
+  // --- Get current location -------------------------------------------------
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
 
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-      setUserLocation(coords);
-      userLocationRef.current = coords;
-      pickupCoords.current = coords;
-
-      // Reverse geocode using Google Geocoding API (more reliable than Expo's on Android)
       try {
-        const resp = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${GOOGLE_API_KEY}&result_type=street_address|route|sublocality`
-        );
-        const json = await resp.json();
-        const result = json.results?.[0];
-        if (result?.formatted_address) {
-          // Strip the country suffix (e.g. ", Nigeria") for brevity
-          const label = result.formatted_address.replace(/,\s*Nigeria$/, '').trim();
-          setCurrentLocationLabel(label);
-          // If the user already tapped "Current Location", update their pickup address too
-          setPickupAddress((prev) => (prev === 'My current location' || prev === '') ? label : prev);
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+        setUserLocation(coords);
+        userLocationRef.current = coords;
+        pickupCoords.current = coords;
+
+        // Reverse geocode using Google Geocoding API (more reliable than Expo's on Android)
+        try {
+          const resp = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${GOOGLE_API_KEY}&result_type=street_address|route|sublocality`
+          );
+          const json = await resp.json();
+          const result = json.results?.[0];
+          if (result?.formatted_address) {
+            // Strip the country suffix (e.g. ", Nigeria") for brevity
+            const label = result.formatted_address.replace(/,\s*Nigeria$/, '').trim();
+            setCurrentLocationLabel(label);
+            // If the user already tapped "Current Location", update their pickup address too
+            setPickupAddress((prev) => (prev === 'My current location' || prev === '') ? label : prev);
+          }
+        } catch {
+          // Network unavailable — keep default label
         }
       } catch {
-        // Network unavailable — keep default label
+        // GPS unavailable (emulator without mock location) — proceed without location
       }
     })();
   }, []);
 
-  // ─── Load package categories (cached in store, 30-min TTL) ───────────────
+  // --- Load package categories (cached in store, 30-min TTL) ---------------
 
   useEffect(() => {
     fetchCategories();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Load pricing rule ────────────────────────────────────────────────────
+  // --- Load pricing rule ----------------------------------------------------
 
   useEffect(() => {
     supabase
@@ -134,13 +138,13 @@ export default function CreateOrderScreen() {
         if (data) {
           setPricingRule(data as PricingRule);
         } else {
-          // Fallback matches RPC fallback: ₦500 base + ₦100/km, 7.5% VAT
+          // Fallback matches RPC fallback: ?500 base + ?100/km, 7.5% VAT
           setPricingRule({ base_rate: 500, per_km_rate: 100, min_price: 500, vat_percentage: 7.5, surge_multiplier: 1 });
         }
       });
   }, []);
 
-  // ─── Load saved addresses for dropoff suggestions ─────────────────────────
+  // --- Load saved addresses for dropoff suggestions -------------------------
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -176,7 +180,7 @@ export default function CreateOrderScreen() {
       });
   }, [profile?.id]);
 
-  // ─── Recalculate price ────────────────────────────────────────────────────
+  // --- Recalculate price ----------------------------------------------------
 
   useEffect(() => {
     // Only calculate once both pickup AND dropoff coords are confirmed
@@ -212,7 +216,7 @@ export default function CreateOrderScreen() {
   );
   const walletNeedsTopUp = paymentMethod === 'wallet' && total > 0 && !walletGuard.hasEnoughBalance;
 
-  // ─── Apply promo ──────────────────────────────────────────────────────────
+  // --- Apply promo ----------------------------------------------------------
 
   const handleApplyPromo = useCallback(async () => {
     if (!promoCode.trim()) return;
@@ -226,7 +230,7 @@ export default function CreateOrderScreen() {
     const data = promoRaw as { id: string; min_order_amount: number; discount_type: string; discount_value: number } | null;
     if (!data) { setPromoError('Invalid or expired promo code'); return; }
     if (data.min_order_amount && deliveryFee < data.min_order_amount) {
-      setPromoError(`Min order ₦${data.min_order_amount.toLocaleString()} required`);
+      setPromoError(`Min order ?${data.min_order_amount.toLocaleString()} required`);
       return;
     }
     const disc = data.discount_type === 'percentage'
@@ -236,7 +240,7 @@ export default function CreateOrderScreen() {
     setPromoApplied(true);
   }, [promoCode, deliveryFee]);
 
-  // ─── Submit ───────────────────────────────────────────────────────────────
+  // --- Submit ---------------------------------------------------------------
 
   const handleFindRider = useCallback(async () => {
     setError('');
@@ -247,7 +251,7 @@ export default function CreateOrderScreen() {
     if (!pickupCoords.current)  { setError('Select pick-up from the suggestions'); return; }
     if (!dropoffCoords.current) { setError('Select drop-off from the suggestions'); return; }
     if (paymentMethod === 'wallet' && total > 0 && !walletGuard.hasEnoughBalance) {
-      setError(`Insufficient wallet balance. Top up ₦${walletGuard.shortfall.toLocaleString()} or switch to cash.`);
+      setError(`Insufficient wallet balance. Top up ?${walletGuard.shortfall.toLocaleString()} or switch to cash.`);
       return;
     }
 
@@ -289,7 +293,7 @@ export default function CreateOrderScreen() {
     }
   }, [profile, pickupAddress, dropoffAddress, recipientName, recipientPhone, selectedSize, paymentMethod, promoApplied, promoCode, total, walletGuard]);
 
-  // ─── Places query ─────────────────────────────────────────────────────────
+  // --- Places query ---------------------------------------------------------
 
   const placesQuery = useMemo(
     () => userLocation
@@ -301,17 +305,17 @@ export default function CreateOrderScreen() {
 
   const formSections = [{ title: 'form', data: ['_'] as string[] }];
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // --- Render ---------------------------------------------------------------
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Minimal back header — no title */}
+      {/* Minimal back header � no title */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={styles.backArrow}>?</Text>
         </Pressable>
         <Text style={styles.headerTitle}>New Delivery</Text>
         <View style={{ width: 40 }} />
@@ -328,7 +332,7 @@ export default function CreateOrderScreen() {
         renderItem={() => (
           <View style={styles.formBody}>
 
-            {/* ── Route card ──────────────────────────────────────────── */}
+            {/* -- Route card -------------------------------------------- */}
             <View style={styles.routeCard}>
               <View style={styles.dashLine} />
 
@@ -345,14 +349,14 @@ export default function CreateOrderScreen() {
                         // Use ref so we always have the latest coords even in stale closures
                         let coords = userLocationRef.current;
                         if (!coords) {
-                          // GPS not resolved yet — fetch on demand (permission already granted)
+                          // GPS not resolved yet � fetch on demand (permission already granted)
                           try {
                             const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
                             coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
                             userLocationRef.current = coords;
                             setUserLocation(coords);
                           } catch {
-                            return; // Can't get location — do nothing
+                            return; // Can't get location � do nothing
                           }
                         }
                         pickupCoords.current = coords;
@@ -487,7 +491,7 @@ export default function CreateOrderScreen() {
               </View>
             </View>
 
-            {/* ── Recipient ───────────────────────────────────────────── */}
+            {/* -- Recipient --------------------------------------------- */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Recipient</Text>
               <TextInput
@@ -507,7 +511,7 @@ export default function CreateOrderScreen() {
               />
             </View>
 
-            {/* ── Package Size ─────────────────────────────────────────── */}
+            {/* -- Package Size ------------------------------------------- */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Package Size</Text>
               <View style={styles.sizeRow}>
@@ -525,7 +529,7 @@ export default function CreateOrderScreen() {
               </View>
             </View>
 
-            {/* ── Payment Method ───────────────────────────────────────── */}
+            {/* -- Payment Method ----------------------------------------- */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Payment</Text>
               <View style={styles.payRow}>
@@ -533,7 +537,7 @@ export default function CreateOrderScreen() {
                   style={[styles.payBtn, paymentMethod === 'cash' && styles.payBtnActive]}
                   onPress={() => setPaymentMethod('cash')}
                 >
-                  <Text style={styles.payIcon}>💵</Text>
+                  <Text style={styles.payIcon}>??</Text>
                   <Text style={[styles.payLabel, paymentMethod === 'cash' && styles.payLabelActive]}>Cash</Text>
                   <Text style={[styles.payNote, paymentMethod === 'cash' && styles.payNoteActive]}>Pay on delivery</Text>
                 </Pressable>
@@ -541,7 +545,7 @@ export default function CreateOrderScreen() {
                   style={[styles.payBtn, paymentMethod === 'wallet' && styles.payBtnActive]}
                   onPress={() => setPaymentMethod('wallet')}
                 >
-                  <Text style={styles.payIcon}>👛</Text>
+                  <Text style={styles.payIcon}>??</Text>
                   <Text style={[styles.payLabel, paymentMethod === 'wallet' && styles.payLabelActive]}>Wallet</Text>
                   <Text style={[styles.payNote, paymentMethod === 'wallet' && styles.payNoteActive]}>Pay now</Text>
                 </Pressable>
@@ -555,12 +559,12 @@ export default function CreateOrderScreen() {
                       color={walletNeedsTopUp ? '#ba1a1a' : '#0040e0'}
                     />
                     <Text style={[styles.walletStatusTitle, walletNeedsTopUp && styles.walletStatusTitleWarning]}>
-                      Wallet balance: ₦{(walletBalance ?? 0).toLocaleString()}
+                      Wallet balance: ?{(walletBalance ?? 0).toLocaleString()}
                     </Text>
                   </View>
                   <Text style={[styles.walletStatusText, walletNeedsTopUp && styles.walletStatusTextWarning]}>
                     {walletNeedsTopUp
-                      ? `Short by ₦${walletGuard.shortfall.toLocaleString()}. Top up before requesting a rider, or switch to cash.`
+                      ? `Short by ?${walletGuard.shortfall.toLocaleString()}. Top up before requesting a rider, or switch to cash.`
                       : 'You have enough balance for this order total.'}
                   </Text>
                   {walletNeedsTopUp && (
@@ -572,10 +576,10 @@ export default function CreateOrderScreen() {
               )}
             </View>
 
-            {/* ── Promo ────────────────────────────────────────────────── */}
+            {/* -- Promo -------------------------------------------------- */}
             <Pressable onPress={() => setShowPromo(!showPromo)} style={styles.promoToggle}>
               <Text style={styles.promoToggleText}>
-                {showPromo ? '▾' : '▸'} {promoApplied ? `✓ Promo applied (-₦${discount.toLocaleString()})` : 'Have a promo code?'}
+                {showPromo ? '?' : '?'} {promoApplied ? `? Promo applied (-?${discount.toLocaleString()})` : 'Have a promo code?'}
               </Text>
             </Pressable>
             {showPromo && (
@@ -590,7 +594,7 @@ export default function CreateOrderScreen() {
                   editable={!promoApplied}
                 />
                 <Pressable style={[styles.promoBtn, promoApplied && styles.promoBtnApplied]} onPress={handleApplyPromo} disabled={promoApplied}>
-                  <Text style={styles.promoBtnText}>{promoApplied ? '✓' : 'Apply'}</Text>
+                  <Text style={styles.promoBtnText}>{promoApplied ? '?' : 'Apply'}</Text>
                 </Pressable>
               </View>
             )}
@@ -600,14 +604,24 @@ export default function CreateOrderScreen() {
         )}
       />
 
-      {/* ── Bottom CTA ──────────────────────────────────────────────── */}
+      {/* -- Bottom CTA ------------------------------------------------ */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 6 }]}>
-        {/* Price — always shown, even if 0 while loading */}
+        {/* Surge price warning */}
+        {pricingRule && pricingRule.surge_multiplier > 1 && (
+          <View style={styles.surgeBanner}>
+            <Text style={styles.surgeIcon}>⚡</Text>
+            <Text style={styles.surgeText}>
+              High demand: {pricingRule.surge_multiplier.toFixed(1)}× surge pricing is active
+            </Text>
+          </View>
+        )}
+        <View style={styles.bottomRow}>
+        {/* Price� always shown, even if 0 while loading */}
         <View style={styles.pricePreview}>
           <Text style={styles.priceLabel}>Est. Total</Text>
           {deliveryFee > 0
-            ? <Text style={styles.priceValue}>₦{total.toLocaleString()}</Text>
-            : <Text style={styles.priceLoading}>Calculating…</Text>
+            ? <Text style={styles.priceValue}>?{total.toLocaleString()}</Text>
+            : <Text style={styles.priceLoading}>Calculating�</Text>
           }
         </View>
         <Pressable
@@ -617,15 +631,16 @@ export default function CreateOrderScreen() {
         >
           {submitting
             ? <ActivityIndicator color="#FFFFFF" size="small" />
-            : <Text style={styles.findRiderText}>⚡ Find Rider</Text>
+            : <Text style={styles.findRiderText}>? Find Rider</Text>
           }
         </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Google Places styles ─────────────────────────────────────────────────────
+// --- Google Places styles -----------------------------------------------------
 
 const placesStyles = {
   textInputContainer: { backgroundColor: 'transparent', padding: 0, margin: 0 },
@@ -658,7 +673,7 @@ const placesStyles = {
   poweredContainer: { display: 'none' as any },
 };
 
-// ─── Custom row styles ────────────────────────────────────────────────────────
+// --- Custom row styles --------------------------------------------------------
 
 const placesRowStyles = StyleSheet.create({
   row: {
@@ -695,7 +710,7 @@ const placesRowStyles = StyleSheet.create({
   },
 });
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// --- Styles -------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7FAFC' },
@@ -858,14 +873,22 @@ const styles = StyleSheet.create({
 
   // Bottom bar
   bottomBar: {
-    flexDirection: 'row', paddingHorizontal: Spacing[5],
-    paddingTop: 14, gap: 12,
+    paddingHorizontal: Spacing[5],
+    paddingTop: 14, gap: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1, borderTopColor: 'rgba(196,198,207,0.2)',
     shadowColor: '#000D22', shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06, shadowRadius: 20, elevation: 8,
-    alignItems: 'center',
   },
+  surgeBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FEF3C7', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: '#F59E0B',
+  },
+  surgeIcon: { fontSize: 14 },
+  surgeText: { flex: 1, fontSize: Typography.xs, fontWeight: '600', color: '#92400E' },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pricePreview: { gap: 2, minWidth: 90 },
   priceLabel: { fontSize: 10, color: '#74777e', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   priceValue: { fontSize: Typography.lg, fontWeight: '800', color: '#000D22' },
