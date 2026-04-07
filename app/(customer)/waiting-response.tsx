@@ -12,29 +12,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import { BID_RESPONSE_WINDOW_SECONDS, DEFAULT_COUNTDOWN_TICK_MS, LIVE_BIDDING_SHIMMER_DURATION_MS } from '@/constants/timing';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function WaitingResponseScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { orderId, riderName, counterAmount, originalBid, negotiationRound } = useLocalSearchParams<{
+  const { orderId, riderId, riderName, counterAmount, originalBid, negotiationRound } = useLocalSearchParams<{
     orderId: string;
+    riderId?: string;
     riderName: string;
     counterAmount: string;
     originalBid: string;
     negotiationRound?: string;
   }>();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
 
   // ── 5-min counter-offer countdown ─────────────────────────────────────────
-  const [countdown, setCountdown] = useState(5 * 60); // seconds
+  const [countdown, setCountdown] = useState(BID_RESPONSE_WINDOW_SECONDS);
   useEffect(() => {
     const tick = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) { clearInterval(tick); return 0; }
         return prev - 1;
       });
-    }, 1000);
+    }, DEFAULT_COUNTDOWN_TICK_MS);
     return () => clearInterval(tick);
   }, []);
   const countdownMins = Math.floor(countdown / 60).toString().padStart(2, '0');
@@ -74,13 +79,79 @@ export default function WaitingResponseScreen() {
     Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 1,
-        duration: 1500,
+        duration: LIVE_BIDDING_SHIMMER_DURATION_MS,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     ).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const syncNegotiationState = async () => {
+    if (!orderId) return;
+
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('status')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (orderError) {
+      console.warn('waiting-response sync order failed:', orderError.message);
+      return;
+    }
+
+    if (orderData) {
+      const status = (orderData as any).status;
+      if (status === 'matched') {
+        router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+        return;
+      }
+      if (status === 'cancelled') {
+        router.replace('/(customer)/' as any);
+        return;
+      }
+    }
+
+    let bidsQuery = supabase
+      .from('bids')
+      .select('id, status, amount, parent_bid_id, negotiation_round')
+      .eq('order_id', orderId)
+      .in('status', ['pending', 'countered', 'expired', 'rejected'])
+      .order('created_at', { ascending: false })
+      .limit(3);
+    if (riderId) bidsQuery = bidsQuery.eq('rider_id', riderId) as typeof bidsQuery;
+
+    const { data: recentBids, error: bidsError } = await bidsQuery;
+
+    if (bidsError || !recentBids || (recentBids as any[]).length === 0) {
+      if (bidsError) {
+        console.warn('waiting-response sync bids failed:', bidsError.message);
+      }
+      return;
+    }
+
+    const allBids = recentBids as any[];
+    const latestPending = allBids.find((bid) => bid.status === 'pending');
+    if (latestPending && latestPending.parent_bid_id && latestPending.negotiation_round % 2 !== 0) {
+      router.replace({
+        pathname: '/(customer)/counter-offer',
+        params: {
+          orderId,
+          bidId: latestPending.id,
+          riderId: riderId ?? '',
+          riderName: riderName ?? 'Rider',
+          bidAmount: String(latestPending.amount),
+          negotiationRound: String(latestPending.negotiation_round ?? negotiationRound ?? 1),
+        },
+      } as any);
+      return;
+    }
+
+    if (allBids.every((bid) => bid.status === 'expired' || bid.status === 'rejected')) {
+      router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
+    }
+  };
 
   // ── Listen for bid response + poll fallback ──────────────────────────────
   useEffect(() => {
@@ -95,11 +166,16 @@ export default function WaitingResponseScreen() {
 
     const poll = setInterval(async () => {
       // Check order status first
-      const { data: orderData } = await supabase
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('status')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
+
+      if (orderError) {
+        console.warn('waiting-response poll order failed:', orderError.message);
+        return;
+      }
 
       if (orderData) {
         const status = (orderData as any).status;
@@ -107,14 +183,22 @@ export default function WaitingResponseScreen() {
         if (status === 'cancelled') { clearInterval(poll); goHome(); return; }
       }
 
-      // Fetch latest bids for this order (pending + countered)
-      const { data: recentBids } = await supabase
+      // Fetch latest bids for this rider's negotiation thread
+      let pollBidsQuery = supabase
         .from('bids')
         .select('id, status, amount, parent_bid_id, negotiation_round')
         .eq('order_id', orderId)
         .in('status', ['pending', 'countered', 'expired', 'rejected'])
         .order('created_at', { ascending: false })
         .limit(3);
+      if (riderId) pollBidsQuery = pollBidsQuery.eq('rider_id', riderId) as typeof pollBidsQuery;
+
+      const { data: recentBids, error: bidsError } = await pollBidsQuery;
+
+      if (bidsError) {
+        console.warn('waiting-response poll bids failed:', bidsError.message);
+        return;
+      }
 
       if (!recentBids || (recentBids as any[]).length === 0) return;
 
@@ -129,6 +213,7 @@ export default function WaitingResponseScreen() {
           params: {
             orderId,
             bidId: latestPending.id,
+            riderId: riderId ?? '',
             riderName: riderName ?? 'Rider',
             bidAmount: String(latestPending.amount),
             negotiationRound: String(latestPending.negotiation_round ?? negotiationRound ?? 1),
@@ -165,23 +250,25 @@ export default function WaitingResponseScreen() {
           const newBidId = (payload.new as any).id;
           const { data: reliableBid } = await supabase
             .from('bids')
-            .select('status, amount, parent_bid_id, negotiation_round')
+            .select('status, amount, parent_bid_id, negotiation_round, rider_id')
             .eq('id', newBidId)
             .single();
 
           if (!reliableBid) return;
           if ((reliableBid as any).status !== 'pending') return;
           
-          if ((reliableBid as any).parent_bid_id && (reliableBid as any).negotiation_round % 2 !== 0) {
+          const bid = reliableBid as any;
+          if ((!riderId || bid.rider_id === riderId) && bid.parent_bid_id && bid.negotiation_round % 2 !== 0) {
             // Rider countered our offer — take customer to counter-offer screen
             router.replace({
               pathname: '/(customer)/counter-offer',
               params: {
                 orderId,
                 bidId: newBidId,
+                riderId: riderId ?? '',
                 riderName: riderName ?? 'Rider',
-                bidAmount: String((reliableBid as any).amount),
-                negotiationRound: String((reliableBid as any).negotiation_round),
+                bidAmount: String(bid.amount),
+                negotiationRound: String(bid.negotiation_round),
               },
             } as any);
           }
@@ -198,11 +285,17 @@ export default function WaitingResponseScreen() {
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
       clearInterval(poll);
       supabase.removeChannel(channel);
     };
-  }, [orderId, riderName, negotiationRound]);
+  }, [orderId, riderId, riderName, negotiationRound]);
+
+  useAppStateChannels([channelRef.current], {
+    onForeground: syncNegotiationState,
+  });
 
   // ── Cancel & search again ─────────────────────────────────────────────────
   const handleCancelAndSearch = () => {

@@ -28,6 +28,8 @@ interface OrderInfo {
   package_size: string | null;
   package_description: string | null;
   status: string;
+  payment_method: string | null;
+  final_price: number | null;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -42,6 +44,7 @@ export default function DeliveryCompletionScreen() {
   const [order, setOrder] = useState<OrderInfo | null>(null);
   const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
   const [podPhotoUri, setPodPhotoUri] = useState<string | null>(null);
+  const [cashConfirmed, setCashConfirmed] = useState(false);
   const [completing, setCompleting] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -51,22 +54,24 @@ export default function DeliveryCompletionScreen() {
     if (!orderId || !profile?.id) return;
     supabase
       .from('orders')
-      .select('id, dropoff_address, package_size, package_description, status')
+      .select('id, dropoff_address, package_size, package_description, status, payment_method, final_price')
       .eq('id', orderId)
       .single()
-      .then(({ data }) => {
+      .then(async ({ data, error }) => {
+        if (error) {
+          console.warn('delivery-completion load order failed:', error.message);
+          return;
+        }
         if (!data) return;
-        setOrder(data as OrderInfo);
-        // If arriving here with in_transit status (e.g. resume after arrived_dropoff missed),
-        // push the status forward so complete_delivery won't reject the order
-        if ((data as OrderInfo).status === 'in_transit') {
-          (supabase as any).rpc('update_order_status', {
+        const orderData = data as OrderInfo;
+        setOrder(orderData);
+        if (orderData.status === 'in_transit') {
+          const { error: statusError } = await (supabase as any).rpc('update_order_status', {
             p_order_id: orderId,
             p_new_status: 'arrived_dropoff',
             p_changed_by: profile.id,
-          }).then(({ error }: { error: any }) => {
-            if (error) console.warn('arrived_dropoff auto-update failed:', error.message);
           });
+          if (statusError) console.warn('arrived_dropoff auto-update failed:', statusError.message);
         }
       });
   }, [orderId, profile?.id]);
@@ -159,7 +164,16 @@ export default function DeliveryCompletionScreen() {
         });
       }
 
-      // 3. Complete delivery (distributes earnings + commission)
+      // 3. For cash orders: mark cash as collected before completing
+      if (order?.payment_method === 'cash') {
+        const { error: cashErr } = await (supabase as any).rpc('mark_cash_paid', {
+          p_order_id: orderId,
+          p_rider_id: riderId,
+        });
+        if (cashErr) throw cashErr;
+      }
+
+      // 4. Complete delivery (distributes earnings + commission)
       const { data: result, error: completeErr } = await supabase.rpc('complete_delivery', {
         p_order_id: orderId,
         p_rider_id: riderId,
@@ -181,8 +195,8 @@ export default function DeliveryCompletionScreen() {
           commission: String(earnings?.platform_commission ?? earnings?.commission ?? 0),
         },
       });
-    } catch (err: any) {
-      const msg: string = err?.message ?? '';
+    } catch (error: any) {
+      const msg: string = error?.message ?? '';
       if (msg.includes('locked')) {
         Alert.alert(
           'Code Entry Locked',
@@ -198,7 +212,8 @@ export default function DeliveryCompletionScreen() {
     }
   };
 
-  const isReady = code.every((d) => d !== '') && !!podPhotoUri && !completing;
+  const isCashOrder = order?.payment_method === 'cash';
+  const isReady = code.every((d) => d !== '') && !!podPhotoUri && !completing && (!isCashOrder || cashConfirmed);
 
   return (
     <ScrollView
@@ -275,6 +290,18 @@ export default function DeliveryCompletionScreen() {
           </View>
         )}
       </Pressable>
+
+      {/* Cash confirmation (cash orders only) */}
+      {isCashOrder && (
+        <Pressable style={styles.cashConfirmRow} onPress={() => setCashConfirmed((v) => !v)}>
+          <View style={[styles.cashCheckbox, cashConfirmed && styles.cashCheckboxChecked]}>
+            {cashConfirmed && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+          </View>
+          <Text style={styles.cashConfirmText}>
+            I collected ₦{(order?.final_price ?? 0).toLocaleString()} in cash from the customer
+          </Text>
+        </Pressable>
+      )}
 
       {/* Complete Button */}
       <Pressable
@@ -373,5 +400,20 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useThe
   },
   completeBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   completeBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
+
+  // Cash confirmation row
+  cashConfirmRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.surface, borderRadius: 16, padding: 14,
+    borderWidth: 1.5, borderColor: colors.border,
+  },
+  cashCheckbox: {
+    width: 24, height: 24, borderRadius: 6,
+    borderWidth: 2, borderColor: '#74777e',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cashCheckboxChecked: { backgroundColor: '#16A34A', borderColor: '#16A34A' },
+  cashConfirmText: { flex: 1, fontSize: Typography.sm, fontWeight: '600', color: colors.textPrimary },
   }); // end makeStyles
 }

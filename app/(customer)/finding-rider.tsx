@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -17,6 +17,17 @@ import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import type { OrderStatus } from '@/types/database';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import { distanceMeters, parsePostgisPoint, type LatLng } from '@/lib/location';
+import {
+  DEFAULT_COUNTDOWN_TICK_MS,
+  FINDING_RIDER_BID_NAV_DELAY_MS,
+  FINDING_RIDER_POLL_INTERVAL_MS,
+  FINDING_RIDER_PULSE_EXPAND_MS,
+  FINDING_RIDER_PULSE_RESET_MS,
+  FINDING_RIDER_SCAN_DURATION_MS,
+} from '@/constants/timing';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Dummy riders that "converge" toward the pickup marker
 const DUMMY_RIDERS = [
@@ -27,6 +38,18 @@ const DUMMY_RIDERS = [
 ];
 
 const DEFAULT_CENTER = { latitude: 5.9631, longitude: 8.3271 };
+type FindingOrder = {
+  id: string;
+  status: OrderStatus;
+  pickup_address: string;
+  pickup_location: unknown;
+  dropoff_address: string;
+  package_size: string;
+  dynamic_price: number;
+  final_price: number;
+  payment_method: string;
+  expires_at: string | null;
+};
 
 const MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
@@ -45,7 +68,7 @@ export default function FindingRiderScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { orderId, pickupAddress: paramPickup, dropoffAddress: paramDropoff, finalPrice: paramFinalPrice } = useLocalSearchParams<{
+  const { orderId } = useLocalSearchParams<{
     orderId: string;
     pickupAddress?: string;
     dropoffAddress?: string;
@@ -54,57 +77,120 @@ export default function FindingRiderScreen() {
   const { profile } = useAuthStore();
   const mapRef = useRef<MapView>(null);
 
-  const [order, setOrder] = useState<{
-    id: string;
-    status: OrderStatus;
-    pickup_address: string;
-    dropoff_address: string;
-    package_size: string;
-    dynamic_price: number;
-    final_price: number;
-    payment_method: string;
-    expires_at: string | null;
-  } | null>(null);
+  const [order, setOrder] = useState<FindingOrder | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [nearbyRiders, setNearbyRiders] = useState<LatLng[]>([]);
   const [riderViews, setRiderViews] = useState(0);
+  const orderChannelRef = useRef<RealtimeChannel | null>(null);
+  const bidsChannelRef = useRef<RealtimeChannel | null>(null);
+  const navigatingRef = useRef(false);
+  const cancelledRef = useRef(false);
 
-  // ── Rider converge animations (each 0→1 = moving toward center) ──────────
-  const convergeAnims = useRef(DUMMY_RIDERS.map(() => new Animated.Value(0))).current;
+  // Reset navigatingRef whenever this screen gains focus (e.g. back from live-bidding)
+  useFocusEffect(useCallback(() => {
+    navigatingRef.current = false;
+  }, []));
 
-  useEffect(() => {
-    const animations = convergeAnims.map((anim, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 600),
-          Animated.timing(anim, {
-            toValue: 0.6,
-            duration: 3500,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: false,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 800,
-            useNativeDriver: false,
-          }),
-        ])
-      )
-    );
-    animations.forEach((a) => a.start());
-    return () => animations.forEach((a) => a.stop());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const goToBidding = useCallback(() => {
+    if (!orderId || navigatingRef.current) return;
+    navigatingRef.current = true;
+    router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
+  }, [orderId]);
+
+  const goActive = useCallback(() => {
+    if (!orderId || navigatingRef.current) return;
+    navigatingRef.current = true;
+    router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+  }, [orderId]);
+
+  const goHome = useCallback(() => {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+    router.replace('/(customer)/' as any);
   }, []);
 
+  const fetchNearbyRiders = useCallback(async (pickupCenter: LatLng) => {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('rider_locations')
+      .select('latitude, longitude, updated_at')
+      .gte('updated_at', tenMinutesAgo)
+      .order('updated_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.warn('finding-rider load nearby riders failed:', error.message);
+      return;
+    }
+
+    const riders = ((data ?? []) as { latitude: number; longitude: number }[])
+      .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude))
+      .map((row) => ({ latitude: row.latitude, longitude: row.longitude }))
+      .filter((row) => distanceMeters(pickupCenter, row) <= 8_000)
+      .slice(0, 8);
+
+    setNearbyRiders(riders);
+  }, []);
+
+  const syncFindingState = useCallback(async () => {
+    if (!orderId) return;
+
+    const [{ data: orderData, error: orderError }, { count, error: bidsError }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('id, status, pickup_address, pickup_location, dropoff_address, package_size, dynamic_price, final_price, payment_method, expires_at')
+        .eq('id', orderId)
+        .maybeSingle(),
+      supabase
+        .from('bids')
+        .select('id', { count: 'exact', head: true })
+        .eq('order_id', orderId)
+        .eq('status', 'pending'),
+    ]);
+
+    if (orderError) {
+      console.warn('finding-rider sync order failed:', orderError.message);
+    } else if (orderData) {
+      const nextOrder = orderData as FindingOrder;
+      setOrder(nextOrder);
+      const pickupPoint = parsePostgisPoint(nextOrder.pickup_location);
+      if (pickupPoint) {
+        setCenter(pickupPoint);
+        void fetchNearbyRiders(pickupPoint);
+      }
+      if (nextOrder.status === 'matched') {
+        goActive();
+        return;
+      }
+      if (nextOrder.status === 'cancelled') {
+        goHome();
+        return;
+      }
+    }
+
+    if (bidsError) {
+      console.warn('finding-rider sync bids failed:', bidsError.message);
+      return;
+    }
+
+    const pendingBidCount = count ?? 0;
+    setRiderViews(pendingBidCount);
+    if (pendingBidCount > 0) {
+      goToBidding();
+    }
+  }, [fetchNearbyRiders, goActive, goHome, goToBidding, orderId]);
+
+  // ── Rider converge animations (each 0→1 = moving toward center) ──────────
   // ── Pulse animation for pickup marker ────────────────────────────────────
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: FINDING_RIDER_PULSE_EXPAND_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: FINDING_RIDER_PULSE_RESET_MS, useNativeDriver: true }),
       ])
     ).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,94 +201,92 @@ export default function FindingRiderScreen() {
 
   useEffect(() => {
     Animated.loop(
-      Animated.timing(scanAnim, { toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: false })
+      Animated.timing(scanAnim, { toValue: 1, duration: FINDING_RIDER_SCAN_DURATION_MS, easing: Easing.linear, useNativeDriver: false })
     ).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Get user location for better map center ───────────────────────────────
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      // Use last known position instantly, then refine with current
-      const last = await Location.getLastKnownPositionAsync();
-      if (last) setCenter({ latitude: last.coords.latitude, longitude: last.coords.longitude });
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    })();
+    let isActive = true;
+
+    const loadLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || !isActive) return;
+        const last = await Location.getLastKnownPositionAsync();
+        if (last && isActive) {
+          setCenter({ latitude: last.coords.latitude, longitude: last.coords.longitude });
+        }
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (isActive) {
+          setCenter({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('finding-rider location load failed:', message);
+      }
+    };
+
+    void loadLocation();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   // ── Load order + realtime + poll ─────────────────────────────────────────
-  const navigatingRef = useRef(false);
-
   useEffect(() => {
     if (!orderId) return;
 
     navigatingRef.current = false;
-
-    const goToBidding = () => {
-      if (navigatingRef.current) return;
-      navigatingRef.current = true;
-      router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
-    };
-
-    supabase
-      .from('orders')
-      .select('id, status, pickup_address, dropoff_address, package_size, dynamic_price, final_price, payment_method, expires_at')
-      .eq('id', orderId)
-      .single()
-      .then(({ data }) => { if (data) setOrder(data as any); });
-
-    // Check for existing bids immediately on mount
-    supabase
-      .from('bids')
-      .select('id', { count: 'exact' })
-      .eq('order_id', orderId)
-      .eq('status', 'pending')
-      .then(({ count }) => {
-        if (count && count > 0) {
-          setRiderViews(count);
-          goToBidding();
-        }
-      });
+    void syncFindingState();
 
     // Poll every 5s as fallback (realtime RLS may block delivery)
-    const pollInterval = setInterval(async () => {
+    const pollInterval = setInterval(() => {
+      void syncFindingState();
+    }, FINDING_RIDER_POLL_INTERVAL_MS);
+    /*
       // Check order status first — might already be matched
-      const { data: orderData } = await supabase
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('status')
         .eq('id', orderId)
         .single();
 
-      if (orderData) {
+      if (orderError) {
+        console.warn('finding-rider poll order failed:', orderError.message);
+      } else if (orderData) {
         const st = (orderData as any).status;
         if (st === 'matched') {
           clearInterval(pollInterval);
-          if (navigatingRef.current) return;
+          if (!isActive || navigatingRef.current) return;
           navigatingRef.current = true;
           router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
           return;
         }
         if (st === 'cancelled') {
           clearInterval(pollInterval);
+          if (!isActive) return;
           router.replace('/(customer)/' as any);
           return;
         }
       }
 
-      const { count } = await supabase
+      const { count, error: bidsError } = await supabase
         .from('bids')
-        .select('id', { count: 'exact' })
+        .select('id', { count: 'exact', head: true })
         .eq('order_id', orderId)
-        .eq('status', 'pending')
-        .then((r) => r);
+        .eq('status', 'pending');
+      if (bidsError) {
+        console.warn('finding-rider poll bids failed:', bidsError.message);
+        return;
+      }
       if (count && count > 0) {
         setRiderViews(count);
         goToBidding();
       }
-    }, 5000);
+    */
 
     const channel = supabase
       .channel(`finding:${orderId}`)
@@ -210,16 +294,17 @@ export default function FindingRiderScreen() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         (payload) => {
-          const updated = payload.new as any;
-          setOrder((prev) => prev ? { ...prev, ...updated } : updated);
+          const updated = payload.new as Partial<FindingOrder>;
+          setOrder((prev) => prev ? { ...prev, ...updated } : updated as FindingOrder);
           if (updated.status === 'matched') {
-            if (navigatingRef.current) return;
-            navigatingRef.current = true;
-            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+            goActive();
+          } else if (updated.status === 'cancelled') {
+            goHome();
           }
         }
       )
       .subscribe();
+    orderChannelRef.current = channel;
 
     const bidsChannel = supabase
       .channel(`finding-bids:${orderId}`)
@@ -228,40 +313,49 @@ export default function FindingRiderScreen() {
         { event: 'INSERT', schema: 'public', table: 'bids', filter: `order_id=eq.${orderId}` },
         () => {
           setRiderViews((v) => v + 1);
-          setTimeout(goToBidding, 600);
+          setTimeout(() => {
+            void syncFindingState();
+          }, FINDING_RIDER_BID_NAV_DELAY_MS);
         }
       )
       .subscribe();
+    bidsChannelRef.current = bidsChannel;
 
     return () => {
       clearInterval(pollInterval);
       supabase.removeChannel(channel);
       supabase.removeChannel(bidsChannel);
     };
-  }, [orderId]);
+  }, [goActive, goHome, orderId, syncFindingState]);
+
+  useAppStateChannels([orderChannelRef.current, bidsChannelRef.current], {
+    onForeground: syncFindingState,
+  });
 
   // ── Countdown timer ───────────────────────────────────────────────────────
-  const cancelledRef = useRef(false);
-
   useEffect(() => {
     if (!order?.expires_at) return;
 
-    const cancelExpired = () => {
+    const cancelExpired = async () => {
       if (cancelledRef.current) return;
       cancelledRef.current = true;
-      supabase.rpc('cancel_order', {
+      const { error } = await supabase.rpc('cancel_order', {
         p_order_id: orderId,
         p_cancelled_by: 'customer',
         p_user_id: profile?.id,
         p_reason: 'Order expired — no rider found in time',
-      } as any).then();
+      } as any);
+      if (error) {
+        cancelledRef.current = false;
+        console.warn('finding-rider auto-cancel failed:', error.message);
+      }
     };
 
     // Already expired when screen loads
     const initialSecs = Math.max(0, Math.floor((new Date(order.expires_at).getTime() - Date.now()) / 1000));
     if (initialSecs === 0) {
       setTimeLeft(0);
-      cancelExpired();
+      void cancelExpired();
       return;
     }
 
@@ -270,9 +364,9 @@ export default function FindingRiderScreen() {
       setTimeLeft(secs);
       if (secs === 0) {
         clearInterval(tick);
-        cancelExpired();
+        void cancelExpired();
       }
-    }, 1000);
+    }, DEFAULT_COUNTDOWN_TICK_MS);
     return () => clearInterval(tick);
   }, [order?.expires_at, orderId, profile?.id]);
 
@@ -333,8 +427,21 @@ export default function FindingRiderScreen() {
           </View>
         </Marker>
 
+        {nearbyRiders.map((rider, index) => (
+          <Marker
+            key={`live-rider-${index}-${rider.latitude}-${rider.longitude}`}
+            coordinate={rider}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={styles.riderMarker}>
+              <Text style={styles.riderMarkerText}>ðŸ›µ</Text>
+            </View>
+          </Marker>
+        ))}
+
         {/* Dummy rider markers converging toward pickup */}
-        {DUMMY_RIDERS.map((r, i) => {
+        {nearbyRiders.length === 0 && DUMMY_RIDERS.map((r, i) => {
           // Note: Animated.Value coords don't animate on native MapView; use static offsets
           // that look like different positions around center
           return (

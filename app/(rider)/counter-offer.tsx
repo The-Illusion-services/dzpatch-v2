@@ -57,20 +57,33 @@ export default function CounterOfferScreen() {
 
   useEffect(() => {
     if (!orderId) return;
-    supabase
-      .from('orders')
-      .select('id, pickup_address, dropoff_address, dynamic_price, suggested_price, distance_km, package_size, platform_commission_rate, platform_commission_amount')
-      .eq('id', orderId)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        const fetchedOrder = data as OrderSummary;
-        setOrder(fetchedOrder);
-        const prefill = isCustomerCounter
-          ? Number(customerCounterAmount)
-          : (fetchedOrder.dynamic_price ?? fetchedOrder.suggested_price);
-        setBidAmount(String(Math.round(prefill)));
-      });
+    let isActive = true;
+
+    const loadOrder = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, pickup_address, dropoff_address, dynamic_price, suggested_price, distance_km, package_size, platform_commission_rate, platform_commission_amount')
+        .eq('id', orderId)
+        .single();
+      if (!isActive) return;
+      if (error) {
+        console.warn('counter-offer load order failed:', error.message);
+        return;
+      }
+      if (!data) return;
+      const fetchedOrder = data as OrderSummary;
+      setOrder(fetchedOrder);
+      const prefill = isCustomerCounter
+        ? Number(customerCounterAmount)
+        : (fetchedOrder.dynamic_price ?? fetchedOrder.suggested_price);
+      setBidAmount(String(Math.round(prefill)));
+    };
+
+    void loadOrder();
+
+    return () => {
+      isActive = false;
+    };
   }, [customerCounterAmount, isCustomerCounter, orderId]);
 
   useEffect(() => {
@@ -120,26 +133,35 @@ export default function CounterOfferScreen() {
   useEffect(() => {
     if (countdown !== 0 || submittingRef.current) return;
 
-    if (orderId && riderId) {
-      supabase
-        .from('bids')
-        .select('id')
-        .eq('order_id', orderId)
-        .eq('rider_id', riderId)
-        .in('status', ['pending', 'countered'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data }) => {
-          if (!data) return;
-          void (supabase as any).rpc('withdraw_bid', {
+    const handleCountdownExpiry = async () => {
+      if (orderId && riderId) {
+        const { data, error } = await supabase
+          .from('bids')
+          .select('id')
+          .eq('order_id', orderId)
+          .eq('rider_id', riderId)
+          .in('status', ['pending', 'countered'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) {
+          console.warn('counter-offer load latest bid failed:', error.message);
+        } else if (data) {
+          const { error: withdrawError } = await (supabase as any).rpc('withdraw_bid', {
             p_bid_id: (data as { id: string }).id,
             p_rider_id: riderId,
           });
-        });
-    }
+          if (withdrawError) {
+            console.warn('counter-offer withdraw bid failed:', withdrawError.message);
+          }
+        }
+      }
 
-    router.replace('/(rider)/' as any);
+      router.replace('/(rider)/' as any);
+    };
+
+    void handleCountdownExpiry();
   }, [countdown, orderId, riderId]);
 
   const formatCountdown = () => {
@@ -166,6 +188,8 @@ export default function CounterOfferScreen() {
     submittingRef.current = true;
     try {
       if (counterBidId) {
+        // Rider is responding to a customer counter-offer (counterBidId is the customer's pending bid).
+        // Send a counter at the exact same amount — customer sees it as accepted.
         const { error } = await (supabase as any).rpc('send_rider_counter_offer', {
           p_bid_id: counterBidId,
           p_rider_id: riderId,
@@ -184,8 +208,8 @@ export default function CounterOfferScreen() {
         pathname: '/(rider)/waiting-for-customer' as any,
         params: { orderId, bidAmount: String(exactAmount) },
       });
-    } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message ?? 'Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -228,8 +252,8 @@ export default function CounterOfferScreen() {
         pathname: '/(rider)/waiting-for-customer' as any,
         params: { orderId, bidAmount: String(amount) },
       });
-    } catch (err: any) {
-      Alert.alert('Could not place bid', err.message ?? 'Please try again.');
+    } catch (error: any) {
+      Alert.alert('Could not place bid', error.message ?? 'Please try again.');
     } finally {
       setSubmitting(false);
     }

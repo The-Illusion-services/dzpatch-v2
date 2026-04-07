@@ -35,6 +35,7 @@ type NegotiationBannerState = {
   latestBidId: string | null;
   latestBidAmount: number | null;
   latestBidRiderName: string | null;
+  latestBidRiderId: string | null;
   parentBidAmount: number | null;
 };
 
@@ -77,6 +78,7 @@ async function fetchActiveNegotiation(profileId: string): Promise<NegotiationBan
         latestBidId: null,
         latestBidAmount: null,
         latestBidRiderName: null,
+        latestBidRiderId: null,
         parentBidAmount: null,
       };
     }
@@ -126,6 +128,7 @@ async function fetchActiveNegotiation(profileId: string): Promise<NegotiationBan
           latestBidId: latestBid.id,
           latestBidAmount: latestBid.amount,
           latestBidRiderName: latestBid.riders?.profiles?.full_name ?? null,
+          latestBidRiderId: latestBid.rider_id ?? null,
           parentBidAmount: (parentBid as any)?.amount ?? null,
         };
       }
@@ -139,6 +142,7 @@ async function fetchActiveNegotiation(profileId: string): Promise<NegotiationBan
         latestBidId: latestBid.id,
         latestBidAmount: latestBid.amount,
         latestBidRiderName: latestBid.riders?.profiles?.full_name ?? null,
+        latestBidRiderId: latestBid.rider_id ?? null,
         parentBidAmount: null,
       };
     }
@@ -155,6 +159,7 @@ async function fetchActiveNegotiation(profileId: string): Promise<NegotiationBan
         latestBidId: null,
         latestBidAmount: counteredBid.amount,
         latestBidRiderName: counteredBid.riders?.profiles?.full_name ?? null,
+        latestBidRiderId: counteredBid.rider_id ?? null,
         parentBidAmount: null,
       };
     }
@@ -297,6 +302,7 @@ function NegotiationBanner({
   latestBidId,
   latestBidAmount,
   latestBidRiderName,
+  latestBidRiderId,
   parentBidAmount,
 }: NegotiationBannerState) {
   const insets = useSafeAreaInsets();
@@ -314,6 +320,7 @@ function NegotiationBanner({
         params: {
           orderId,
           bidId: latestBidId,
+          riderId: latestBidRiderId ?? '',
           riderName: latestBidRiderName ?? 'Rider',
           bidAmount: String(latestBidAmount),
           negotiationRound: String(negotiationRound),
@@ -328,6 +335,7 @@ function NegotiationBanner({
         pathname: '/(customer)/waiting-response',
         params: {
           orderId,
+          riderId: latestBidRiderId ?? '',
           riderName: latestBidRiderName ?? 'Rider',
           counterAmount: String(latestBidAmount),
           originalBid: String(parentBidAmount ?? latestBidAmount),

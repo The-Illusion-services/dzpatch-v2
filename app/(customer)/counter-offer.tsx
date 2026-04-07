@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,9 +20,10 @@ export default function CounterOfferScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { orderId, bidId, riderName, bidAmount, negotiationRound } = useLocalSearchParams<{
+  const { orderId, bidId, riderId, riderName, bidAmount, negotiationRound } = useLocalSearchParams<{
     orderId: string;
     bidId: string;
+    riderId?: string;
     riderName: string;
     bidAmount: string;
     negotiationRound?: string;
@@ -31,25 +32,40 @@ export default function CounterOfferScreen() {
 
   const originalAmount = Number(bidAmount);
   const minimumAllowed = Math.round(originalAmount * 0.8); // 20% below rider bid
-  const currentRound = Number(negotiationRound ?? 1);
+  const currentRound = Math.max(1, Number(negotiationRound ?? 1) || 1);
   const nextRound = currentRound + 1;
   const isFinalRound = nextRound >= 3;
 
   const [counterAmount, setCounterAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [adjustingQuickAmount, setAdjustingQuickAmount] = useState(false);
   const [error, setError] = useState('');
+  const lastQuickAdjustAt = useRef(0);
 
   const parsedCounter = Number(counterAmount.replace(/[^0-9]/g, ''));
   const quickCounterDeltas = [100, 200, 500];
 
   const handleQuickAdjust = (delta: number) => {
+    const now = Date.now();
+    if (submitting || adjustingQuickAmount || now - lastQuickAdjustAt.current < 180) {
+      return;
+    }
+
+    lastQuickAdjustAt.current = now;
+    setAdjustingQuickAmount(true);
     const baseAmount = parsedCounter > 0 ? parsedCounter : originalAmount;
     const nextAmount = adjustCurrencyAmount(baseAmount, delta, minimumAllowed);
     setCounterAmount(String(nextAmount));
     setError('');
+    setTimeout(() => setAdjustingQuickAmount(false), 180);
   };
 
   const handleAccept = async () => {
+    if (!orderId || !bidId || !profile?.id) {
+      setError('This bid is missing required details. Please reopen the offers list and try again.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     try {
@@ -58,7 +74,15 @@ export default function CounterOfferScreen() {
         p_customer_id: profile?.id,
       });
       if (rpcErr) throw rpcErr;
-      router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+      router.replace({
+        pathname: '/(customer)/active-order-tracking',
+        params: {
+          orderId,
+          bidId,
+          riderName,
+          acceptedBidAmount: bidAmount,
+        },
+      } as any);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to accept bid');
     } finally {
@@ -68,6 +92,10 @@ export default function CounterOfferScreen() {
 
   const handleSubmit = async () => {
     setError('');
+    if (!orderId || !bidId || !profile?.id) {
+      setError('This offer is missing required details. Please go back and reopen the negotiation.');
+      return;
+    }
     if (!counterAmount || parsedCounter <= 0) {
       setError('Enter a valid amount');
       return;
@@ -95,6 +123,7 @@ export default function CounterOfferScreen() {
         pathname: '/(customer)/waiting-response',
         params: {
           orderId,
+          riderId: riderId ?? '',
           riderName,
           counterAmount: parsedCounter.toString(),
           originalBid: bidAmount,
@@ -179,6 +208,7 @@ export default function CounterOfferScreen() {
               key={delta}
               style={styles.quickActionChip}
               onPress={() => handleQuickAdjust(-delta)}
+              disabled={submitting || adjustingQuickAmount}
             >
               <Text style={styles.quickActionText}>-N{delta}</Text>
             </Pressable>
@@ -186,9 +216,11 @@ export default function CounterOfferScreen() {
           <Pressable
             style={[styles.quickActionChip, styles.quickActionChipPrimary]}
             onPress={() => {
+              if (submitting || adjustingQuickAmount) return;
               setCounterAmount(String(minimumAllowed));
               setError('');
             }}
+            disabled={submitting || adjustingQuickAmount}
           >
             <Text style={[styles.quickActionText, styles.quickActionTextPrimary]}>Best Min</Text>
           </Pressable>

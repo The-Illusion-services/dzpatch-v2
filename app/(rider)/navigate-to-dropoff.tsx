@@ -8,11 +8,14 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { parsePostgisPoint } from '@/lib/location';
+import { getGoogleMapsApiKey } from '@/lib/google-maps';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OrderInfo {
   dropoff_address: string;
+  dropoff_location: unknown;
   distance_km: number | null;
   customer_id: string;
 }
@@ -29,7 +32,7 @@ const CALABAR_FALLBACK: LatLng = { latitude: 5.9631, longitude: 8.3271 };
 
 async function geocodeAddress(address: string): Promise<LatLng | null> {
   try {
-    const key = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY;
+    const key = getGoogleMapsApiKey();
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`;
     const res = await fetch(url);
     const json = await res.json();
@@ -65,7 +68,6 @@ export default function NavigateToDropoffScreen() {
       'Your location is shared with the customer while you navigate. Keep this app in the foreground for accurate tracking.',
       [{ text: 'Got it', style: 'default' }],
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Fetch order + customer ─────────────────────────────────────────────────
@@ -74,10 +76,14 @@ export default function NavigateToDropoffScreen() {
     if (!orderId) return;
     supabase
       .from('orders')
-      .select('dropoff_address, distance_km, customer_id')
+      .select('dropoff_address, dropoff_location, distance_km, customer_id')
       .eq('id', orderId)
-      .single()
-      .then(async ({ data }) => {
+      .maybeSingle()
+      .then(async ({ data, error }) => {
+        if (error) {
+          console.warn('navigate-to-dropoff load order failed:', error.message);
+          return;
+        }
         if (!data) return;
         const o = data as OrderInfo;
         setOrder(o);
@@ -85,12 +91,18 @@ export default function NavigateToDropoffScreen() {
         const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
         setEta(mins);
         // Geocode dropoff address → move marker + animate map
-        geocodeAddress(o.dropoff_address).then((coord) => {
-          if (coord) {
-            setDropoffCoord(coord);
-            mapRef.current?.animateToRegion({ ...coord, ...DELTA_SM }, 600);
-          }
-        });
+        const storedCoord = parsePostgisPoint(o.dropoff_location);
+        if (storedCoord) {
+          setDropoffCoord(storedCoord);
+          mapRef.current?.animateToRegion({ ...storedCoord, ...DELTA_SM }, 600);
+        } else {
+          geocodeAddress(o.dropoff_address).then((coord) => {
+            if (coord) {
+              setDropoffCoord(coord);
+              mapRef.current?.animateToRegion({ ...coord, ...DELTA_SM }, 600);
+            }
+          });
+        }
         const { data: cust } = await supabase
           .from('profiles')
           .select('full_name, phone')
@@ -105,14 +117,18 @@ export default function NavigateToDropoffScreen() {
   useEffect(() => {
     if (!riderId || !orderId) return;
     locationTimer.current = setInterval(async () => {
-      const { default: ExpoLocation } = await import('expo-location');
-      const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
-      await (supabase as any).rpc('update_rider_location', {
-        p_rider_id: riderId,
-        p_lat: loc.coords.latitude,
-        p_lng: loc.coords.longitude,
-        p_order_id: orderId,
-      });
+      try {
+        const { default: ExpoLocation } = await import('expo-location');
+        const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        await (supabase as any).rpc('update_rider_location', {
+          p_rider_id: riderId,
+          p_lat: loc.coords.latitude,
+          p_lng: loc.coords.longitude,
+          p_order_id: orderId,
+        });
+      } catch {
+        // GPS temporarily unavailable — skip this interval tick
+      }
     }, 10000);
     return () => { if (locationTimer.current) clearInterval(locationTimer.current); };
   }, [riderId, orderId]);
@@ -139,6 +155,7 @@ export default function NavigateToDropoffScreen() {
       const { error } = await (supabase as any).rpc('update_order_status', {
         p_order_id: orderId,
         p_new_status: 'arrived_dropoff',
+        p_changed_by: riderId,
       });
       if (error) throw error;
       router.replace({
