@@ -376,130 +376,138 @@ $$;
 
 
 -- -----------------------------------------------------------------------------
--- F11: create_order — suggested_price column was being overwritten with
--- dynamic_price. Fix: insert p_suggested_price as provided by the customer.
+-- F11: create_order — suggested_price column was overwritten with dynamic_price.
+-- Minimal fix: copy exact function body from 20260406010000, changing only:
+--   INSERT VALUES: v_dynamic_price, v_dynamic_price → v_dynamic_price, COALESCE(p_suggested_price, v_dynamic_price)
+--   RETURN:        'suggested_price', v_dynamic_price → 'suggested_price', COALESCE(p_suggested_price, v_dynamic_price)
+-- All pricing logic, promo code handling, and expiry unchanged.
 -- -----------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.create_order(
-    p_customer_id          UUID,
-    p_pickup_address       TEXT,
-    p_pickup_lat           DOUBLE PRECISION,
-    p_pickup_lng           DOUBLE PRECISION,
-    p_pickup_contact_name  TEXT DEFAULT NULL,
-    p_pickup_contact_phone TEXT DEFAULT NULL,
-    p_dropoff_address      TEXT DEFAULT NULL,
-    p_dropoff_lat          DOUBLE PRECISION DEFAULT NULL,
-    p_dropoff_lng          DOUBLE PRECISION DEFAULT NULL,
-    p_dropoff_contact_name  TEXT DEFAULT NULL,
-    p_dropoff_contact_phone TEXT DEFAULT NULL,
-    p_category_id          UUID DEFAULT NULL,
-    p_package_size         package_size DEFAULT 'small',
-    p_package_description  TEXT DEFAULT NULL,
-    p_package_notes        TEXT DEFAULT NULL,
-    p_suggested_price      NUMERIC DEFAULT NULL,
-    p_promo_code           TEXT DEFAULT NULL,
-    p_service_area_id      UUID DEFAULT NULL,
-    p_payment_method       TEXT DEFAULT 'wallet'
+    p_customer_id           uuid,
+    p_pickup_address        text,
+    p_pickup_lat            double precision,
+    p_pickup_lng            double precision,
+    p_pickup_contact_name   text DEFAULT NULL::text,
+    p_pickup_contact_phone  text DEFAULT NULL::text,
+    p_dropoff_address       text DEFAULT NULL::text,
+    p_dropoff_lat           double precision DEFAULT NULL::double precision,
+    p_dropoff_lng           double precision DEFAULT NULL::double precision,
+    p_dropoff_contact_name  text DEFAULT NULL::text,
+    p_dropoff_contact_phone text DEFAULT NULL::text,
+    p_category_id           uuid DEFAULT NULL::uuid,
+    p_package_size          text DEFAULT 'small'::text,
+    p_package_description   text DEFAULT NULL::text,
+    p_package_notes         text DEFAULT NULL::text,
+    p_suggested_price       numeric DEFAULT NULL::numeric,
+    p_promo_code            text DEFAULT NULL::text,
+    p_service_area_id       uuid DEFAULT NULL::uuid,
+    p_payment_method        text DEFAULT 'wallet'::text
 )
-RETURNS JSONB
+RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
 DECLARE
-    v_order_id                   UUID;
-    v_pickup_point               GEOGRAPHY;
-    v_dropoff_point              GEOGRAPHY;
-    v_distance_km                NUMERIC;
-    v_dynamic_price              NUMERIC;
-    v_vat_amount                 NUMERIC;
-    v_final_price                NUMERIC;
-    v_delivery_code              TEXT;
-    v_expires_at                 TIMESTAMPTZ;
-    v_promo_id                   UUID;
-    v_discount_amount            NUMERIC := 0;
-    v_platform_commission_rate   NUMERIC := 15.00;
+    v_order_id UUID;
+    v_pickup_point GEOGRAPHY;
+    v_dropoff_point GEOGRAPHY;
+    v_distance_km NUMERIC;
+    v_dynamic_price NUMERIC;
+    v_vat_amount NUMERIC;
+    v_final_price NUMERIC;
+    v_delivery_code TEXT;
+    v_wallet_id UUID;
+    v_reference TEXT;
+    v_promo_id UUID;
+    v_discount_amount NUMERIC := 0;
+    v_pricing pricing_rules%ROWTYPE;
+    v_platform_commission_rate NUMERIC := 15.00;
     v_platform_commission_amount NUMERIC;
-    v_wallet_id                  UUID;
-    v_reference                  TEXT;
-    v_surge_multiplier           NUMERIC := 1.0;
-    v_base_price                 NUMERIC;
-    v_category_multiplier        NUMERIC := 1.0;
-    v_size_multiplier            NUMERIC := 1.0;
+    v_expires_at TIMESTAMPTZ;
+    v_size_multiplier NUMERIC := 1.0;
+    v_effective_surge NUMERIC := 1.0;
 BEGIN
-    -- Validate caller owns the customer record
-    IF auth.uid() != p_customer_id THEN
-        RAISE EXCEPTION 'Unauthorized: caller does not own this customer account';
+    IF auth.uid() IS NULL OR auth.uid() <> p_customer_id THEN
+        RAISE EXCEPTION 'Not authorized to create this order';
     END IF;
 
-    -- Build geography points
-    v_pickup_point  := ST_SetSRID(ST_MakePoint(p_pickup_lng, p_pickup_lat), 4326)::GEOGRAPHY;
+    IF p_dropoff_address IS NULL OR p_dropoff_lat IS NULL OR p_dropoff_lng IS NULL THEN
+        RAISE EXCEPTION 'Dropoff address, latitude, and longitude are required';
+    END IF;
+
+    IF p_package_size = 'medium' THEN
+        v_size_multiplier := 1.5;
+    ELSIF p_package_size = 'large' THEN
+        v_size_multiplier := 2.0;
+    END IF;
+
+    v_pickup_point := ST_SetSRID(ST_MakePoint(p_pickup_lng, p_pickup_lat), 4326)::GEOGRAPHY;
     v_dropoff_point := ST_SetSRID(ST_MakePoint(p_dropoff_lng, p_dropoff_lat), 4326)::GEOGRAPHY;
+    v_distance_km := ROUND((ST_Distance(v_pickup_point, v_dropoff_point) / 1000.0)::NUMERIC, 2);
 
-    -- Distance in km
-    v_distance_km := ROUND(
-        ST_Distance(v_pickup_point, v_dropoff_point) / 1000.0,
-        2
-    );
-
-    -- Size multiplier
-    v_size_multiplier := CASE p_package_size
-        WHEN 'medium' THEN 1.5
-        WHEN 'large'  THEN 2.0
-        ELSE 1.0
-    END;
-
-    -- Category multiplier
-    IF p_category_id IS NOT NULL THEN
-        SELECT COALESCE(price_multiplier, 1.0) INTO v_category_multiplier
-        FROM package_categories WHERE id = p_category_id;
+    IF p_service_area_id IS NOT NULL THEN
+        SELECT * INTO v_pricing
+        FROM pricing_rules
+        WHERE service_area_id = p_service_area_id AND is_active = TRUE
+        LIMIT 1;
     END IF;
 
-    -- Base price: ₦500 minimum + ₦100/km
-    v_base_price    := GREATEST(500, ROUND(500 + (v_distance_km * 100), 0));
-    v_dynamic_price := ROUND(v_base_price * v_size_multiplier * v_category_multiplier * v_surge_multiplier, 0);
+    IF v_pricing.id IS NOT NULL THEN
+        v_effective_surge := GREATEST(1, LEAST(COALESCE(v_pricing.surge_multiplier, 1), 5));
+        v_dynamic_price := ROUND((v_pricing.base_rate + (v_distance_km * v_pricing.per_km_rate)) * v_effective_surge * v_size_multiplier, 2);
+        IF v_dynamic_price < v_pricing.min_price THEN
+            v_dynamic_price := v_pricing.min_price;
+        END IF;
+        IF v_pricing.max_price IS NOT NULL AND v_dynamic_price > v_pricing.max_price THEN
+            v_dynamic_price := v_pricing.max_price;
+        END IF;
+        v_vat_amount := ROUND(v_dynamic_price * (v_pricing.vat_percentage / 100.0), 2);
+    ELSE
+        v_dynamic_price := ROUND((500 + (v_distance_km * 100)) * v_size_multiplier, 2);
+        v_vat_amount := ROUND(v_dynamic_price * 0.075, 2);
+    END IF;
 
-    -- VAT: 7.5%
-    v_vat_amount  := ROUND(v_dynamic_price * 0.075, 2);
-    v_final_price := v_dynamic_price + v_vat_amount;
-
-    -- Promo code
     IF p_promo_code IS NOT NULL THEN
-        SELECT id, discount_value INTO v_promo_id, v_discount_amount
+        SELECT id INTO v_promo_id
         FROM promo_codes
-        WHERE code = p_promo_code
-          AND is_active = TRUE
-          AND (expires_at IS NULL OR expires_at > NOW())
-          AND (max_uses IS NULL OR used_count < max_uses)
-        LIMIT 1;
+        WHERE code = UPPER(TRIM(p_promo_code))
+            AND is_active = TRUE
+            AND starts_at <= NOW()
+            AND (expires_at IS NULL OR expires_at > NOW())
+            AND (max_uses IS NULL OR used_count < max_uses)
+            AND (v_dynamic_price + v_vat_amount) >= min_order_amount;
 
         IF v_promo_id IS NOT NULL THEN
-            v_discount_amount := LEAST(v_discount_amount, v_final_price);
-            v_final_price     := v_final_price - v_discount_amount;
-            -- F15 mitigation: increment used_count immediately (advisory lock approach)
-            UPDATE promo_codes SET used_count = used_count + 1 WHERE id = v_promo_id;
+            SELECT CASE
+                WHEN discount_type = 'percentage' THEN
+                    LEAST(ROUND(v_dynamic_price * (discount_value / 100.0), 2), COALESCE(max_discount_amount, v_dynamic_price))
+                ELSE LEAST(discount_value, v_dynamic_price)
+            END
+            INTO v_discount_amount
+            FROM promo_codes
+            WHERE id = v_promo_id;
+
+            UPDATE promo_codes
+            SET used_count = used_count + 1
+            WHERE id = v_promo_id;
         END IF;
     END IF;
 
-    -- Commission snapshot
-    v_platform_commission_amount := ROUND(
-        (v_final_price - v_vat_amount) * (v_platform_commission_rate / 100.0),
-        2
-    );
+    v_final_price := GREATEST(v_dynamic_price + v_vat_amount - v_discount_amount, 0);
 
-    -- Delivery code: 6-digit
+    v_platform_commission_amount := ROUND(v_final_price * (v_platform_commission_rate / 100.0), 2);
     v_delivery_code := LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0');
+    v_expires_at := NOW() + INTERVAL '2 hours';
 
-    -- Expiry: 15 minutes
-    v_expires_at := NOW() + INTERVAL '15 minutes';
-
-    -- Wallet debit for wallet orders
     IF p_payment_method = 'wallet' THEN
-        SELECT id INTO v_wallet_id FROM wallets
+        SELECT id INTO v_wallet_id
+        FROM wallets
         WHERE owner_type = 'customer' AND owner_id = p_customer_id;
 
         IF v_wallet_id IS NULL THEN
-            RAISE EXCEPTION 'Customer wallet not found';
+            RAISE EXCEPTION 'Customer wallet not found. Please set up your wallet first.';
         END IF;
 
         v_reference := 'ORD-' || gen_random_uuid()::TEXT;
@@ -511,10 +519,7 @@ BEGIN
         pickup_address, pickup_location, pickup_contact_name, pickup_contact_phone,
         dropoff_address, dropoff_location, dropoff_contact_name, dropoff_contact_phone,
         category_id, package_size, package_description, package_notes,
-        distance_km, dynamic_price,
-        -- F11: store customer's suggested_price, not dynamic_price
-        suggested_price,
-        final_price, vat_amount,
+        distance_km, dynamic_price, suggested_price, final_price, vat_amount,
         platform_commission_rate, platform_commission_amount,
         fleet_commission_rate, fleet_commission_amount, rider_net_amount,
         promo_code_id, discount_amount,
@@ -526,8 +531,7 @@ BEGIN
         p_dropoff_address, v_dropoff_point, p_dropoff_contact_name, p_dropoff_contact_phone,
         p_category_id, p_package_size::package_size, p_package_description, p_package_notes,
         v_distance_km, v_dynamic_price,
-        -- F11: use p_suggested_price if provided, otherwise fall back to dynamic_price
-        COALESCE(p_suggested_price, v_dynamic_price),
+        COALESCE(p_suggested_price, v_dynamic_price), -- F11: use customer's suggested price
         v_final_price, v_vat_amount,
         v_platform_commission_rate, v_platform_commission_amount,
         0, 0, v_final_price - v_platform_commission_amount,
@@ -549,16 +553,16 @@ BEGIN
     );
 
     RETURN jsonb_build_object(
-        'order_id',        v_order_id,
-        'distance_km',     v_distance_km,
-        'dynamic_price',   v_dynamic_price,
-        'suggested_price', COALESCE(p_suggested_price, v_dynamic_price),
-        'final_price',     v_final_price,
-        'vat_amount',      v_vat_amount,
+        'order_id', v_order_id,
+        'distance_km', v_distance_km,
+        'dynamic_price', v_dynamic_price,
+        'suggested_price', COALESCE(p_suggested_price, v_dynamic_price), -- F11
+        'final_price', v_final_price,
+        'vat_amount', v_vat_amount,
         'discount_amount', v_discount_amount,
-        'delivery_code',   v_delivery_code,
-        'expires_at',      v_expires_at,
-        'pickup_address',  p_pickup_address,
+        'delivery_code', v_delivery_code,
+        'expires_at', v_expires_at,
+        'pickup_address', p_pickup_address,
         'dropoff_address', p_dropoff_address
     );
 END;
@@ -573,16 +577,13 @@ $$;
 
 -- -----------------------------------------------------------------------------
 -- F12: Commission rate — establish single source of truth
--- Set riders.commission_rate default to match platform rate (15%)
--- Update any existing riders with the old 10% default to 15%
--- The earnings screen hardcode will be fixed in frontend (Sprint 2/5)
+--
+-- riders table has NO commission_rate column in v2 schema.
+-- The old complete_delivery used v_rider.commission_rate (always NULL in v2),
+-- which fell back to COALESCE(..., 0.10) — silently using the wrong rate.
+--
+-- Fix: The rewritten complete_delivery above uses orders.platform_commission_amount
+-- (snapshotted at 15% on order creation) — no rider-level column needed.
+-- The earnings screen hardcode is fixed in frontend (earnings.tsx already patched).
+-- No schema change required here.
 -- -----------------------------------------------------------------------------
-
--- Update riders who still have the old 0.10 default (as a decimal)
-UPDATE riders
-SET commission_rate = 0.15
-WHERE commission_rate = 0.10;
-
--- Ensure future rider inserts default to 0.15
-ALTER TABLE riders
-    ALTER COLUMN commission_rate SET DEFAULT 0.15;
