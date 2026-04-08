@@ -23,7 +23,7 @@ describeSupabase('Supabase Realtime - Rider Location and Channels', () => {
 
   it('rider can update own location while another rider cannot overwrite someone else location', async () => {
     const update = await clients.rider
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .upsert({
         rider_id: seeded.riderId,
         latitude: 6.6001,
@@ -36,7 +36,7 @@ describeSupabase('Supabase Realtime - Rider Location and Channels', () => {
     expect(update.error).toBeNull();
 
     const ownRow = await clients.rider
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .select('*')
       .eq('rider_id', seeded.riderId)
       .maybeSingle();
@@ -45,7 +45,7 @@ describeSupabase('Supabase Realtime - Rider Location and Channels', () => {
     expect(ownRow.data?.rider_id).toBe(seeded.riderId);
 
     const overwrite = await clients.riderTwo
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .update({ latitude: 6.9 } as any)
       .eq('rider_id', seeded.riderId)
       .select('*')
@@ -66,7 +66,7 @@ describeSupabase('Supabase Realtime - Rider Location and Channels', () => {
     } as any);
 
     await clients.rider
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .upsert({
         rider_id: seeded.riderId,
         latitude: 6.611,
@@ -76,13 +76,13 @@ describeSupabase('Supabase Realtime - Rider Location and Channels', () => {
       } as any);
 
     const customerRead = await clients.customer
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .select('*')
       .eq('rider_id', seeded.riderId)
       .maybeSingle();
 
     const unrelatedRead = await clients.customerTwo
-      .from('rider_locations' as any)
+      .from('rider_locations')
       .select('*')
       .eq('rider_id', seeded.riderId)
       .maybeSingle();

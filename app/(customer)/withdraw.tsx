@@ -1,4 +1,4 @@
-﻿import { router } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,14 +19,27 @@ import { Spacing, Typography } from '@/constants/theme';
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const MIN_WITHDRAWAL = 1000;
-const FEE = 50;
+const MIN_WITHDRAWAL = 500;
+const FEE = 100;
 
 const NIGERIAN_BANKS = [
-  'Access Bank', 'First Bank', 'GTBank', 'Zenith Bank', 'UBA',
-  'Stanbic IBTC', 'Fidelity Bank', 'FCMB', 'Polaris Bank',
-  'Union Bank', 'Wema Bank', 'Kuda MFB', 'OPay', 'PalmPay',
-  'Moniepoint', 'Sterling Bank', 'Ecobank',
+  { name: 'Access Bank', code: '044' },
+  { name: 'First Bank', code: '011' },
+  { name: 'GTBank', code: '058' },
+  { name: 'Zenith Bank', code: '057' },
+  { name: 'UBA', code: '033' },
+  { name: 'Stanbic IBTC', code: '221' },
+  { name: 'Fidelity Bank', code: '070' },
+  { name: 'FCMB', code: '214' },
+  { name: 'Polaris Bank', code: '076' },
+  { name: 'Union Bank', code: '032' },
+  { name: 'Wema Bank', code: '035' },
+  { name: 'Kuda MFB', code: '50211' },
+  { name: 'OPay', code: '100004' },
+  { name: 'PalmPay', code: '100033' },
+  { name: 'Moniepoint', code: '50515' },
+  { name: 'Sterling Bank', code: '232' },
+  { name: 'Ecobank', code: '050' },
 ];
 
 // â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -38,6 +51,7 @@ export default function WithdrawScreen() {
   const [walletId, setWalletId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [bankName, setBankName] = useState('');
+  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [bankPickerOpen, setBankPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,20 +61,31 @@ export default function WithdrawScreen() {
 
   useEffect(() => {
     if (!profile?.id) return;
-    supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('owner_id', profile.id)
-      .eq('owner_type', 'customer')
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const w = data as { id: string; balance: number };
-          setBalance(w.balance);
-          setWalletId(w.id);
-        }
-        setFetching(false);
-      });
+    let isActive = true;
+
+    const loadWallet = async () => {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('owner_id', profile.id)
+        .eq('owner_type', 'customer')
+        .single();
+      if (!isActive) return;
+      if (error) {
+        console.warn('customer-withdraw load wallet failed:', error.message);
+      } else if (data) {
+        const wallet = data as { id: string; balance: number };
+        setBalance(wallet.balance);
+        setWalletId(wallet.id);
+      }
+      setFetching(false);
+    };
+
+    void loadWallet();
+
+    return () => {
+      isActive = false;
+    };
   }, [profile?.id]);
 
   const parsedAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
@@ -68,7 +93,9 @@ export default function WithdrawScreen() {
   const isValid =
     parsedAmount >= MIN_WITHDRAWAL &&
     bankName.length > 0 &&
-    accountNumber.length === 10 &&
+    bankCode.length > 0 &&
+    accountNumber.length >= 10 &&
+    accountNumber.length <= 14 &&
     balance !== null &&
     total <= balance;
 
@@ -88,7 +115,7 @@ export default function WithdrawScreen() {
       p_wallet_id: walletId,
       p_amount: parsedAmount,
       p_bank_name: bankName,
-      p_bank_code: '',
+      p_bank_code: bankCode,
       p_account_number: accountNumber,
       p_account_name: profile.full_name ?? '',
     } as any);
@@ -122,15 +149,16 @@ export default function WithdrawScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {NIGERIAN_BANKS.map((b) => (
             <Pressable
-              key={b}
-              style={[styles.bankRow, bankName === b && styles.bankRowActive]}
+              key={b.code}
+              style={[styles.bankRow, bankCode === b.code && styles.bankRowActive]}
               onPress={() => {
-                setBankName(b);
+                setBankName(b.name);
+                setBankCode(b.code);
                 setBankPickerOpen(false);
               }}
             >
-              <Text style={[styles.bankRowText, bankName === b && styles.bankRowTextActive]}>{b}</Text>
-              {bankName === b && <Text style={styles.bankRowCheck}>âœ“</Text>}
+              <Text style={[styles.bankRowText, bankCode === b.code && styles.bankRowTextActive]}>{b.name}</Text>
+              {bankCode === b.code && <Text style={styles.bankRowCheck}>✓</Text>}
             </Pressable>
           ))}
         </ScrollView>
@@ -217,10 +245,10 @@ export default function WithdrawScreen() {
             <View style={styles.bankField}>
               <TextInput
                 style={styles.bankFieldInput}
-                placeholder="Account Number (10 digits)"
+                placeholder="Account Number (10+ digits)"
                 placeholderTextColor="#74777e"
                 keyboardType="numeric"
-                maxLength={10}
+                maxLength={14}
                 value={accountNumber}
                 onChangeText={setAccountNumber}
               />
@@ -237,7 +265,7 @@ export default function WithdrawScreen() {
               <View>
                 <Text style={styles.accountNameLabel}>ACCOUNT NAME</Text>
                 <Text style={styles.accountNameValue}>
-                  {accountNumber.length === 10 ? (profile?.full_name ?? 'â€”') : 'â€”'}
+                  {accountNumber.length >= 10 ? (profile?.full_name ?? '—') : '—'}
                 </Text>
               </View>
             </View>

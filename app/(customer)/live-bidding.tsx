@@ -41,7 +41,10 @@ type Bid = {
 
 function normalizeBidRow(row: any): Bid | null {
   const negotiationRound = Number(row?.negotiation_round ?? 1) || 1;
-  if (negotiationRound % 2 === 0) {
+  // Even rounds are customer counter-offers — skip them unless the bid is
+  // currently in 'countered' status (meaning the rider has already replied,
+  // and we need the card to survive a reload while the customer waits).
+  if (negotiationRound % 2 === 0 && row?.status !== 'countered') {
     return null;
   }
 
@@ -203,7 +206,7 @@ export default function LiveBiddingScreen() {
           )
         `)
         .eq('order_id', orderId)
-        .in('status', ['pending', 'expired'])
+        .in('status', ['pending', 'countered', 'expired'])
         .order('amount', { ascending: true }),
     ]);
 

@@ -116,12 +116,23 @@ BEGIN
                 'COMM-' || p_order_id::TEXT, 'Platform commission', p_order_id
             );
         END IF;
+    ELSIF v_order.payment_method = 'cash' THEN
+        INSERT INTO outstanding_balances (customer_id, order_id, rider_id, amount)
+        VALUES (v_order.customer_id, p_order_id, p_rider_id, v_commission)
+        ON CONFLICT (order_id) DO NOTHING;
+
+        IF v_commission > 0 THEN
+            PERFORM credit_wallet(
+                v_platform_wallet, v_commission, 'commission_credit',
+                'COMM-CASH-' || p_order_id::TEXT, 'Platform commission (cash order)', p_order_id
+            );
+        END IF;
     END IF;
 
     INSERT INTO notifications (user_id, type, title, body, data)
     VALUES (
         v_rider.profile_id,
-        'delivery_completed',
+        'order_update',
         'Delivery Completed',
         'Great job! Your earnings have been added to your wallet.',
         jsonb_build_object(

@@ -45,25 +45,39 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [riderInfo, setRiderInfo] = useState<RiderInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // ── Fetch rider info for header ────────────────────────────────────────────
 
   const fetchRiderInfo = useCallback(async () => {
-    const { data: orderRaw } = await supabase
+    const { data: orderRaw, error: orderError } = await supabase
       .from('orders')
       .select('rider_id, status')
       .eq('id', orderId)
-      .single();
+      .maybeSingle();
+    if (orderError) {
+      console.warn('chat load order failed:', orderError.message);
+      setRiderInfo(null);
+      return;
+    }
     const order = orderRaw as { rider_id: string | null; status: string } | null;
 
+    if (!order) {
+      setRiderInfo(null);
+      return;
+    }
+
     if (order?.rider_id) {
-      const { data: rider } = await supabase
+      const { data: rider, error: riderError } = await supabase
         .from('riders')
         .select('vehicle_plate, profiles(full_name, phone)')
-        .eq('profile_id', order.rider_id)
-        .single();
+        .eq('id', order.rider_id)
+        .maybeSingle();
+      if (riderError) {
+        console.warn('chat load rider failed:', riderError.message);
+      }
 
       if (rider && (rider as any).profiles) {
         setRiderInfo({
@@ -71,18 +85,29 @@ export default function ChatScreen() {
           order_status: order.status,
           vehicle_plate: (rider as any).vehicle_plate,
         });
+        return;
       }
     }
+
+    setRiderInfo({
+      full_name: 'Rider unavailable',
+      phone: '',
+      order_status: order.status,
+    });
   }, [orderId]);
 
   // ── Fetch message history ──────────────────────────────────────────────────
 
   const fetchMessages = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('chat_messages')
       .select('id, sender_id, message, created_at, is_read')
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
+    if (error) {
+      console.warn('chat load messages failed:', error.message);
+      return;
+    }
 
     if (data) setMessages(data as ChatMessage[]);
   }, [orderId]);
@@ -91,8 +116,7 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (!orderId) return;
-    fetchRiderInfo();
-    fetchMessages();
+    Promise.all([fetchRiderInfo(), fetchMessages()]).finally(() => setLoading(false));
 
     const channel = supabase
       .channel(`chat:${orderId}`)
@@ -116,7 +140,11 @@ export default function ChatScreen() {
     return () => { supabase.removeChannel(channel); };
   }, [orderId, fetchRiderInfo, fetchMessages]);
 
-  useAppStateChannels([channelRef.current]);
+  useAppStateChannels([channelRef.current], {
+    onForeground: async () => {
+      await Promise.all([fetchRiderInfo(), fetchMessages()]);
+    },
+  });
 
   // ── Send message ───────────────────────────────────────────────────────────
 
@@ -126,11 +154,15 @@ export default function ChatScreen() {
     setSending(true);
     setInput('');
 
-    await supabase.from('chat_messages').insert({
+    const { error } = await supabase.from('chat_messages').insert({
       order_id: orderId,
       sender_id: profile.id,
       message: text,
     } as any);
+    if (error) {
+      setInput(text);
+      console.warn('chat send message failed:', error.message);
+    }
 
     setSending(false);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -233,8 +265,8 @@ export default function ChatScreen() {
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💬</Text>
-            <Text style={styles.emptyText}>No messages yet. Say hello!</Text>
+            <Text style={styles.emptyIcon}>{loading ? '…' : '💬'}</Text>
+            <Text style={styles.emptyText}>{loading ? 'Loading messages...' : 'No messages yet. Say hello!'}</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

@@ -83,39 +83,46 @@ export default function CreateOrderScreen() {
 
   // --- Get current location -------------------------------------------------
 
+  const applyCoords = async (coords: { lat: number; lng: number }) => {
+    setUserLocation(coords);
+    userLocationRef.current = coords;
+    pickupCoords.current = coords;
+    // Reverse geocode
+    try {
+      const resp = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${GOOGLE_API_KEY}&result_type=street_address|route|sublocality`
+      );
+      const json = await resp.json();
+      const label = json.results?.[0]?.formatted_address?.replace(/,\s*Nigeria$/, '').trim();
+      if (label) {
+        setCurrentLocationLabel(label);
+        setPickupAddress((prev) => (prev === 'My current location' || prev === '') ? label : prev);
+      }
+    } catch {
+      // Network unavailable — keep default label
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
 
+      // Use last-known immediately (fast — no GPS wait)
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) {
+        await applyCoords({ lat: last.coords.latitude, lng: last.coords.longitude });
+      }
+
+      // Refine in background with a fresh GPS fix
       try {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-        setUserLocation(coords);
-        userLocationRef.current = coords;
-        pickupCoords.current = coords;
-
-        // Reverse geocode using Google Geocoding API (more reliable than Expo's on Android)
-        try {
-          const resp = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${GOOGLE_API_KEY}&result_type=street_address|route|sublocality`
-          );
-          const json = await resp.json();
-          const result = json.results?.[0];
-          if (result?.formatted_address) {
-            // Strip the country suffix (e.g. ", Nigeria") for brevity
-            const label = result.formatted_address.replace(/,\s*Nigeria$/, '').trim();
-            setCurrentLocationLabel(label);
-            // If the user already tapped "Current Location", update their pickup address too
-            setPickupAddress((prev) => (prev === 'My current location' || prev === '') ? label : prev);
-          }
-        } catch {
-          // Network unavailable — keep default label
-        }
+        await applyCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       } catch {
-        // GPS unavailable (emulator without mock location) — proceed without location
+        // GPS unavailable — keep last-known or no location
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- Load package categories (cached in store, 30-min TTL) ---------------

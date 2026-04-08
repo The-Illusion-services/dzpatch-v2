@@ -1,5 +1,6 @@
 import { adjustCurrencyAmount, buildRiderEarningsBreakdown, buildWalletGuard } from '@/lib/sprint4-ux';
 import { buildPodStoragePath, verifyDeliveryCodeAttempt } from '@/lib/delivery-flow';
+import { BID_RESPONSE_WINDOW_SECONDS } from '@/constants/timing';
 
 export type DocumentRow = {
   id: string;
@@ -457,6 +458,54 @@ export function getCancellationReasonLabel(reason: string | null) {
   return reason ?? 'No cancellation reason provided';
 }
 
+export function shouldWarnCancelPenalty(status: string) {
+  return ['in_transit', 'arrived_dropoff'].includes(status);
+}
+
+export function buildRaiseDisputePayload(orderId: string, subject: string, screen: string) {
+  return {
+    p_order_id: orderId,
+    p_subject: subject,
+    p_description: `Issue reported from ${screen} screen. Order: ${orderId}`,
+  };
+}
+
+export function buildPushTokenUpsert(profileId: string, token: string, platform: 'ios' | 'android' | 'web') {
+  return {
+    profile_id: profileId,
+    token,
+    platform,
+  };
+}
+
+export function resolveSplashRoute(params: {
+  session: boolean;
+  role: string | null;
+  fullName?: string | null;
+  kycStatus?: string | null;
+}) {
+  if (!params.session) {
+    return '/(auth)/onboarding';
+  }
+
+  if (!params.role) {
+    return null;
+  }
+
+  if (params.role === 'rider') {
+    const kyc = params.kycStatus ?? 'not_submitted';
+    if (kyc === 'approved') return '/(rider)';
+    if (kyc === 'pending') return '/(rider-auth)/pending-approval';
+    return '/(rider-auth)/signup-personal';
+  }
+
+  if (params.role === 'customer') {
+    return params.fullName ? '/(customer)' : '/(auth)/onboarding';
+  }
+
+  return '/(auth)/onboarding';
+}
+
 export function buildDeliverySuccessSummary(params: {
   finalPrice?: number | null;
   deliveryTime?: string | null;
@@ -475,7 +524,7 @@ export function getWaitingForCustomerOutcome(params: {
   cancelled: boolean;
   timeoutSeconds?: number;
 }) {
-  const timeoutSeconds = params.timeoutSeconds ?? 300;
+  const timeoutSeconds = params.timeoutSeconds ?? BID_RESPONSE_WINDOW_SECONDS;
 
   if (params.accepted) {
     return 'navigate_to_pickup';

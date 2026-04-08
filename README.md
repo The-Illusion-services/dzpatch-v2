@@ -58,7 +58,7 @@ Copy `.env.example` to `.env` and fill in your keys:
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY=
-GOOGLE_MAPS_API_KEY=
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
 Start the dev server:
@@ -66,6 +66,8 @@ Start the dev server:
 ```bash
 npx expo start
 ```
+
+Restrict your Google Maps key in Google Cloud to the app's Android package/SHA and iOS bundle ID before shipping. The same `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` is used for Maps, Places autocomplete, and geocoding at runtime.
 
 ---
 

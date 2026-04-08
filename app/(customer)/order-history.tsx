@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -23,11 +23,11 @@ type Order = {
   id: string;
   status: string;
   final_price: number | null;
-  base_price: number;
+  dynamic_price: number;
   pickup_address: string;
   dropoff_address: string;
   created_at: string;
-  package_category: string | null;
+  package_description: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ export default function OrderHistoryScreen() {
     if (!profile?.id) return;
     const { data } = await supabase
       .from('orders')
-      .select('id, status, final_price, base_price, pickup_address, dropoff_address, created_at, package_category')
+      .select('id, status, final_price, dynamic_price, pickup_address, dropoff_address, created_at, package_description')
       .eq('customer_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -107,6 +107,12 @@ export default function OrderHistoryScreen() {
   useEffect(() => {
     fetchOrders().finally(() => setLoading(false));
   }, [profile?.id, fetchOrders]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -191,7 +197,7 @@ export default function OrderHistoryScreen() {
           const color = statusColor(item.status);
           const bg = statusBg(item.status);
           const isActive = ACTIVE_STATUSES.includes(item.status);
-          const price = item.final_price ?? item.base_price;
+          const price = item.final_price ?? item.dynamic_price;
 
           return (
             <Pressable
@@ -233,8 +239,8 @@ export default function OrderHistoryScreen() {
                 </View>
                 <View style={styles.priceCol}>
                   <Text style={styles.priceAmount}>₦{Number(price).toLocaleString()}</Text>
-                  {item.package_category && (
-                    <Text style={styles.packageType}>{item.package_category}</Text>
+                  {item.package_description && (
+                    <Text style={styles.packageType}>{item.package_description}</Text>
                   )}
                 </View>
               </View>

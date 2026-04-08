@@ -209,10 +209,10 @@ describe('Phase 1 - Core Money and Delivery', () => {
 
   it('wallet funding UI waits for backend confirmation before success', async () => {
     const maybeSingle = jest
-      .fn()
+      .fn<() => Promise<{ data: { id: string } | null; error: null }>>()
       .mockResolvedValueOnce({ data: null, error: null })
       .mockResolvedValueOnce({ data: { id: 'tx-1' }, error: null });
-    const single = jest.fn().mockResolvedValue({ data: { balance: 7300 }, error: null });
+    const single = jest.fn<() => Promise<{ data: { balance: number }; error: null }>>().mockResolvedValue({ data: { balance: 7300 }, error: null });
 
     const client = {
       from: jest.fn((table: string) => {
@@ -248,8 +248,8 @@ describe('Phase 1 - Core Money and Delivery', () => {
   });
 
   it('funding timeout shows retryable state', async () => {
-    const maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
-    const single = jest.fn().mockResolvedValue({ data: { balance: 5000 }, error: null });
+    const maybeSingle = jest.fn<() => Promise<{ data: { id: string } | null; error: null }>>().mockResolvedValue({ data: null, error: null });
+    const single = jest.fn<() => Promise<{ data: { balance: number }; error: null }>>().mockResolvedValue({ data: { balance: 5000 }, error: null });
 
     const client = {
       from: jest.fn((table: string) => {

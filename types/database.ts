@@ -81,6 +81,7 @@ export interface Database {
           push_token?: string | null;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
       };
       riders: {
         Row: {
@@ -130,6 +131,7 @@ export interface Database {
           is_commission_locked?: boolean;
           unpaid_commission_count?: number;
         };
+        Relationships: [];
       };
       fleets: {
         Row: {
@@ -161,6 +163,7 @@ export interface Database {
           bank_account_name?: string | null;
         };
         Update: Partial<Database['public']['Tables']['fleets']['Insert']>;
+        Relationships: [];
       };
       orders: {
         Row: {
@@ -201,11 +204,30 @@ export interface Database {
           cancelled_at: string | null;
           expires_at: string | null;
           service_area_id: string | null;
+          payment_method: 'cash' | 'wallet';
+          rider_profile_id: string | null;
+          failed_delivery_attempts: number;
+          delivery_locked_until: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: never; // always via create_order RPC
-        Update: never; // always via update_order_status RPC
+        Update: {
+          rider_id?: string | null;
+          status?: OrderStatus;
+          matched_at?: string | null;
+          picked_up_at?: string | null;
+          delivered_at?: string | null;
+          cancelled_at?: string | null;
+          expires_at?: string | null;
+          delivery_code_verified?: boolean;
+          failed_delivery_attempts?: number;
+          delivery_locked_until?: string | null;
+          pod_photo_url?: string | null;
+          payment_method?: 'cash' | 'wallet';
+          rider_profile_id?: string | null;
+        };
+        Relationships: [];
       };
       bids: {
         Row: {
@@ -217,11 +239,19 @@ export interface Database {
           parent_bid_id: string | null;
           metadata: Json | null;
           expires_at: string | null;
+          negotiation_round: number;
           created_at: string;
           updated_at: string;
         };
         Insert: never; // via place_bid RPC
-        Update: { status?: BidStatus };
+        Update: {
+          status?: BidStatus;
+          parent_bid_id?: string | null;
+          metadata?: Json | null;
+          expires_at?: string | null;
+          negotiation_round?: number;
+        };
+        Relationships: [];
       };
       wallets: {
         Row: {
@@ -234,8 +264,23 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: never; // via create_wallet RPC
-        Update: never;
+        Insert: {
+          id?: string;
+          owner_type: WalletOwnerType;
+          owner_id: string;
+          balance?: number;
+          currency?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          balance?: number;
+          currency?: string;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       transactions: {
         Row: {
@@ -253,6 +298,7 @@ export interface Database {
         };
         Insert: never;
         Update: never;
+        Relationships: [];
       };
       withdrawals: {
         Row: {
@@ -275,6 +321,7 @@ export interface Database {
         };
         Insert: never; // via request_withdrawal RPC
         Update: never;
+        Relationships: [];
       };
       notifications: {
         Row: {
@@ -292,6 +339,7 @@ export interface Database {
         Update: {
           is_read?: boolean;
         };
+        Relationships: [];
       };
       chat_messages: {
         Row: {
@@ -310,6 +358,7 @@ export interface Database {
         Update: {
           is_read?: boolean;
         };
+        Relationships: [];
       };
       ratings: {
         Row: {
@@ -329,6 +378,7 @@ export interface Database {
           review?: string | null;
         };
         Update: never;
+        Relationships: [];
       };
       saved_addresses: {
         Row: {
@@ -368,6 +418,7 @@ export interface Database {
           use_count?: number;
           is_default?: boolean;
         };
+        Relationships: [];
       };
       package_categories: {
         Row: {
@@ -381,6 +432,7 @@ export interface Database {
         };
         Insert: never;
         Update: never;
+        Relationships: [];
       };
       promo_codes: {
         Row: {
@@ -403,6 +455,47 @@ export interface Database {
         };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      pricing_rules: {
+        Row: {
+          id: string;
+          service_area_id: string | null;
+          base_rate: number;
+          per_km_rate: number;
+          min_price: number;
+          max_price: number | null;
+          vat_percentage: number;
+          surge_multiplier: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service_area_id?: string | null;
+          base_rate: number;
+          per_km_rate: number;
+          min_price: number;
+          max_price?: number | null;
+          vat_percentage?: number;
+          surge_multiplier?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          service_area_id?: string | null;
+          base_rate?: number;
+          per_km_rate?: number;
+          min_price?: number;
+          max_price?: number | null;
+          vat_percentage?: number;
+          surge_multiplier?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       sos_alerts: {
         Row: {
@@ -423,6 +516,7 @@ export interface Database {
           location?: unknown | null;
         };
         Update: never;
+        Relationships: [];
       };
       rider_documents: {
         Row: {
@@ -448,6 +542,7 @@ export interface Database {
           status?: DocumentStatus;
           rejection_reason?: string | null;
         };
+        Relationships: [];
       };
       rider_bank_accounts: {
         Row: {
@@ -478,7 +573,158 @@ export interface Database {
           is_default?: boolean;
           paystack_recipient_code?: string | null;
         };
+        Relationships: [];
       };
+      cancellations: {
+        Row: {
+          id: string;
+          order_id: string;
+          cancelled_by: CancellationActor;
+          user_id: string | null;
+          reason: string;
+          penalty_amount: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          cancelled_by: CancellationActor;
+          user_id?: string | null;
+          reason: string;
+          penalty_amount?: number;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string | null;
+          reason?: string;
+          penalty_amount?: number;
+        };
+        Relationships: [];
+      };
+      disputes: {
+        Row: {
+          id: string;
+          order_id: string;
+          raised_by: string;
+          subject: string;
+          description: string;
+          status: DisputeStatus;
+          resolution: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          raised_by: string;
+          subject: string;
+          description: string;
+          status?: DisputeStatus;
+          resolution?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          subject?: string;
+          description?: string;
+          status?: DisputeStatus;
+          resolution?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      order_status_history: {
+        Row: {
+          id: string;
+          order_id: string;
+          old_status: OrderStatus | null;
+          new_status: OrderStatus;
+          changed_by: string | null;
+          reason: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          old_status?: OrderStatus | null;
+          new_status: OrderStatus;
+          changed_by?: string | null;
+          reason?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      outstanding_balances: {
+        Row: {
+          id: string;
+          customer_id: string;
+          order_id: string;
+          rider_id: string;
+          amount: number;
+          due_date: string;
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          order_id: string;
+          rider_id: string;
+          amount: number;
+          due_date?: string;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          paid_at?: string | null;
+          due_date?: string;
+        };
+        Relationships: [];
+      };
+      rider_locations: {
+        Row: {
+          rider_id: string;
+          latitude: number;
+          longitude: number;
+          order_id: string | null;
+          speed: number | null;
+          heading: number | null;
+          accuracy: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          rider_id: string;
+          latitude: number;
+          longitude: number;
+          order_id?: string | null;
+          speed?: number | null;
+          heading?: number | null;
+          accuracy?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          latitude?: number;
+          longitude?: number;
+          order_id?: string | null;
+          speed?: number | null;
+          heading?: number | null;
+          accuracy?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
       create_order: {
@@ -499,6 +745,7 @@ export interface Database {
           p_package_description?: string;
           p_package_notes?: string;
           p_suggested_price?: number;
+          p_payment_method?: 'cash' | 'wallet';
           p_promo_code?: string;
           p_service_area_id?: string;
         };
@@ -581,6 +828,28 @@ export interface Database {
           category_name: string | null;
           created_at: string;
           expires_at: string | null;
+          pickup_lat: number | null;
+          pickup_lng: number | null;
+        }[];
+      };
+      get_price_quote: {
+        Args: {
+          p_pickup_lat: number;
+          p_pickup_lng: number;
+          p_dropoff_lat: number;
+          p_dropoff_lng: number;
+          p_package_size?: string;
+          p_promo_code?: string;
+          p_service_area_id?: string;
+        };
+        Returns: {
+          distance_km: number;
+          delivery_fee: number;
+          vat_amount: number;
+          discount_amount: number;
+          total_price: number;
+          surge_multiplier: number;
+          promo_applied: boolean;
         }[];
       };
       request_withdrawal: {
@@ -610,6 +879,52 @@ export interface Database {
         };
         Returns: string;
       };
+      debit_wallet: {
+        Args: {
+          p_wallet_id: string;
+          p_amount: number;
+          p_type: TransactionType;
+          p_reference: string;
+          p_description?: string;
+          p_order_id?: string;
+          p_metadata?: Json;
+        };
+        Returns: string;
+      };
+      send_counter_offer: {
+        Args: { p_bid_id: string; p_customer_id: string; p_amount: number };
+        Returns: string;
+      };
+      send_rider_counter_offer: {
+        Args: { p_bid_id: string; p_rider_id: string; p_amount: number };
+        Returns: string;
+      };
+      withdraw_bid: {
+        Args: { p_bid_id: string; p_rider_id: string };
+        Returns: void;
+      };
+    };
+    Enums: {
+      user_role: UserRole;
+      kyc_status: KycStatus;
+      order_status: OrderStatus;
+      bid_status: BidStatus;
+      package_size: PackageSize;
+      vehicle_type: VehicleType;
+      document_type: DocumentType;
+      document_status: DocumentStatus;
+      wallet_owner_type: WalletOwnerType;
+      transaction_type: TransactionType;
+      withdrawal_status: WithdrawalStatus;
+      notification_type: NotificationType;
+      sos_status: SosStatus;
+      dispute_status: DisputeStatus;
+      cancellation_actor: CancellationActor;
+      fleet_pay_structure: FleetPayStructure;
+      promo_discount_type: PromoDiscountType;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }
@@ -631,3 +946,8 @@ export type SavedAddress = Database['public']['Tables']['saved_addresses']['Row'
 export type PackageCategory = Database['public']['Tables']['package_categories']['Row'];
 export type RiderDocument = Database['public']['Tables']['rider_documents']['Row'];
 export type RiderBankAccount = Database['public']['Tables']['rider_bank_accounts']['Row'];
+export type Cancellation = Database['public']['Tables']['cancellations']['Row'];
+export type Dispute = Database['public']['Tables']['disputes']['Row'];
+export type OrderStatusHistory = Database['public']['Tables']['order_status_history']['Row'];
+export type OutstandingBalance = Database['public']['Tables']['outstanding_balances']['Row'];
+export type RiderLocation = Database['public']['Tables']['rider_locations']['Row'];

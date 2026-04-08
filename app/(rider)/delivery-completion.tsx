@@ -173,16 +173,8 @@ export default function DeliveryCompletionScreen() {
         });
       }
 
-      // 3. For cash orders: mark cash as collected before completing
-      if (order?.payment_method === 'cash') {
-        const { error: cashErr } = await (supabase as any).rpc('mark_cash_paid', {
-          p_order_id: orderId,
-          p_rider_id: riderId,
-        });
-        if (cashErr) throw cashErr;
-      }
-
-      // 4. Complete delivery (distributes earnings + commission)
+      // 3. Complete delivery (distributes earnings + commission)
+      // Note: complete_delivery handles cash outstanding_balances internally — no separate mark_cash_paid needed
       const { data: result, error: completeErr } = await supabase.rpc('complete_delivery', {
         p_order_id: orderId,
         p_rider_id: riderId,

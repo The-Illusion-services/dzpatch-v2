@@ -20,12 +20,11 @@ export default function WaitingResponseScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { orderId, riderId, riderName, counterAmount, originalBid, negotiationRound } = useLocalSearchParams<{
+  const { orderId, riderId, riderName, counterAmount, negotiationRound } = useLocalSearchParams<{
     orderId: string;
     riderId?: string;
     riderName: string;
     counterAmount: string;
-    originalBid: string;
     negotiationRound?: string;
   }>();
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -36,8 +35,38 @@ export default function WaitingResponseScreen() {
   };
 
 
-  // ── 5-min counter-offer countdown ─────────────────────────────────────────
+  // ── Countdown anchored to actual bid expires_at ───────────────────────────
   const [countdown, setCountdown] = useState(BID_RESPONSE_WINDOW_SECONDS);
+
+  // Seed countdown from the real bid expiry on mount
+  useEffect(() => {
+    if (!orderId) return;
+    let isActive = true;
+
+    const loadBidExpiry = async () => {
+      let q = supabase
+        .from('bids')
+        .select('expires_at')
+        .eq('order_id', orderId)
+        .in('status', ['pending', 'countered'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (riderId) q = (q as any).eq('rider_id', riderId);
+
+      const { data } = await (q as any).maybeSingle();
+      if (!isActive || !data?.expires_at) return;
+      const remaining = Math.max(
+        0,
+        Math.floor((new Date(data.expires_at).getTime() - Date.now()) / 1000)
+      );
+      setCountdown(remaining);
+    };
+
+    void loadBidExpiry();
+    return () => { isActive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, riderId]);
+
   useEffect(() => {
     const tick = setInterval(() => {
       setCountdown((prev) => {
@@ -310,23 +339,8 @@ export default function WaitingResponseScreen() {
     router.replace({ pathname: '/(customer)/live-bidding', params: { orderId } } as any);
   };
 
-  const timelineSteps = [
-    { label: 'Your Counter', value: `₦${Number(counterAmount).toLocaleString()}`, done: true },
-    { label: 'Initial Bid', value: `₦${Number(originalBid).toLocaleString()}`, done: true, secondary: true },
-    { label: "Rider's Decision", value: 'Pending...', done: false, pending: true },
-  ];
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Waiting for Response</Text>
-        <View style={{ width: 36 }} />
-      </View>
-
       {/* Shimmer top bar */}
       <View style={styles.shimmerBar}>
         <Animated.View
@@ -338,73 +352,30 @@ export default function WaitingResponseScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Badge */}
-        <View style={styles.negotiationBadge}>
-          <Text style={styles.negotiationBadgeText}>Negotiation Active</Text>
-        </View>
+        {/* Hourglass */}
+        <Animated.Text style={[styles.hourglass, { transform: [{ rotate: spin }] }]}>⏳</Animated.Text>
 
-        {/* Headline */}
-        <View style={styles.headlineWrap}>
-          <Animated.Text style={[styles.hourglass, { transform: [{ rotate: spin }] }]}>⏳</Animated.Text>
-          <Text style={styles.headline}>
-            Waiting for {riderName} to respond to your offer of{' '}
-            <Text style={styles.headlineAmount}>₦{Number(counterAmount).toLocaleString()}</Text>
-          </Text>
-          <Text style={styles.subtext}>
-            The rider will accept, reject, or counter your offer. We&apos;ll notify you instantly.
-          </Text>
-        </View>
+        {/* Offer card */}
+        <View style={styles.offerCard}>
+          <Text style={styles.offerLabel}>YOUR OFFER TO {String(riderName).toUpperCase()}</Text>
+          <Text style={styles.offerAmount}>₦{Number(counterAmount).toLocaleString()}</Text>
+          <Animated.View style={[styles.offerPulseDot, { opacity: pulseAnim }]} />
 
-        {/* Negotiation tracker card */}
-        <View style={styles.trackerCard}>
-          {/* Current offer display */}
-          <View style={styles.offerDisplay}>
-            <Text style={styles.offerLabel}>YOUR OFFER</Text>
-            <Text style={styles.offerAmount}>₦{Number(counterAmount).toLocaleString()}</Text>
-            <Animated.View style={[styles.offerPulseDot, { opacity: pulseAnim }]} />
-          </View>
-
-          {/* Countdown */}
           <View style={[styles.countdownRow, isExpiringSoon && styles.countdownRowUrgent]}>
             <Text style={[styles.countdownLabel, isExpiringSoon && styles.countdownLabelUrgent]}>
-              {countdown > 0 ? `Expires in ${countdownMins}:${countdownSecs}` : 'Offer expired'}
+              {countdown > 0 ? `Offer expires in ${countdownMins}:${countdownSecs}` : 'Offer expired'}
             </Text>
           </View>
-
-          {/* Timeline */}
-          <View style={styles.timeline}>
-            {timelineSteps.map((step, i) => (
-              <View key={i} style={styles.timelineRow}>
-                <View style={[
-                  styles.timelineDot,
-                  step.done && styles.timelineDotDone,
-                  step.pending && styles.timelineDotPending,
-                ]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.timelineLabel, step.secondary && styles.timelineLabelSecondary]}>
-                    {step.label}
-                  </Text>
-                </View>
-                <Text style={[styles.timelineValue, step.pending && styles.timelineValuePending]}>
-                  {step.value}
-                </Text>
-              </View>
-            ))}
-          </View>
         </View>
 
-        {/* Cancel & search again */}
-        <View style={styles.actionSection}>
-          <Text style={styles.actionHint}>
-            Changed your mind? Cancel and search for other riders.
-          </Text>
-          <Pressable
-            style={styles.cancelBtn}
-            onPress={handleCancelAndSearch}
-          >
-            <Text style={styles.cancelBtnText}>Cancel & Search Again</Text>
-          </Pressable>
-        </View>
+        <Text style={styles.subtext}>
+          Waiting for the rider to accept, reject, or counter your offer
+        </Text>
+
+        {/* Cancel */}
+        <Pressable style={styles.cancelBtn} onPress={handleCancelAndSearch}>
+          <Text style={styles.cancelBtnText}>Cancel & Search Again</Text>
+        </Pressable>
 
         {/* Security badge */}
         <View style={styles.securityBadge}>
@@ -420,113 +391,51 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useThe
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing[5], paddingVertical: 14,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  backArrow: { fontSize: 20, color: '#0040e0', fontWeight: '600' },
-  headerTitle: {
-    flex: 1, textAlign: 'center',
-    fontSize: Typography.lg, fontWeight: Typography.bold,
-    color: colors.textPrimary, letterSpacing: -0.3,
-  },
-
-  shimmerBar: {
-    height: 3,
-    backgroundColor: '#dde1ff',
-    overflow: 'hidden',
-  },
+  shimmerBar: { height: 3, backgroundColor: '#dde1ff', overflow: 'hidden' },
   shimmerGlow: {
-    position: 'absolute',
-    width: 200, height: 3,
-    backgroundColor: '#0040e0',
-    opacity: 0.5,
+    position: 'absolute', width: 200, height: 3,
+    backgroundColor: '#0040e0', opacity: 0.5,
   },
 
   content: {
-    flex: 1,
-    paddingHorizontal: Spacing[5],
-    paddingTop: 28,
+    flex: 1, paddingHorizontal: Spacing[5],
+    paddingTop: 48, alignItems: 'center', gap: 24,
+  },
+
+  hourglass: { fontSize: 48 },
+
+  offerCard: {
+    width: '100%', backgroundColor: '#0A2342',
+    borderRadius: 24, padding: 24, gap: 14,
     alignItems: 'center',
-    gap: 20,
-  },
-
-  negotiationBadge: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    backgroundColor: '#dde1ff', borderRadius: 999,
-  },
-  negotiationBadgeText: {
-    fontSize: 11, fontWeight: Typography.bold,
-    color: '#0040e0', textTransform: 'uppercase', letterSpacing: 1,
-  },
-
-  headlineWrap: { alignItems: 'center', gap: 10, maxWidth: 300 },
-  hourglass: { fontSize: 36 },
-  headline: {
-    fontSize: Typography.lg, fontWeight: Typography.bold,
-    color: colors.textPrimary, textAlign: 'center', lineHeight: 26,
-  },
-  headlineAmount: { color: '#0040e0' },
-  subtext: { fontSize: Typography.sm, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
-
-  trackerCard: {
-    width: '100%',
-    backgroundColor: '#0A2342',
-    borderRadius: 24, padding: 20, gap: 16,
-    shadowColor: '#0A2342',
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: '#0A2342', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2, shadowRadius: 24, elevation: 6,
   },
-  offerDisplay: { alignItems: 'center', gap: 4 },
   offerLabel: {
     fontSize: 10, fontWeight: Typography.bold,
-    color: '#b8c3ff', textTransform: 'uppercase', letterSpacing: 3,
+    color: '#b8c3ff', textTransform: 'uppercase', letterSpacing: 2,
   },
   offerAmount: {
-    fontSize: 36, fontWeight: Typography.extrabold,
+    fontSize: 42, fontWeight: Typography.extrabold,
     color: '#FFFFFF', letterSpacing: -1,
   },
   offerPulseDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#0040e0',
-    marginTop: 4,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#4d7cff',
   },
-
   countdownRow: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: 10,
+    alignSelf: 'stretch', alignItems: 'center',
+    paddingVertical: 8, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   countdownRowUrgent: { backgroundColor: 'rgba(186,26,26,0.2)' },
   countdownLabel: { fontSize: Typography.xs, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5 },
   countdownLabelUrgent: { color: '#ff8a80' },
 
-  timeline: { gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16 },
-  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  timelineDot: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    flexShrink: 0,
+  subtext: {
+    fontSize: Typography.sm, color: colors.textSecondary,
+    textAlign: 'center', lineHeight: 22, maxWidth: 280,
   },
-  timelineDotDone: { backgroundColor: '#b8c3ff' },
-  timelineDotPending: { backgroundColor: '#0040e0' },
-  timelineLabel: {
-    fontSize: Typography.xs, fontWeight: Typography.semibold,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  timelineLabelSecondary: { color: 'rgba(255,255,255,0.45)' },
-  timelineValue: {
-    fontSize: Typography.sm, fontWeight: Typography.bold,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  timelineValuePending: { color: '#b8c3ff', fontStyle: 'italic' },
 
-  actionSection: { width: '100%', alignItems: 'center', gap: 10 },
-  actionHint: { fontSize: Typography.xs, color: colors.textSecondary, textAlign: 'center' },
   cancelBtn: {
     width: '100%', paddingVertical: 14, alignItems: 'center',
     borderRadius: 16, backgroundColor: colors.surface,

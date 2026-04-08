@@ -60,16 +60,31 @@ export default function SplashScreen() {
 
     // Role is ready — navigate
     const timer = setTimeout(() => {
+      const { profile } = useAuthStore.getState();
       switch (role) {
-        case 'rider': router.replace('/(rider)' as any); break;
-        default: {
+        case 'rider': {
+          const kyc = (profile as any)?.kyc_status ?? 'not_submitted';
+          if (kyc === 'approved') {
+            router.replace('/(rider)' as any);
+          } else if (kyc === 'pending') {
+            router.replace('/(rider-auth)/pending-approval' as any);
+          } else {
+            // rejected / not_submitted — restart signup flow
+            router.replace('/(rider-auth)/signup-personal' as any);
+          }
+          break;
+        }
+        case 'customer': {
           // Guard: if profile has no name the signup was never completed — send to onboarding
-          const { profile } = useAuthStore.getState();
           if (!profile?.full_name) {
             router.replace('/(auth)/onboarding');
           } else {
             router.replace('/(customer)');
           }
+          break;
+        }
+        default: {
+          router.replace('/(auth)/onboarding');
           break;
         }
       }
@@ -254,5 +269,4 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#768baf',
   },
-});
 });

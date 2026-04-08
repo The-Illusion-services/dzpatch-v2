@@ -29,7 +29,6 @@ type Transaction = {
   amount: number;
   balance_after: number;
   description: string | null;
-  status: string;
   created_at: string;
 };
 
@@ -86,12 +85,17 @@ export default function WalletScreen() {
   const fetchData = useCallback(async () => {
     if (!profile?.id) return;
 
-    const { data: wallet } = await supabase
+    const { data: wallet, error: walletError } = await supabase
       .from('wallets')
       .select('id, balance')
       .eq('owner_id', profile.id)
       .eq('owner_type', 'customer')
-      .single();
+      .maybeSingle();
+
+    if (walletError) {
+      console.warn('wallet load wallet failed:', walletError.message);
+      return;
+    }
 
     if (wallet) {
       const w = wallet as { id: string; balance: number };
@@ -99,12 +103,17 @@ export default function WalletScreen() {
       setWalletId(w.id);
       animateTo(w.balance);
 
-      const { data: txs } = await supabase
+      const { data: txs, error: transactionsError } = await supabase
         .from('transactions')
-        .select('id, type, amount, balance_after, description, status, created_at')
+        .select('id, type, amount, balance_after, description, created_at')
         .eq('wallet_id', w.id)
         .order('created_at', { ascending: false })
         .limit(50);
+
+      if (transactionsError) {
+        console.warn('wallet load transactions failed:', transactionsError.message);
+        return;
+      }
 
       if (txs) setTransactions(txs as Transaction[]);
     }
@@ -128,13 +137,15 @@ export default function WalletScreen() {
         })
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'transactions', filter: `wallet_id=eq.${walletId}` },
-        () => fetchData())
+        (payload) => setTransactions((prev) => [payload.new as Transaction, ...prev]))
       .subscribe();
     channelRef.current = channel;
     return () => { supabase.removeChannel(channel); };
   }, [walletId, animateTo, fetchData]);
 
-  useAppStateChannels([channelRef.current]);
+  useAppStateChannels([channelRef.current], {
+    onForeground: fetchData,
+  });
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -148,7 +159,7 @@ export default function WalletScreen() {
     switch (filter) {
       case 'income':   return isCredit(tx.type);
       case 'spending': return !isCredit(tx.type) && tx.type !== 'withdrawal';
-      case 'pending':  return tx.status === 'pending';
+      case 'pending':  return tx.type === 'withdrawal';
       default:         return true;
     }
   });
@@ -256,7 +267,6 @@ export default function WalletScreen() {
         }
         renderItem={({ item }) => {
           const credit = isCredit(item.type);
-          const isPending = item.status === 'pending';
           return (
             <View style={styles.txRow}>
               <View style={[styles.txIconWrap, credit ? styles.txIconCredit : styles.txIconDebit]}>
@@ -272,8 +282,8 @@ export default function WalletScreen() {
                 <Text style={[styles.txAmount, credit ? styles.txAmountCredit : styles.txAmountDebit]}>
                   {credit ? '+' : '-'}₦{Number(item.amount).toLocaleString()}
                 </Text>
-                <Text style={[styles.txStatus, isPending && styles.txStatusPending]}>
-                  {isPending ? 'Processing' : 'Success'}
+                <Text style={[styles.txStatus, credit && { color: '#16A34A' }]}>
+                  {item.type === 'withdrawal' ? 'Processing' : 'Success'}
                 </Text>
               </View>
             </View>

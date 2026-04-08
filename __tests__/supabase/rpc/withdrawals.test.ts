@@ -36,6 +36,12 @@ describeSupabase('Supabase RPC - Withdrawals', () => {
   it('owner can request withdrawal from own wallet and successful request creates withdrawal row', async () => {
     await topUpRiderWallet(2000);
 
+    const walletBefore = await clients.service
+      .from('wallets')
+      .select('balance')
+      .eq('id', seeded.riderWalletId)
+      .single();
+
     const request = await clients.rider.rpc('request_withdrawal', {
       p_wallet_id: seeded.riderWalletId,
       p_amount: 500,
@@ -52,9 +58,17 @@ describeSupabase('Supabase RPC - Withdrawals', () => {
       .select('*')
       .eq('id', request.data as string)
       .maybeSingle();
+    const walletAfter = await clients.service
+      .from('wallets')
+      .select('balance')
+      .eq('id', seeded.riderWalletId)
+      .single();
 
     expect(readOwn.error).toBeNull();
     expect(readOwn.data?.wallet_id).toBe(seeded.riderWalletId);
+    expect(Number(readOwn.data?.withdrawal_fee ?? 0)).toBe(100);
+    expect(Number(readOwn.data?.net_payout ?? 0)).toBe(400);
+    expect(Number(walletBefore.data?.balance ?? 0) - Number(walletAfter.data?.balance ?? 0)).toBe(500);
   });
 
   it('user cannot request withdrawal from another wallet and unrelated user cannot read another withdrawal', async () => {
@@ -113,5 +127,42 @@ describeSupabase('Supabase RPC - Withdrawals', () => {
     } as any);
 
     expect(missingBank.error).not.toBeNull();
+  });
+
+  it('custom withdrawal fee is persisted and fee greater than amount is rejected', async () => {
+    await topUpRiderWallet(2000);
+
+    const customFee = await clients.rider.rpc('request_withdrawal', {
+      p_wallet_id: seeded.riderWalletId,
+      p_amount: 900,
+      p_bank_name: 'Fee Bank',
+      p_bank_code: '999',
+      p_account_number: '1234567890',
+      p_account_name: 'Test Rider',
+      p_fee: 250,
+    } as any);
+
+    expect(customFee.error).toBeNull();
+
+    const withdrawal = await clients.service
+      .from('withdrawals')
+      .select('withdrawal_fee, net_payout')
+      .eq('id', customFee.data as string)
+      .single();
+
+    expect(Number(withdrawal.data?.withdrawal_fee ?? 0)).toBe(250);
+    expect(Number(withdrawal.data?.net_payout ?? 0)).toBe(650);
+
+    const invalidFee = await clients.rider.rpc('request_withdrawal', {
+      p_wallet_id: seeded.riderWalletId,
+      p_amount: 100,
+      p_bank_name: 'Fee Bank',
+      p_bank_code: '999',
+      p_account_number: '1234567890',
+      p_account_name: 'Test Rider',
+      p_fee: 150,
+    } as any);
+
+    expect(invalidFee.error).not.toBeNull();
   });
 });

@@ -197,6 +197,7 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
     const completion = await clients.rider.rpc('complete_delivery', {
       p_order_id: order.id,
       p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-wallet-complete.jpg',
     } as any);
 
     expect(completion.error).toBeNull();
@@ -246,11 +247,12 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
     const completion = await clients.rider.rpc('complete_delivery', {
       p_order_id: order.id,
       p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-cash-complete.jpg',
     } as any);
     expect(completion.error).toBeNull();
 
     const { data: outstandingRow, error } = await clients.service
-      .from('outstanding_balances' as any)
+      .from('outstanding_balances')
       .select('*')
       .eq('order_id', order.id)
       .maybeSingle();

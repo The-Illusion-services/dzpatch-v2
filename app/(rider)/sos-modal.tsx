@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -11,9 +12,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+
+const EMERGENCY_NUMBER = '112';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -63,6 +67,7 @@ export default function SOSModalScreen() {
           onPress: async () => {
             setSending(true);
             try {
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
               // Get current location for SOS
               const { default: ExpoLocation } = await import('expo-location');
               let lat: number | undefined;
@@ -84,8 +89,18 @@ export default function SOSModalScreen() {
               setSent(true);
               Alert.alert(
                 'Alert Sent',
-                'Our security team has been notified and will contact you shortly.',
-                [{ text: 'OK', onPress: () => router.back() }]
+                'Our security team has been notified. Call emergency services now if you are in immediate danger.',
+                [
+                  {
+                    text: 'Call 112',
+                    style: 'destructive',
+                    onPress: () => {
+                      void Linking.openURL(`tel:${EMERGENCY_NUMBER}`);
+                      router.back();
+                    },
+                  },
+                  { text: 'OK', onPress: () => router.back() },
+                ]
               );
             } catch {
               Alert.alert('Error', 'Could not send emergency alert. Please call emergency services directly.');
@@ -149,6 +164,11 @@ export default function SOSModalScreen() {
           <Text style={styles.sosBtnText}>
             {sending ? 'Sending Alert...' : sent ? 'Alert Sent' : 'Send Emergency Alert'}
           </Text>
+        </Pressable>
+
+        <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${EMERGENCY_NUMBER}`)}>
+          <Ionicons name="call-outline" size={18} color="#ba1a1a" />
+          <Text style={styles.callBtnText}>Call {EMERGENCY_NUMBER} Now</Text>
         </Pressable>
 
         <Pressable style={styles.cancelBtn} onPress={() => router.back()}>
@@ -224,6 +244,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 16, elevation: 6,
   },
   sosBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#FFFFFF' },
+
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(186,26,26,0.18)',
+    backgroundColor: '#FFF4F4',
+  },
+  callBtnText: { fontSize: Typography.md, fontWeight: '800', color: '#ba1a1a' },
 
   cancelBtn: { alignItems: 'center', paddingVertical: 8 },
   cancelText: { fontSize: Typography.sm, fontWeight: '700', color: '#74777e' },

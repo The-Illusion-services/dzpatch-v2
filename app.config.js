@@ -1,6 +1,11 @@
 // app.config.js — dynamic config so process.env is resolved at build time
 // EAS reads this file; app.json is kept as fallback for tooling that needs static JSON.
 const IS_DEV = process.env.APP_VARIANT === 'development' || !process.env.EAS_BUILD;
+const GOOGLE_MAPS_API_KEY =
+  process.env.GOOGLE_MAPS_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY ||
+  '';
 
 /** @type {import('expo/config').ExpoConfig} */
 module.exports = {
@@ -21,13 +26,13 @@ module.exports = {
         backgroundImage: './assets/images/android-icon-background.png',
         monochromeImage: './assets/images/android-icon-monochrome.png',
       },
-      edgeToEdgeEnabled: false,
-      predictiveBackGestureEnabled: false,
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+          apiKey: GOOGLE_MAPS_API_KEY,
         },
       },
+      edgeToEdgeEnabled: false,
+      predictiveBackGestureEnabled: false,
       permissions: [
         'android.permission.ACCESS_COARSE_LOCATION',
         'android.permission.ACCESS_FINE_LOCATION',
@@ -38,9 +43,6 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
-      },
     },
     web: {
       output: 'static',

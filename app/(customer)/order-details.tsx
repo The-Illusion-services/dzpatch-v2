@@ -20,17 +20,19 @@ import { Spacing, Typography } from '@/constants/theme';
 type OrderDetail = {
   id: string;
   status: string;
-  base_price: number;
+  dynamic_price: number;
   final_price: number | null;
-  service_tax: number | null;
+  vat_amount: number | null;
   pickup_address: string;
   dropoff_address: string;
   package_category: string | null;
   package_size: string | null;
+  package_description: string | null;
   created_at: string;
   delivered_at: string | null;
   rider_id: string | null;
   cancellation_reason: string | null;
+  payment_method: string | null;
 };
 
 type RiderInfo = {
@@ -38,7 +40,7 @@ type RiderInfo = {
   phone: string;
   vehicle_type: string | null;
   vehicle_plate: string | null;
-  rating_avg: number | null;
+  average_rating: number | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,41 +80,97 @@ export default function OrderDetailsScreen() {
   useEffect(() => {
     if (!orderId) return;
     const load = async () => {
-      const { data: orderRaw } = await supabase
-        .from('orders')
-        .select('id, status, base_price, final_price, service_tax, pickup_address, dropoff_address, package_category, package_size, created_at, delivered_at, rider_id, cancellation_reason')
-        .eq('id', orderId)
-        .single();
-      const orderData = orderRaw as OrderDetail | null;
+      try {
+        const { data: orderRaw } = await supabase
+          .from('orders')
+          .select('id, status, dynamic_price, final_price, vat_amount, pickup_address, dropoff_address, category_id, package_size, package_description, created_at, delivered_at, rider_id, payment_method')
+          .eq('id', orderId)
+          .maybeSingle();
 
-      if (orderData) {
+        const baseOrder = orderRaw as {
+          id: string;
+          status: string;
+          dynamic_price: number;
+          final_price: number | null;
+          vat_amount: number | null;
+          pickup_address: string;
+          dropoff_address: string;
+          category_id: string | null;
+          package_size: string | null;
+          package_description: string | null;
+          created_at: string;
+          delivered_at: string | null;
+          rider_id: string | null;
+          payment_method: string | null;
+        } | null;
+
+        if (!baseOrder) {
+          setOrder(null);
+          setRider(null);
+          return;
+        }
+
+        const categoryPromise = baseOrder.category_id
+          ? supabase
+              .from('package_categories')
+              .select('name')
+              .eq('id', baseOrder.category_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
+
+        const cancellationPromise = baseOrder.status === 'cancelled'
+          ? supabase
+              .from('cancellations')
+              .select('reason')
+              .eq('order_id', orderId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
+
+        const [{ data: categoryData }, { data: cancellationData }] = await Promise.all([
+          categoryPromise,
+          cancellationPromise,
+        ]);
+
+        const orderData: OrderDetail = {
+          ...baseOrder,
+          package_category: (categoryData as { name?: string } | null)?.name ?? baseOrder.package_description ?? null,
+          cancellation_reason: (cancellationData as { reason?: string } | null)?.reason ?? null,
+        };
+
         setOrder(orderData);
 
         if (orderData.rider_id) {
           const { data: riderData } = await supabase
             .from('riders')
-            .select('vehicle_type, vehicle_plate, rating_avg, profiles(full_name, phone)')
-            .eq('profile_id', orderData.rider_id)
-            .single();
+            .select('vehicle_type, vehicle_plate, average_rating, profiles(full_name, phone)')
+            .eq('id', orderData.rider_id)
+            .maybeSingle();
 
           if (riderData && (riderData as any).profiles) {
             setRider({
               ...(riderData as any).profiles,
               vehicle_type: (riderData as any).vehicle_type,
               vehicle_plate: (riderData as any).vehicle_plate,
-              rating_avg: (riderData as any).rating_avg,
+              average_rating: (riderData as any).average_rating ?? 0,
             });
+          } else {
+            setRider(null);
           }
+        } else {
+          setRider(null);
         }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, [orderId]);
 
   const isActive = order && !['delivered', 'completed', 'cancelled'].includes(order.status);
   const isCancelled = order?.status === 'cancelled';
-  const price = order?.final_price ?? order?.base_price ?? 0;
+  const price = order?.final_price ?? order?.dynamic_price ?? 0;
   const stepIdx = order ? statusStepIndex(order.status) : 0;
 
   const handleReportIssue = () => {
@@ -122,12 +180,11 @@ export default function OrderDetailsScreen() {
         text: subject,
         onPress: async () => {
           if (!orderId || !profile?.id) return;
-          const { error } = await supabase.from('disputes').insert({
-            order_id: orderId,
-            raised_by: profile.id,
-            subject,
-            description: `Issue reported from order-details screen. Order: ${orderId}`,
-          });
+          const { error } = await supabase.rpc('raise_dispute', {
+            p_order_id: orderId,
+            p_subject: subject,
+            p_description: `Issue reported from order-details screen. Order: ${orderId}`,
+          } as any);
           if (error) {
             Alert.alert('Error', 'Could not submit report. Please try again.');
           } else {
@@ -240,8 +297,8 @@ export default function OrderDetailsScreen() {
                       {rider.vehicle_type ?? 'Motorcycle'} · {rider.vehicle_plate}
                     </Text>
                   )}
-                  {rider.rating_avg && (
-                    <Text style={styles.riderRating}>⭐ {Number(rider.rating_avg).toFixed(1)}</Text>
+                  {typeof rider.average_rating === 'number' && rider.average_rating > 0 && (
+                    <Text style={styles.riderRating}>⭐ {Number(rider.average_rating).toFixed(1)}</Text>
                   )}
                 </View>
                 <View style={styles.riderActions}>
@@ -271,12 +328,12 @@ export default function OrderDetailsScreen() {
             <Text style={styles.cardTitle}>Payment</Text>
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Delivery Fee</Text>
-              <Text style={styles.paymentValue}>₦{Number(order.base_price).toLocaleString()}</Text>
+              <Text style={styles.paymentValue}>₦{Number(order.dynamic_price).toLocaleString()}</Text>
             </View>
-            {order.service_tax != null && order.service_tax > 0 && (
+            {order.vat_amount != null && order.vat_amount > 0 && (
               <View style={styles.paymentRow}>
                 <Text style={styles.paymentLabel}>Service Tax</Text>
-                <Text style={styles.paymentValue}>₦{Number(order.service_tax).toLocaleString()}</Text>
+                <Text style={styles.paymentValue}>₦{Number(order.vat_amount).toLocaleString()}</Text>
               </View>
             )}
             <View style={styles.paymentDivider} />
@@ -285,8 +342,10 @@ export default function OrderDetailsScreen() {
               <Text style={styles.paymentTotalValue}>₦{Number(price).toLocaleString()}</Text>
             </View>
             <View style={styles.paymentMethodRow}>
-              <Text style={styles.paymentMethodIcon}>💳</Text>
-              <Text style={styles.paymentMethodText}>DZpatch Wallet</Text>
+              <Text style={styles.paymentMethodIcon}>{order.payment_method === 'cash' ? '💵' : '💳'}</Text>
+              <Text style={styles.paymentMethodText}>
+                {order.payment_method === 'cash' ? 'Cash' : 'DZpatch Wallet'}
+              </Text>
             </View>
           </View>
 
@@ -310,10 +369,10 @@ export default function OrderDetailsScreen() {
                 </View>
               </View>
             </View>
-            {order.package_category && (
+            {(order.package_category || order.package_description || order.package_size) && (
               <View style={styles.packageInfo}>
                 <Text style={styles.packageInfoText}>
-                  📦 {order.package_category}
+                  📦 {order.package_category ?? order.package_description ?? 'Package'}
                   {order.package_size ? ` · ${order.package_size}` : ''}
                 </Text>
               </View>
@@ -537,7 +596,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#0040e0',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,

@@ -8,11 +8,14 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { parsePostgisPoint } from '@/lib/location';
+import { getGoogleMapsApiKey } from '@/lib/google-maps';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OrderInfo {
   pickup_address: string;
+  pickup_location: unknown;
   dropoff_address: string;
   package_size: string | null;
   distance_km: number | null;
@@ -26,7 +29,7 @@ const CALABAR_FALLBACK: LatLng = { latitude: 5.9631, longitude: 8.3271 };
 
 async function geocodeAddress(address: string): Promise<LatLng | null> {
   try {
-    const key = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY;
+    const key = getGoogleMapsApiKey();
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`;
     const res = await fetch(url);
     const json = await res.json();
@@ -50,6 +53,7 @@ export default function NavigateToPickupScreen() {
   const [order, setOrder] = useState<OrderInfo | null>(null);
   const [eta, setEta] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [enRouteReady, setEnRouteReady] = useState(false);
   const [pickupCoord, setPickupCoord] = useState<LatLng>(CALABAR_FALLBACK);
   const mapRef = useRef<MapView>(null);
   const locationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -61,7 +65,6 @@ export default function NavigateToPickupScreen() {
       'Your location is shared with the customer while you navigate. Keep this app in the foreground for accurate tracking.',
       [{ text: 'Got it', style: 'default' }],
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Fetch order details ────────────────────────────────────────────────────
@@ -70,17 +73,35 @@ export default function NavigateToPickupScreen() {
     if (!orderId || !profile?.id) return;
     supabase
       .from('orders')
-      .select('pickup_address, dropoff_address, package_size, distance_km, customer_id')
+      .select('pickup_address, pickup_location, dropoff_address, package_size, distance_km, customer_id, status')
       .eq('id', orderId)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const o = data as OrderInfo;
-          setOrder(o);
-          // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
-          const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
-          setEta(mins);
-          // Geocode pickup address → move marker + animate map
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('navigate-to-pickup load order failed:', error.message);
+          return;
+        }
+        if (!data) return;
+
+        const o = data as OrderInfo & { status: string };
+
+        // Resume guard: if the order has already passed pickup, redirect to the correct screen
+        if (o.status === 'arrived_pickup' || o.status === 'in_transit' ||
+            o.status === 'arrived_dropoff' || o.status === 'delivered' || o.status === 'completed') {
+          router.replace({ pathname: '/(rider)/confirm-arrival' as any, params: { orderId } });
+          return;
+        }
+
+        setOrder(o);
+        // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
+        const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
+        setEta(mins);
+        // Geocode pickup address → move marker + animate map
+        const storedCoord = parsePostgisPoint(o.pickup_location);
+        if (storedCoord) {
+          setPickupCoord(storedCoord);
+          mapRef.current?.animateToRegion({ ...storedCoord, ...DELTA_SM }, 600);
+        } else {
           geocodeAddress(o.pickup_address).then((coord) => {
             if (coord) {
               setPickupCoord(coord);
@@ -88,16 +109,27 @@ export default function NavigateToPickupScreen() {
             }
           });
         }
-      });
 
-    // Set status to pickup_en_route when rider opens this screen
-    (supabase as any).rpc('update_order_status', {
-      p_order_id: orderId,
-      p_new_status: 'pickup_en_route',
-      p_changed_by: profile.id,
-    }).then(({ error }: { error: any }) => {
-      if (error) console.warn('pickup_en_route update failed:', error.message);
-    });
+        // Only push pickup_en_route if order is still in matched state
+        if (o.status === 'matched' || o.status === 'pickup_en_route') {
+          if (o.status === 'pickup_en_route') {
+            // Already set — no transition needed
+            setEnRouteReady(true);
+            return;
+          }
+          (supabase as any).rpc('update_order_status', {
+            p_order_id: orderId,
+            p_new_status: 'pickup_en_route',
+            p_changed_by: profile.id,
+          }).then(({ error: rpcErr }: { error: any }) => {
+            if (rpcErr) {
+              console.warn('pickup_en_route update failed:', rpcErr.message);
+            } else {
+              setEnRouteReady(true);
+            }
+          });
+        }
+      });
   }, [orderId, profile?.id]);
 
   // ── Update rider location every 10s ───────────────────────────────────────
@@ -105,14 +137,18 @@ export default function NavigateToPickupScreen() {
   useEffect(() => {
     if (!riderId || !orderId) return;
     locationTimer.current = setInterval(async () => {
-      const { default: ExpoLocation } = await import('expo-location');
-      const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
-      await (supabase as any).rpc('update_rider_location', {
-        p_rider_id: riderId,
-        p_lat: loc.coords.latitude,
-        p_lng: loc.coords.longitude,
-        p_order_id: orderId,
-      });
+      try {
+        const { default: ExpoLocation } = await import('expo-location');
+        const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        await (supabase as any).rpc('update_rider_location', {
+          p_rider_id: riderId,
+          p_lat: loc.coords.latitude,
+          p_lng: loc.coords.longitude,
+          p_order_id: orderId,
+        });
+      } catch {
+        // GPS temporarily unavailable — skip this interval tick
+      }
     }, 10000);
     return () => { if (locationTimer.current) clearInterval(locationTimer.current); };
   }, [riderId, orderId]);
@@ -146,8 +182,8 @@ export default function NavigateToPickupScreen() {
         pathname: '/(rider)/confirm-arrival' as any,
         params: { orderId },
       });
-    } catch {
-      Alert.alert('Error', 'Could not confirm arrival. Please try again.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Could not confirm arrival. Please try again.');
     } finally {
       setConfirming(false);
     }
@@ -216,12 +252,12 @@ export default function NavigateToPickupScreen() {
             <Text style={styles.navBtnText}>Open Navigation</Text>
           </Pressable>
           <Pressable
-            style={[styles.arrivalBtn, confirming && { opacity: 0.6 }]}
+            style={[styles.arrivalBtn, (!enRouteReady || confirming) && { opacity: 0.6 }]}
             onPress={handleConfirmArrival}
-            disabled={confirming}
+            disabled={!enRouteReady || confirming}
           >
             <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
-            <Text style={styles.arrivalBtnText}>{confirming ? 'Confirming...' : 'Arrived'}</Text>
+            <Text style={styles.arrivalBtnText}>{confirming ? 'Confirming...' : !enRouteReady ? 'Setting up...' : 'Arrived'}</Text>
           </Pressable>
         </View>
       </View>

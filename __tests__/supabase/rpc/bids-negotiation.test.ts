@@ -139,9 +139,9 @@ describeSupabase('Supabase RPC - Bids and Negotiation', () => {
     expect(roundTwo.error).toBeNull();
     const bidTwoId = extractBidId(roundTwo.data);
 
-    const roundThree = await clients.customer.rpc('send_counter_offer', {
+    const roundThree = await clients.rider.rpc('send_rider_counter_offer', {
       p_bid_id: bidTwoId,
-      p_customer_id: seeded.customerId,
+      p_rider_id: seeded.riderId,
       p_amount: 2200,
     } as any);
     expect(roundThree.error).toBeNull();
@@ -204,6 +204,91 @@ describeSupabase('Supabase RPC - Bids and Negotiation', () => {
     expect((bidThreeRow as any).negotiation_round).toBe(3);
     expect((bidThreeRow as any).status).toBe('pending');
     expect((bidThreeRow as any).amount).toBe(2250);
+  });
+
+  it('customer counter-offer thread stays isolated from other riders until acceptance', async () => {
+    const { orderId } = await createOrderAsCustomer(clients.customer, seeded.customerId);
+    trackSupabaseOrder(scenario, orderId);
+
+    const riderOneBid = await clients.rider.rpc('place_bid', {
+      p_order_id: orderId,
+      p_rider_id: seeded.riderId,
+      p_amount: 2400,
+    } as any);
+    const riderTwoBid = await clients.riderTwo.rpc('place_bid', {
+      p_order_id: orderId,
+      p_rider_id: seeded.riderTwoId,
+      p_amount: 2450,
+    } as any);
+
+    expect(riderOneBid.error).toBeNull();
+    expect(riderTwoBid.error).toBeNull();
+
+    const roundTwo = await clients.customer.rpc('send_counter_offer', {
+      p_bid_id: extractBidId(riderOneBid.data),
+      p_customer_id: seeded.customerId,
+      p_amount: 2250,
+    } as any);
+    expect(roundTwo.error).toBeNull();
+
+    const riderTwoPending = await clients.service
+      .from('bids')
+      .select('status')
+      .eq('id', extractBidId(riderTwoBid.data))
+      .single();
+
+    expect(riderTwoPending.data?.status).toBe('pending');
+  });
+
+  it('rider can accept a customer counter-offer and match the order without looping', async () => {
+    const { orderId } = await createOrderAsCustomer(clients.customer, seeded.customerId, {
+      paymentMethod: 'cash',
+    });
+    trackSupabaseOrder(scenario, orderId);
+
+    const riderOneBid = await clients.rider.rpc('place_bid', {
+      p_order_id: orderId,
+      p_rider_id: seeded.riderId,
+      p_amount: 2400,
+    } as any);
+    const riderTwoBid = await clients.riderTwo.rpc('place_bid', {
+      p_order_id: orderId,
+      p_rider_id: seeded.riderTwoId,
+      p_amount: 2500,
+    } as any);
+
+    expect(riderOneBid.error).toBeNull();
+    expect(riderTwoBid.error).toBeNull();
+
+    const customerCounter = await clients.customer.rpc('send_counter_offer', {
+      p_bid_id: extractBidId(riderOneBid.data),
+      p_customer_id: seeded.customerId,
+      p_amount: 2200,
+    } as any);
+    expect(customerCounter.error).toBeNull();
+
+    const acceptCounter = await clients.rider.rpc('accept_customer_counter_offer', {
+      p_bid_id: extractBidId(customerCounter.data),
+      p_rider_id: seeded.riderId,
+    } as any);
+
+    expect(acceptCounter.error).toBeNull();
+
+    const order = await clients.service
+      .from('orders')
+      .select('status, rider_id, final_price')
+      .eq('id', orderId)
+      .single();
+    const bids = await clients.service
+      .from('bids')
+      .select('id, status')
+      .in('id', [extractBidId(riderOneBid.data), extractBidId(riderTwoBid.data), extractBidId(customerCounter.data)]);
+
+    expect(order.data?.status).toBe('matched');
+    expect(order.data?.rider_id).toBe(seeded.riderId);
+    expect(Number(order.data?.final_price ?? 0)).toBeGreaterThan(0);
+    expect(bids.data?.find((bid) => bid.id === extractBidId(customerCounter.data))?.status).toBe('accepted');
+    expect(bids.data?.find((bid) => bid.id === extractBidId(riderTwoBid.data))?.status).toBe('expired');
   });
 
   it('accepting one bid expires competing bids and matched order cannot continue bidding', async () => {

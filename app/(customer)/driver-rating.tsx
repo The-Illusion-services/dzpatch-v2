@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -46,6 +47,7 @@ export default function DriverRatingScreen() {
   const [review, setReview] = useState('');
   const [tip, setTip] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
+  const [isCustomTipMode, setIsCustomTipMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,30 +77,56 @@ export default function DriverRatingScreen() {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
+    if (!orderId || !riderId) {
+      setError('Missing trip details. Please reopen the delivery summary and try again.');
+      return;
+    }
+    if (!profile?.id) {
+      setError('You need to be signed in to submit a rating.');
+      return;
+    }
     if (rating === 0) {
       setError('Please select a rating.');
       return;
     }
+    if (rating < 1 || rating > 5) {
+      setError('Rating must be between 1 and 5.');
+      return;
+    }
+
+    const tipAmount = isCustomTipMode && customTip ? Number(customTip) : (tip ?? 0);
+    if (isCustomTipMode && customTip && (!Number.isFinite(tipAmount) || tipAmount <= 0)) {
+      setError('Enter a valid custom tip amount or clear the field.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
-    const tipAmount = tip ?? (customTip ? Number(customTip) : 0);
-
-    const { error: rpcError } = await supabase.rpc('submit_review', {
+    const { error: rpcError } = await supabase.rpc('rate_rider', {
       p_order_id: orderId,
-      p_rider_id: riderId,
-      p_reviewer_id: profile?.id,
-      p_rating: rating,
-      p_tags: selectedTags,
+      p_customer_id: profile.id,
+      p_score: rating,
       p_review: review.trim() || null,
-      p_tip_amount: tipAmount || null,
     } as any);
 
     if (rpcError) {
       setError(rpcError.message);
       setSubmitting(false);
     } else {
-      router.replace('/(customer)/' as any);
+      Alert.alert(
+        'Feedback saved',
+        tipAmount > 0
+          ? `Your ${rating}-star rating was saved. Tip checkout is not enabled yet, so your tip preference of N${tipAmount.toLocaleString()} was not charged.`
+          : 'Your rider rating has been saved successfully.',
+        [
+          {
+            text: 'Done',
+            onPress: () => router.replace('/(customer)/' as any),
+          },
+        ]
+      );
+      setSubmitting(false);
     }
   };
 
@@ -193,12 +221,16 @@ export default function DriverRatingScreen() {
           <Text style={styles.sectionTitle}>Add a Tip</Text>
           <View style={styles.tipsRow}>
             {TIP_AMOUNTS.map((amount) => {
-              const selected = tip === amount && !customTip;
+              const selected = tip === amount && !isCustomTipMode;
               return (
                 <Pressable
                   key={amount}
                   style={[styles.tipCircle, selected && styles.tipCircleSelected]}
-                  onPress={() => { setTip(selected ? null : amount); setCustomTip(''); }}
+                  onPress={() => {
+                    setTip(selected ? null : amount);
+                    setCustomTip('');
+                    setIsCustomTipMode(false);
+                  }}
                 >
                   <Text style={[styles.tipText, selected && styles.tipTextSelected]}>
                     ₦{amount.toLocaleString()}
@@ -207,22 +239,32 @@ export default function DriverRatingScreen() {
               );
             })}
             <Pressable
-              style={[styles.tipCircle, !!customTip && styles.tipCircleSelected]}
-              onPress={() => { setTip(null); }}
+              style={[styles.tipCircle, isCustomTipMode && styles.tipCircleSelected]}
+              onPress={() => {
+                setTip(null);
+                setIsCustomTipMode(true);
+              }}
             >
-              <Text style={[styles.tipText, !!customTip && styles.tipTextSelected]}>Other</Text>
+              <Text style={[styles.tipText, isCustomTipMode && styles.tipTextSelected]}>Other</Text>
             </Pressable>
           </View>
-          {(tip === null && !TIP_AMOUNTS.some((a) => a === tip)) && (
+          {isCustomTipMode && (
             <TextInput
               style={styles.customTipInput}
               placeholder="Enter custom amount (₦)"
               placeholderTextColor="#74777e"
               keyboardType="numeric"
               value={customTip}
-              onChangeText={(v) => { setCustomTip(v); setTip(null); }}
+              onChangeText={(v) => {
+                setCustomTip(v);
+                setTip(null);
+                setIsCustomTipMode(true);
+              }}
             />
           )}
+          <Text style={styles.tipDisclaimer}>
+            Tips are not charged in-app yet. We&apos;ll confirm your tip preference after you submit feedback.
+          </Text>
         </View>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
@@ -408,6 +450,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: Typography.sm,
     color: '#181c1e',
+  },
+  tipDisclaimer: {
+    fontSize: Typography.xs,
+    color: '#74777e',
+    lineHeight: 18,
   },
 
   errorText: { fontSize: Typography.xs, color: '#ba1a1a', textAlign: 'center' },

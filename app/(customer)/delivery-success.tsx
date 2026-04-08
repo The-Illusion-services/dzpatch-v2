@@ -37,13 +37,15 @@ export default function DeliverySuccessScreen() {
       ...subjects.map((subject) => ({
         text: subject,
         onPress: async () => {
-          if (!orderId || !profile?.id) return;
-          const { error } = await supabase.from('disputes').insert({
-            order_id: orderId,
-            raised_by: profile.id,
-            subject,
-            description: `Issue reported from delivery-success screen. Order: ${orderId}`,
-          });
+          if (!orderId) {
+            Alert.alert('Unable to report issue', 'This delivery is missing account details. Please contact support from the home screen.');
+            return;
+          }
+          const { error } = await supabase.rpc('raise_dispute', {
+            p_order_id: orderId as string,
+            p_subject: subject,
+            p_description: `Issue reported from delivery-success screen. Order: ${orderId}`,
+          } as any);
           if (error) {
             Alert.alert('Error', 'Could not submit report. Please try again.');
           } else {
@@ -168,10 +170,16 @@ export default function DeliverySuccessScreen() {
       <View style={[styles.actions, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           style={styles.rateBtn}
-          onPress={() => router.replace({
-            pathname: '/(customer)/driver-rating',
-            params: { orderId, riderId, riderName },
-          } as any)}
+          onPress={() => {
+            if (!orderId || !riderId) {
+              Alert.alert('Rating unavailable', 'We could not load the rider details for this delivery.');
+              return;
+            }
+            router.replace({
+              pathname: '/(customer)/driver-rating',
+              params: { orderId, riderId, riderName },
+            } as any);
+          }}
         >
           <Text style={styles.rateBtnIcon}>⭐</Text>
           <Text style={styles.rateBtnText}>Rate Rider</Text>

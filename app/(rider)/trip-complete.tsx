@@ -11,8 +11,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,27 +22,14 @@ export default function TripCompleteScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { orderId, riderEarnings, commission } = useLocalSearchParams<{
-    orderId: string;
+  const { riderEarnings, commission } = useLocalSearchParams<{
+    orderId?: string;
     riderEarnings: string;
     commission: string;
   }>();
-  const { riderId } = useAuthStore();
 
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
-  const [customerId, setCustomerId] = useState<string | null>(null);
-
-  // Fetch customer_id for rating insert
-  useEffect(() => {
-    if (!orderId) return;
-    supabase
-      .from('orders')
-      .select('customer_id')
-      .eq('id', orderId)
-      .single()
-      .then(({ data }) => { if (data) setCustomerId((data as any).customer_id); });
-  }, [orderId]);
 
   // ── Pulse animation for hero ───────────────────────────────────────────────
 
@@ -73,20 +58,8 @@ export default function TripCompleteScreen() {
 
   const submitRating = async (stars: number) => {
     setRating(stars);
-    if (!orderId || !riderId || !customerId || submitted) return;
+    if (submitted) return;
     setSubmitted(true);
-    // Insert rider's rating of the customer (ON CONFLICT order_id = update score)
-    await (supabase as any)
-      .from('ratings')
-      .upsert(
-        {
-          order_id: orderId,
-          rider_id: riderId,
-          customer_id: customerId,
-          score: stars,
-        },
-        { onConflict: 'order_id' }
-      );
   };
 
   // ── Derived values ─────────────────────────────────────────────────────────
@@ -157,6 +130,9 @@ export default function TripCompleteScreen() {
       {/* Rate customer */}
       <View style={styles.ratingCard}>
         <Text style={styles.ratingTitle}>Rate the Customer</Text>
+        <Text style={styles.ratingSubtitle}>
+          Rider-to-customer reviews are still being finalized, so this screen won&apos;t overwrite the delivery rating record.
+        </Text>
         <View style={styles.starsRow}>
           {STARS.map((star) => (
             <Pressable key={star} onPress={() => submitRating(star)} hitSlop={8}>
@@ -168,7 +144,7 @@ export default function TripCompleteScreen() {
             </Pressable>
           ))}
         </View>
-        {submitted && <Text style={styles.ratingThanks}>Thanks for your feedback!</Text>}
+        {submitted && <Text style={styles.ratingThanks}>Thanks. Customer review syncing will be enabled in a later update.</Text>}
       </View>
 
       {/* Back to Home */}
@@ -239,6 +215,12 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useThe
     shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
   ratingTitle: { fontSize: Typography.md, fontWeight: '800', color: colors.textPrimary },
+  ratingSubtitle: {
+    fontSize: Typography.xs,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   starsRow: { flexDirection: 'row', gap: 8 },
   ratingThanks: { fontSize: Typography.sm, color: '#16A34A', fontWeight: '600' },
 

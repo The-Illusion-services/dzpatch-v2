@@ -49,74 +49,46 @@ export default function SignupReviewScreen() {
 
     setLoading(true);
     try {
-      // 1. Update profile: set full_name, email, role=rider, kyc_status=pending
-      const { error: profileErr } = await (supabase
-        .from('profiles') as any)
-        .update({
-          full_name: store.fullName,
-          email: store.email || null,
-          role: 'rider',
-          kyc_status: 'pending',
-        })
-        .eq('id', user.id);
-      if (profileErr) throw profileErr;
-
-      // 2. Create rider record
-      const { data: riderData, error: riderErr } = await supabase
-        .from('riders')
-        .insert({
-          profile_id: user.id,
-          vehicle_type: store.vehicleType ? store.vehicleType.toLowerCase() : null,
-          vehicle_plate: store.plateNumber,
-          vehicle_make: store.vehicleMake,
-          vehicle_model: store.vehicleModel,
-          vehicle_year: parseInt(store.vehicleYear) || null,
-          vehicle_color: store.vehicleColor,
-        } as any)
-        .select('id')
-        .single();
-      if (riderErr) throw riderErr;
-
-      const riderId = (riderData as any).id as string;
-
-      // 3. Upload documents + insert rider_documents records
-      const docMap: { key: 'driversLicenseUri' | 'insuranceUri' | 'platePhotoUri'; type: string; docType: any }[] = [
+      // 1. Upload documents to Storage first (Storage is outside DB transactions)
+      const docMap: { key: 'driversLicenseUri' | 'insuranceUri' | 'platePhotoUri'; type: string; docType: string }[] = [
         { key: 'driversLicenseUri', type: 'license', docType: 'drivers_license' },
         { key: 'insuranceUri', type: 'insurance', docType: 'vehicle_insurance' },
         { key: 'platePhotoUri', type: 'plate', docType: 'plate_photo' },
       ];
 
+      const documents: { document_type: string; document_url: string }[] = [];
       for (const doc of docMap) {
         const uri = store[doc.key];
         if (uri) {
           const url = await uploadDocument(uri, doc.type);
-          const { error: docErr } = await supabase
-            .from('rider_documents')
-            .insert({ rider_id: riderId, document_type: doc.docType, document_url: url } as any);
-          if (docErr) throw docErr;
+          documents.push({ document_type: doc.docType, document_url: url });
         }
       }
 
-      // 4. Insert bank account
-      const { error: bankErr } = await supabase
-        .from('rider_bank_accounts')
-        .insert({
-          rider_id: riderId,
-          bank_name: store.bankName,
-          bank_code: '', // Paystack bank code — resolved later in admin/settings
-          account_number: store.accountNumber,
-          account_name: store.accountHolderName,
-          is_default: true,
-        } as any);
-      if (bankErr) throw bankErr;
+      // 2. Single atomic RPC — handles profile, rider, documents, bank in one transaction
+      const { error: rpcErr } = await (supabase as any).rpc('submit_rider_application', {
+        p_full_name: store.fullName,
+        p_email: store.email || null,
+        p_vehicle_type: store.vehicleType ? store.vehicleType.toLowerCase() : null,
+        p_vehicle_plate: store.plateNumber,
+        p_vehicle_make: store.vehicleMake,
+        p_vehicle_model: store.vehicleModel,
+        p_vehicle_year: parseInt(store.vehicleYear) || null,
+        p_vehicle_color: store.vehicleColor,
+        p_documents: documents,
+        p_bank_name: store.bankName,
+        p_bank_code: '',
+        p_account_number: store.accountNumber || null,
+        p_account_name: store.accountHolderName,
+      });
+      if (rpcErr) throw rpcErr;
 
-      // 5. Reload profile so auth store has updated role
+      // 3. Reload profile so auth store has updated role
       await loadProfile(user.id);
 
-      // 6. Clear signup store
+      // 4. Clear signup store
       store.reset();
 
-      // Navigate to pending approval
       router.replace('/(rider-auth)/pending-approval' as any);
     } catch (err: any) {
       Alert.alert('Submission Failed', err.message ?? 'Please try again.');

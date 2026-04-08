@@ -43,9 +43,12 @@ function useRiderAlerts() {
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!riderId) return;
+    // Only create one channel per riderId — guard against double-mount / StrictMode
+    if (channelRef.current) return;
 
     const channel = supabase
       .channel(`rider-alerts:${riderId}`)
@@ -111,7 +114,11 @@ function useRiderAlerts() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
   }, [riderId]);
 }
 

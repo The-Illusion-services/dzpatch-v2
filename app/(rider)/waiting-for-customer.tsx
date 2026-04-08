@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { BID_RESPONSE_WINDOW_SECONDS } from '@/constants/timing';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -21,8 +22,8 @@ export default function WaitingForCustomerScreen() {
   const insets = useSafeAreaInsets();
   const { orderId, bidAmount } = useLocalSearchParams<{ orderId: string; bidAmount: string }>();
   const { riderId } = useAuthStore();
-  const [remaining, setRemaining] = useState(300);
-  const [totalWindow, setTotalWindow] = useState(300);
+  const [remaining, setRemaining] = useState(BID_RESPONSE_WINDOW_SECONDS);
+  const [totalWindow, setTotalWindow] = useState(BID_RESPONSE_WINDOW_SECONDS);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   // Guard: prevent double-navigation from concurrent poll + realtime events
@@ -121,7 +122,7 @@ export default function WaitingForCustomerScreen() {
       // Check order status first (catches customer cancellation or match)
       const { data: orderRow, error: orderError } = await supabase
         .from('orders')
-        .select('status, cancellation_reason, rider_id')
+        .select('status, rider_id')
         .eq('id', orderId)
         .single();
       if (orderError) {

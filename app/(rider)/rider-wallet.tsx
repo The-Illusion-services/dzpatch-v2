@@ -35,15 +35,32 @@ export default function RiderWalletScreen() {
 
   useEffect(() => {
     if (!profile?.id) return;
-    supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('owner_id', profile.id)
-      .eq('owner_type', 'rider')
-      .single()
-      .then(({ data }) => {
-        if (data) { const w = data as { id: string; balance: number }; setWalletId(w.id); setBalance(w.balance); }
-      });
+    let isActive = true;
+
+    const loadWallet = async () => {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('owner_id', profile.id)
+        .eq('owner_type', 'rider')
+        .single();
+      if (!isActive) return;
+      if (error) {
+        console.warn('rider-wallet load wallet failed:', error.message);
+        return;
+      }
+      if (data) {
+        const wallet = data as { id: string; balance: number };
+        setWalletId(wallet.id);
+        setBalance(wallet.balance);
+      }
+    };
+
+    void loadWallet();
+
+    return () => {
+      isActive = false;
+    };
   }, [profile?.id]);
 
   const handleFund = async () => {
@@ -118,7 +135,10 @@ export default function RiderWalletScreen() {
 
   const handleWebViewNav = (url: string) => {
     if (isWalletFundingCallback(url)) {
-      void confirmWalletFunding();
+      const confirmFunding = async () => {
+        await confirmWalletFunding();
+      };
+      void confirmFunding();
       return false;
     }
     return true;
@@ -173,7 +193,7 @@ export default function RiderWalletScreen() {
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>CURRENT BALANCE</Text>
+          <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
           <Text style={styles.balanceAmount}>₦{balance.toLocaleString()}</Text>
         </View>
 

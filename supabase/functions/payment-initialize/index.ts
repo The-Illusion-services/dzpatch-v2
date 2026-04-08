@@ -33,14 +33,18 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── Parse request ────────────────────────────────────────────────────────
-  let body: { amount: number; wallet_id: string };
+  let body: {
+    amount: number;
+    wallet_id: string;
+    method?: 'card' | 'bank_transfer' | 'ussd';
+  };
   try {
     body = await req.json();
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { amount, wallet_id } = body;
+  const { amount, wallet_id, method } = body;
 
   if (!amount || amount < 100) {
     return json({ error: 'Minimum amount is ₦100' }, 400);
@@ -73,6 +77,11 @@ Deno.serve(async (req: Request) => {
   // ── Generate unique reference ────────────────────────────────────────────
   const reference = `FUND-${user.id.slice(0, 8)}-${Date.now()}`;
 
+  let channels: string[] | undefined = undefined;
+  if (method === 'card' || method === 'bank_transfer' || method === 'ussd') {
+    channels = [method];
+  }
+
   // ── Call Paystack Initialize Transaction ─────────────────────────────────
   const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
     method: 'POST',
@@ -84,6 +93,7 @@ Deno.serve(async (req: Request) => {
       email,
       amount: amount * 100, // kobo
       reference,
+      channels,
       callback_url: 'https://dzpatch.co/paystack-callback',
       metadata: {
         wallet_id,

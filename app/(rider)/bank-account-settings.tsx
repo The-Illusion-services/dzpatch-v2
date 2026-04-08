@@ -46,24 +46,40 @@ export default function BankAccountSettingsScreen() {
 
   useEffect(() => {
     if (!riderId) return;
-    supabase
-      .from('rider_bank_accounts')
-      .select('id, bank_name, account_number, account_name, bank_code')
-      .eq('rider_id', riderId)
-      .eq('is_default', true)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setHasExisting(true);
-          setExistingBankAccountId((data as any).id ?? null);
-          setForm({
-            bank_name: (data as any).bank_name ?? '',
-            account_number: (data as any).account_number ?? '',
-            account_name: (data as any).account_name ?? '',
-            bank_code: (data as any).bank_code ?? '',
-          });
-        }
-      });
+    let isActive = true;
+
+    const loadBankAccount = async () => {
+      const { data, error } = await supabase
+        .from('rider_bank_accounts')
+        .select('id, bank_name, account_number, account_name, bank_code')
+        .eq('rider_id', riderId)
+        .eq('is_default', true)
+        .single();
+
+      if (!isActive) return;
+
+      if (error) {
+        console.warn('bank-account load failed:', error.message);
+        return;
+      }
+
+      if (data) {
+        setHasExisting(true);
+        setExistingBankAccountId((data as any).id ?? null);
+        setForm({
+          bank_name: (data as any).bank_name ?? '',
+          account_number: (data as any).account_number ?? '',
+          account_name: (data as any).account_name ?? '',
+          bank_code: (data as any).bank_code ?? '',
+        });
+      }
+    };
+
+    void loadBankAccount();
+
+    return () => {
+      isActive = false;
+    };
   }, [riderId]);
 
   const update = (field: keyof BankForm, value: string) =>
@@ -108,8 +124,8 @@ export default function BankAccountSettingsScreen() {
       Alert.alert('Saved', 'Bank account updated successfully.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch {
-      Alert.alert('Error', 'Could not save bank account. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message ?? 'Could not save bank account. Please try again.');
     } finally {
       setSaving(false);
     }

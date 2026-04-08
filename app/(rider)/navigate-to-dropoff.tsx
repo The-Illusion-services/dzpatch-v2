@@ -76,7 +76,7 @@ export default function NavigateToDropoffScreen() {
     if (!orderId) return;
     supabase
       .from('orders')
-      .select('dropoff_address, dropoff_location, distance_km, customer_id')
+      .select('dropoff_address, dropoff_location, distance_km, customer_id, status')
       .eq('id', orderId)
       .maybeSingle()
       .then(async ({ data, error }) => {
@@ -85,7 +85,18 @@ export default function NavigateToDropoffScreen() {
           return;
         }
         if (!data) return;
-        const o = data as OrderInfo;
+        const o = data as OrderInfo & { status: string };
+
+        // Resume guard: if already past in_transit, redirect to delivery-completion
+        if (
+          o.status === 'arrived_dropoff' ||
+          o.status === 'delivered' ||
+          o.status === 'completed'
+        ) {
+          router.replace({ pathname: '/(rider)/delivery-completion' as any, params: { orderId } });
+          return;
+        }
+
         setOrder(o);
         // ETA: distance_km / 30 km/h avg speed, rounded to nearest minute, min 2
         const mins = o.distance_km ? Math.max(2, Math.round(o.distance_km / 30 * 60)) : null;
@@ -155,15 +166,14 @@ export default function NavigateToDropoffScreen() {
       const { error } = await (supabase as any).rpc('update_order_status', {
         p_order_id: orderId,
         p_new_status: 'arrived_dropoff',
-        p_changed_by: riderId,
       });
       if (error) throw error;
       router.replace({
         pathname: '/(rider)/delivery-completion' as any,
         params: { orderId },
       });
-    } catch {
-      Alert.alert('Error', 'Could not update status. Please try again.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Could not update status. Please try again.');
     } finally {
       setArriving(false);
     }

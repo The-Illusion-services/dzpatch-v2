@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,11 +19,16 @@ import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { OrderStatus } from '@/types/database';
 
 const LOCATION_UPDATE_INTERVAL = 10_000; // 10s
 const NEARBY_REFRESH_INTERVAL = 20_000;  // 20s
+const ACTIVE_TRIP_STATUS_SET = new Set<string>(ACTIVE_TRIP_STATUSES);
+// L4: Only send a DB write if the rider moved more than this threshold (meters)
+// distanceInterval:20 in watchPositionAsync is OS-level, this is an app-level guard
+const LOCATION_WRITE_THRESHOLD_M = 30;
 
-const ACTIVE_TRIP_STATUSES = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
+const ACTIVE_TRIP_STATUSES: OrderStatus[] = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
 
 type ActiveTrip = {
   id: string;
@@ -50,7 +55,6 @@ function tripScreen(status: string): string {
 
 type NearbyOrder = {
   order_id: string;
-  customer_name: string;
   pickup_address: string;
   dropoff_address: string;
   distance_to_pickup: number;
@@ -61,6 +65,8 @@ type NearbyOrder = {
   category_name: string | null;
   created_at: string;
   expires_at: string | null;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
 };
 
 const CALABAR_REGION: Region = {
@@ -71,13 +77,18 @@ const CALABAR_REGION: Region = {
 };
 
 // Deterministic offset from order_id characters — stable across re-renders
-function pinCoordFromId(id: string, center: { lat: number; lng: number } | null) {
-  const base = center ?? { lat: CALABAR_REGION.latitude, lng: CALABAR_REGION.longitude };
-  const seed1 = (id.charCodeAt(0) + id.charCodeAt(4) + id.charCodeAt(8)) / 765;  // 0..1
-  const seed2 = (id.charCodeAt(1) + id.charCodeAt(5) + id.charCodeAt(9)) / 765;
+function pickupCoordinateForOrder(order: NearbyOrder, center: { lat: number; lng: number } | null) {
+  if (typeof order.pickup_lat === 'number' && typeof order.pickup_lng === 'number') {
+    return {
+      latitude: order.pickup_lat,
+      longitude: order.pickup_lng,
+    };
+  }
+
+  const fallback = center ?? { lat: CALABAR_REGION.latitude, lng: CALABAR_REGION.longitude };
   return {
-    latitude: base.lat + (seed1 - 0.5) * 0.04,
-    longitude: base.lng + (seed2 - 0.5) * 0.04,
+    latitude: fallback.lat,
+    longitude: fallback.lng,
   };
 }
 
@@ -88,45 +99,138 @@ export default function RiderHomeScreen() {
 
   const [riderId, setRiderId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [isCommissionLocked, setIsCommissionLocked] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyOrders, setNearbyOrders] = useState<NearbyOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<NearbyOrder | null>(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [mapMounted, setMapMounted] = useState(true);
 
   const cardAnim = useRef(new Animated.Value(0)).current;
   const locationWatcher = useRef<Location.LocationSubscription | null>(null);
+  // L4: Track last sent coordinates to avoid redundant DB writes
+  const lastSentLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const nearbyInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingOrdersChannelRef = useRef<RealtimeChannel | null>(null);
+  const activeTripChannelRef = useRef<RealtimeChannel | null>(null);
+  const nearbyOrderIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    nearbyOrderIdsRef.current = new Set(nearbyOrders.map((order) => order.order_id));
+  }, [nearbyOrders]);
 
   // Fetch rider record ID + check for active trip
   useEffect(() => {
     if (!user?.id) return;
-    supabase
-      .from('riders')
-      .select('id, is_online')
-      .eq('profile_id', user.id)
-      .single()
-      .then(async ({ data, error }) => {
-        if (error || !data) return;
-        const id = (data as any).id;
-        setRiderId(id);
-        setIsOnline((data as any).is_online);
+    let isActive = true;
 
-        // Check for any in-progress order
-        const { data: tripData } = await supabase
-          .from('orders')
-          .select('id, status, pickup_address, dropoff_address')
-          .eq('rider_id', id)
-          .in('status', ACTIVE_TRIP_STATUSES)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+    const loadRider = async () => {
+      const { data, error } = await supabase
+        .from('riders')
+        .select('id, is_online, is_commission_locked')
+        .eq('profile_id', user.id)
+        .single();
+      if (!isActive) return;
+      if (error || !data) {
+        if (error) {
+          console.warn('rider-home load rider failed:', error.message);
+        }
+        return;
+      }
 
-        if (tripData) setActiveTrip(tripData as ActiveTrip);
-      });
+      const id = (data as any).id;
+      setRiderId(id);
+      setIsOnline((data as any).is_online);
+      setIsCommissionLocked(!!(data as any).is_commission_locked);
+
+      const { data: tripData, error: tripError } = await supabase
+        .from('orders')
+        .select('id, status, pickup_address, dropoff_address')
+        .eq('rider_id', id)
+        .in('status', ACTIVE_TRIP_STATUSES)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isActive) return;
+      if (tripError) {
+        console.warn('rider-home load active trip failed:', tripError.message);
+        return;
+      }
+
+      if (tripData) setActiveTrip(tripData as ActiveTrip);
+      else setActiveTrip(null); // clear stale card if order is now delivered/cancelled
+    };
+
+    void loadRider();
+
+    return () => {
+      isActive = false;
+    };
   }, [user?.id]);
+
+  // Re-check active trip on every focus (e.g. returning from trip-complete)
+  useFocusEffect(
+    useCallback(() => {
+      if (!riderId) return;
+      supabase
+        .from('orders')
+        .select('id, status, pickup_address, dropoff_address')
+        .eq('rider_id', riderId)
+        .in('status', ACTIVE_TRIP_STATUSES)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          setActiveTrip(data ? (data as ActiveTrip) : null);
+        });
+    }, [riderId])
+  );
+
+  // Mount/unmount MapView with screen focus to prevent ViewChangesTracker OOM
+  useFocusEffect(
+    useCallback(() => {
+      setMapMounted(true);
+      return () => setMapMounted(false);
+    }, [])
+  );
+
+  // Watch active trip for cancellation or completion — clear banner if order leaves active statuses
+  useEffect(() => {
+    if (!activeTrip?.id) {
+      if (activeTripChannelRef.current) {
+        supabase.removeChannel(activeTripChannelRef.current);
+        activeTripChannelRef.current = null;
+      }
+      return;
+    }
+
+    const channel = supabase
+      .channel(`rider-active-trip-${activeTrip.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeTrip.id}` },
+        (payload) => {
+          const updated = payload.new as { id: string; status: string };
+          if (!ACTIVE_TRIP_STATUS_SET.has(updated.status)) {
+            setActiveTrip(null);
+          } else {
+            setActiveTrip((prev) => prev ? { ...prev, status: updated.status } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    activeTripChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      activeTripChannelRef.current = null;
+    };
+  }, [activeTrip?.id]);
 
   // Animate card in/out
   useEffect(() => {
@@ -142,22 +246,42 @@ export default function RiderHomeScreen() {
     if (!riderId || !isOnline || activeTrip) return;
     setLoadingOrders(true);
     try {
+      const permission = await Location.getForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        const message = 'Enable location permission to see nearby jobs.';
+        setLocationError(message);
+        setNearbyOrders([]);
+        setSelectedOrder(null);
+        return [];
+      }
+
+      setLocationError(null);
       const { data, error } = await (supabase as any).rpc('get_nearby_orders', {
         p_rider_id: riderId,
         p_radius_meters: 10000,
       });
       if (error) {
         // RPC throws if no location — silently ignore
-        if (!error.message.includes('location not available')) {
+        if (error.message.includes('location not available')) {
+          setLocationError('We need a fresh GPS fix before we can show nearby jobs.');
+        } else {
           console.warn('get_nearby_orders error:', error.message);
+          setLocationError('We could not refresh nearby jobs right now. Please try again.');
         }
+        return [];
       } else {
         const orders = (data as NearbyOrder[]) ?? [];
         setNearbyOrders(orders);
+        setLocationError(null);
         // Auto-select first order so detail card shows by default
         if (orders.length > 0) {
-          setSelectedOrder((prev) => prev ?? orders[0]);
+          setSelectedOrder((prev) =>
+            prev && orders.some((order) => order.order_id === prev.order_id) ? prev : orders[0]
+          );
+        } else {
+          setSelectedOrder(null);
         }
+        return orders;
       }
     } finally {
       setLoadingOrders(false);
@@ -173,20 +297,37 @@ export default function RiderHomeScreen() {
       (async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
+          setLocationError('Enable location permission to see nearby jobs.');
           Alert.alert('Location Required', 'Please enable location to go online.');
           return;
         }
+        setLocationError(null);
 
         const sub = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: LOCATION_UPDATE_INTERVAL, distanceInterval: 20 },
           (loc) => {
             const { latitude: lat, longitude: lng } = loc.coords;
             setUserLocation({ lat, lng });
-            (supabase as any).rpc('update_rider_location', {
-              p_rider_id: riderId,
-              p_lat: lat,
-              p_lng: lng,
-            }).then();
+            const syncRiderLocation = async () => {
+              // L4: Skip write if rider hasn't moved past the threshold
+              const last = lastSentLocationRef.current;
+              if (last) {
+                const dLat = (lat - last.lat) * 111_320;
+                const dLng = (lng - last.lng) * 111_320 * Math.cos((lat * Math.PI) / 180);
+                const distM = Math.sqrt(dLat * dLat + dLng * dLng);
+                if (distM < LOCATION_WRITE_THRESHOLD_M) return;
+              }
+              lastSentLocationRef.current = { lat, lng };
+              const { error } = await (supabase as any).rpc('update_rider_location', {
+                p_rider_id: riderId,
+                p_lat: lat,
+                p_lng: lng,
+              });
+              if (error) {
+                console.warn('rider-home location sync failed:', error.message);
+              }
+            };
+            void syncRiderLocation();
           }
         );
         locationWatcher.current = sub;
@@ -205,6 +346,7 @@ export default function RiderHomeScreen() {
       }
       setNearbyOrders([]);
       setSelectedOrder(null);
+      setLocationError(null);
     }
 
     return () => {
@@ -226,8 +368,14 @@ export default function RiderHomeScreen() {
     const channel = supabase
       .channel(`rider-pending-orders-${riderId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: 'status=eq.pending' },
-        async () => {
-          await fetchNearbyOrders();
+        async (payload) => {
+          const insertedOrderId = (payload.new as { id?: string }).id;
+          const previousOrderIds = new Set(nearbyOrderIdsRef.current);
+          const refreshedOrders = await fetchNearbyOrders();
+          const isActuallyNearby = refreshedOrders?.some((order) => order.order_id === insertedOrderId);
+          if (!insertedOrderId || !isActuallyNearby || previousOrderIds.has(insertedOrderId)) {
+            return;
+          }
           Alert.alert('🛵 New Order Nearby', 'A new delivery request is available. Check the job feed below!', [
             { text: 'View', style: 'default' },
           ]);
@@ -253,7 +401,7 @@ export default function RiderHomeScreen() {
     };
   }, [isOnline, riderId, activeTrip, fetchNearbyOrders]);
 
-  useAppStateChannels([pendingOrdersChannelRef.current]);
+  useAppStateChannels([pendingOrdersChannelRef.current, activeTripChannelRef.current]);
 
   const handleToggleOnline = async () => {
     if (togglingOnline) return;
@@ -262,13 +410,24 @@ export default function RiderHomeScreen() {
       return;
     }
 
+    if (isCommissionLocked) {
+      Alert.alert(
+        '🔒 Account Locked',
+        'You have unpaid commissions. Go to Financials to pay them and unlock your account.',
+        [{ text: 'Go to Financials', onPress: () => router.push({ pathname: '/(rider)/earnings' as any }) }, { text: 'Cancel', style: 'cancel' }]
+      );
+      return;
+    }
+
     if (!isOnline) {
       // Request location before going online
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        setLocationError('Enable location permission to see nearby jobs.');
         Alert.alert('Location Required', 'Please enable location services to go online.');
         return;
       }
+      setLocationError(null);
     }
 
     setTogglingOnline(true);
@@ -292,8 +451,8 @@ export default function RiderHomeScreen() {
 
       if (error) throw error;
       setIsOnline((prev) => !prev);
-    } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Could not update online status.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message ?? 'Could not update online status.');
     } finally {
       setTogglingOnline(false);
     }
@@ -308,11 +467,15 @@ export default function RiderHomeScreen() {
     } else {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        mapRef.current?.animateToRegion(
-          { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 },
-          500
-        );
+        try {
+          const loc = await Location.getCurrentPositionAsync({});
+          mapRef.current?.animateToRegion(
+            { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 },
+            500
+          );
+        } catch {
+          // GPS unavailable — map stays at current region
+        }
       }
     }
   };
@@ -334,35 +497,38 @@ export default function RiderHomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Full-screen Map */}
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={CALABAR_REGION}
-        showsUserLocation={isOnline}
-        showsMyLocationButton={false}
-        customMapStyle={mapStyle}
-      >
-        {/* Nearby order pins — coords approximated from order_id hash until RPC returns exact coords */}
-        {nearbyOrders.map((order) => (
-          <Marker
-            key={order.order_id}
-            coordinate={pinCoordFromId(order.order_id, userLocation)}
-            onPress={() => setSelectedOrder(order)}
-          >
-            <View style={[
-              styles.orderPin,
-              selectedOrder?.order_id === order.order_id && styles.orderPinActive,
-            ]}>
-              <Ionicons name="cube-outline" size={14} color="#FFFFFF" />
-              <Text style={styles.orderPinPrice}>
-                {formatOrderPrice(order.suggested_price, order.dynamic_price)}
-              </Text>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+      {/* Full-screen Map — unmounted when screen is not focused to prevent ViewChangesTracker OOM */}
+      {mapMounted && (
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFillObject}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={CALABAR_REGION}
+          showsUserLocation={isOnline}
+          showsMyLocationButton={false}
+          customMapStyle={mapStyle}
+        >
+          {nearbyOrders.map((order) => (
+            <Marker
+              key={order.order_id}
+              coordinate={pickupCoordinateForOrder(order, userLocation)}
+              onPress={() => setSelectedOrder(order)}
+              anchor={{ x: 0.5, y: 0.5 }}
+              flat
+            >
+              <View style={[
+                styles.orderPin,
+                selectedOrder?.order_id === order.order_id && styles.orderPinActive,
+              ]}>
+                <Ionicons name="cube-outline" size={14} color="#FFFFFF" />
+                <Text style={styles.orderPinPrice}>
+                  {formatOrderPrice(order.suggested_price, order.dynamic_price)}
+                </Text>
+              </View>
+            </Marker>
+          ))}
+        </MapView>
+      )}
 
       {/* Header: glassmorphism with online toggle */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -459,8 +625,20 @@ export default function RiderHomeScreen() {
         </View>
       ) : (
         <>
+          {/* Commission lock banner — shown above offline banner, takes priority */}
+          {isCommissionLocked && (
+            <Pressable
+              style={[styles.commissionLockBanner, { top: insets.top + 72 }]}
+              onPress={() => router.push({ pathname: '/(rider)/earnings' as any })}
+            >
+              <Ionicons name="lock-closed" size={16} color="#ba1a1a" />
+              <Text style={styles.commissionLockText}>Account locked — unpaid commission. Tap to pay.</Text>
+              <Ionicons name="chevron-forward" size={14} color="#ba1a1a" />
+            </Pressable>
+          )}
+
           {/* Offline state banner */}
-          {!isOnline && (
+          {!isOnline && !isCommissionLocked && (
             <View style={[styles.offlineBanner, { top: insets.top + 72 }]}>
               <Ionicons name="moon-outline" size={16} color="#74777e" />
               <Text style={styles.offlineBannerText}>You are offline. Go online to see delivery jobs.</Text>
@@ -475,8 +653,15 @@ export default function RiderHomeScreen() {
             </View>
           )}
 
+          {isOnline && !loadingOrders && locationError && (
+            <View style={[styles.permissionBanner, { top: insets.top + 72 }]}>
+              <Ionicons name="location-outline" size={16} color="#b45309" />
+              <Text style={styles.permissionBannerText}>{locationError}</Text>
+            </View>
+          )}
+
           {/* Online + no orders state */}
-          {isOnline && !loadingOrders && nearbyOrders.length === 0 && !selectedOrder && (
+          {isOnline && !loadingOrders && nearbyOrders.length === 0 && !selectedOrder && !locationError && (
             <View style={[styles.emptyState, { top: insets.top + 72 }]}>
               <Ionicons name="search-outline" size={16} color="#74777e" />
               <Text style={styles.emptyStateText}>No orders nearby right now</Text>
@@ -678,6 +863,16 @@ const styles = StyleSheet.create({
   orderPinPrice: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
 
   // Banners
+  commissionLockBanner: {
+    position: 'absolute', left: Spacing[5], right: Spacing[5], zIndex: 30,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFDAD6',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#FFBAB1',
+    shadowColor: '#ba1a1a', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+  },
+  commissionLockText: { fontSize: Typography.xs, color: '#93000a', fontWeight: '700', flex: 1 },
   offlineBanner: {
     position: 'absolute', left: Spacing[5], right: Spacing[5], zIndex: 30,
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -696,6 +891,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
   loadingBarText: { fontSize: Typography.xs, color: '#0040e0', fontWeight: '600' },
+  permissionBanner: {
+    position: 'absolute', left: Spacing[5], right: Spacing[5], zIndex: 30,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFF4E5',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10,
+    shadowColor: '#000D22', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  permissionBannerText: { fontSize: Typography.xs, color: '#b45309', flex: 1, fontWeight: '600' },
   emptyState: {
     position: 'absolute', left: Spacing[5], right: Spacing[5], zIndex: 30,
     flexDirection: 'row', alignItems: 'center', gap: 8,

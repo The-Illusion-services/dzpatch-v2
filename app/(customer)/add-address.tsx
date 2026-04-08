@@ -14,11 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import { supabase } from '@/lib/supabase';
+import { createPlacesSessionToken, getGoogleMapsApiKey } from '@/lib/google-maps';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui';
 import { Spacing, Typography } from '@/constants/theme';
 
-const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY ?? '';
+const GOOGLE_API_KEY = getGoogleMapsApiKey();
 const BIAS_RADIUS = 20000;
 
 type Label = 'home' | 'work' | 'school' | 'other';
@@ -43,6 +44,7 @@ export default function AddAddressScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [placesSessionToken, setPlacesSessionToken] = useState(() => createPlacesSessionToken('saved-address'));
 
   const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
@@ -51,8 +53,12 @@ export default function AddAddressScreen() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      } catch {
+        // GPS unavailable — proceed without location bias
+      }
     })();
   }, []);
 
@@ -159,12 +165,13 @@ export default function AddAddressScreen() {
                     lng: details.geometry.location.lng,
                   });
                 }
+                setPlacesSessionToken(createPlacesSessionToken('saved-address'));
               }}
               query={{
                 key: GOOGLE_API_KEY,
                 language: 'en',
                 components: 'country:ng',
-                sessiontoken: true,
+                sessiontoken: placesSessionToken,
                 ...(userLocation ? {
                   location: `${userLocation.lat},${userLocation.lng}`,
                   radius: BIAS_RADIUS,
@@ -179,9 +186,7 @@ export default function AddAddressScreen() {
                 listView: styles.placesList,
                 row: styles.placesRow,
                 description: styles.placesDesc,
-                poweredContainer: { display: 'none' },
               }}
-              enablePoweredByContainer={false}
               renderLeftButton={() => (
                 <View style={styles.placesIcon}>
                   <Ionicons name="search-outline" size={16} color="#74777e" />

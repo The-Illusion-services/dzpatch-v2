@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { adjustCurrencyAmount, buildRiderEarningsBreakdown } from '@/lib/sprint4-ux';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { BID_RESPONSE_WINDOW_SECONDS } from '@/constants/timing';
 
 interface OrderSummary {
   id: string;
@@ -29,6 +30,7 @@ interface OrderSummary {
   package_size: string | null;
   platform_commission_rate: number | null;
   platform_commission_amount: number | null;
+  customer_id: string;
 }
 
 export default function CounterOfferScreen() {
@@ -49,7 +51,7 @@ export default function CounterOfferScreen() {
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [bidAmount, setBidAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [countdown, setCountdown] = useState(300);
+  const [countdown, setCountdown] = useState(BID_RESPONSE_WINDOW_SECONDS);
   const [incomingCounter, setIncomingCounter] = useState<number | null>(null);
   const inputRef = useRef<TextInput>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -62,7 +64,7 @@ export default function CounterOfferScreen() {
     const loadOrder = async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, pickup_address, dropoff_address, dynamic_price, suggested_price, distance_km, package_size, platform_commission_rate, platform_commission_amount')
+        .select('id, pickup_address, dropoff_address, dynamic_price, suggested_price, distance_km, package_size, platform_commission_rate, platform_commission_amount, customer_id')
         .eq('id', orderId)
         .single();
       if (!isActive) return;
@@ -188,14 +190,16 @@ export default function CounterOfferScreen() {
     submittingRef.current = true;
     try {
       if (counterBidId) {
-        // Rider is responding to a customer counter-offer (counterBidId is the customer's pending bid).
-        // Send a counter at the exact same amount — customer sees it as accepted.
-        const { error } = await (supabase as any).rpc('send_rider_counter_offer', {
+        const { error } = await (supabase as any).rpc('accept_customer_counter_offer', {
           p_bid_id: counterBidId,
           p_rider_id: riderId,
-          p_amount: exactAmount,
         });
         if (error) throw error;
+        router.replace({
+          pathname: '/(rider)/navigate-to-pickup' as any,
+          params: { orderId },
+        });
+        return;
       } else {
         const { error } = await (supabase as any).rpc('place_bid', {
           p_order_id: orderId,

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -29,6 +29,28 @@ export default function CancelOrderModalScreen() {
   const [selectedReason, setSelectedReason] = useState(REASONS[0]);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [penaltyAmount, setPenaltyAmount] = useState<number | null>(null);
+
+  // Fetch order status to determine if late-cancel 20% penalty applies
+  useEffect(() => {
+    if (!orderId) return;
+    let isActive = true;
+    const fetchPenalty = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('status, final_price')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (!isActive || !data) return;
+      const lateStatuses = ['in_transit', 'arrived_dropoff'];
+      if (lateStatuses.includes((data as any).status)) {
+        const fee = Math.round(Number((data as any).final_price) * 0.2);
+        setPenaltyAmount(fee);
+      }
+    };
+    void fetchPenalty();
+    return () => { isActive = false; };
+  }, [orderId]);
 
   const handleConfirm = async () => {
     setCancelling(true);
@@ -69,6 +91,16 @@ export default function CancelOrderModalScreen() {
         <Text style={styles.sheetBody}>
           Please let us know why you are cancelling your request.
         </Text>
+
+        {/* Late-cancel penalty warning */}
+        {penaltyAmount != null && penaltyAmount > 0 && (
+          <View style={styles.penaltyBanner}>
+            <Text style={styles.penaltyIcon}>⚠️</Text>
+            <Text style={styles.penaltyText}>
+              A <Text style={styles.penaltyBold}>₦{penaltyAmount.toLocaleString()} cancellation fee</Text> (20%) will be deducted from your wallet because a rider is already on the way.
+            </Text>
+          </View>
+        )}
 
         {/* Reason list */}
         <View style={styles.reasonList}>
@@ -264,4 +296,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0040e0',
     opacity: 0.15,
   },
+
+  penaltyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginHorizontal: Spacing[5],
+    marginBottom: 12,
+    backgroundColor: '#FFF4E5',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  penaltyIcon: { fontSize: 16, flexShrink: 0 },
+  penaltyText: { flex: 1, fontSize: Typography.xs, color: '#92400e', lineHeight: 18 },
+  penaltyBold: { fontWeight: '700' },
 });

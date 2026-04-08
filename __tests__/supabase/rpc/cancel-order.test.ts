@@ -51,7 +51,7 @@ describeSupabase('Supabase RPC - Cancel Order', () => {
     expect(cancel.error).toBeNull();
 
     const order = await clients.service.from('orders').select('status').eq('id', created.orderId).single();
-    const cancellation = await clients.service.from('cancellations' as any).select('*').eq('order_id', created.orderId).single();
+    const cancellation = await clients.service.from('cancellations').select('*').eq('order_id', created.orderId).single();
 
     expect(order.data?.status).toBe('cancelled');
     expect(cancellation.error).toBeNull();

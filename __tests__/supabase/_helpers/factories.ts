@@ -1,3 +1,5 @@
+import type { SupabaseTestClient } from './client';
+
 export function buildTestReference(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -66,7 +68,7 @@ export function extractBidId(result: unknown) {
 }
 
 export async function createOrderAsCustomer(
-  customerClient: { rpc: (...args: any[]) => Promise<{ data: unknown; error: { message: string } | null }> },
+  customerClient: Pick<SupabaseTestClient, 'rpc'>,
   customerId: string,
   overrides: CreateOrderOverrides = {},
 ) {
@@ -85,7 +87,7 @@ export async function createOrderAsCustomer(
 }
 
 export async function advanceOrderToDropoff(
-  riderClient: { rpc: (...args: any[]) => Promise<{ error: { message: string } | null }> },
+  riderClient: Pick<SupabaseTestClient, 'rpc'>,
   orderId: string,
   riderProfileId: string,
 ) {
@@ -110,8 +112,8 @@ export async function advanceOrderToDropoff(
 }
 
 export async function createMatchedOrder(
-  customerClient: { rpc: (...args: any[]) => Promise<{ data: unknown; error: { message: string } | null }> },
-  riderClient: { rpc: (...args: any[]) => Promise<{ data: unknown; error: { message: string } | null }> },
+  customerClient: Pick<SupabaseTestClient, 'rpc'>,
+  riderClient: Pick<SupabaseTestClient, 'rpc'>,
   customerId: string,
   riderId: string,
   overrides: CreateOrderOverrides = {},
@@ -144,8 +146,8 @@ export async function createMatchedOrder(
 }
 
 export async function createDeliveredOrder(
-  customerClient: { rpc: (...args: any[]) => Promise<{ data: unknown; error: { message: string } | null }> },
-  riderClient: { rpc: (...args: any[]) => Promise<{ data: unknown; error: { message: string } | null }> },
+  customerClient: Pick<SupabaseTestClient, 'rpc'>,
+  riderClient: Pick<SupabaseTestClient, 'rpc'>,
   customerId: string,
   riderId: string,
   riderProfileId: string,
@@ -173,6 +175,5 @@ export async function createDeliveredOrder(
   if (completed.error) {
     throw new Error(`complete_delivery failed: ${completed.error.message}`);
   }
-
   return matched;
 }

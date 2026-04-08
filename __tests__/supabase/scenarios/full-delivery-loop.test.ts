@@ -1,10 +1,16 @@
-import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   createSupabaseServiceClient,
   createSupabaseTestClients,
   hasSupabaseTestEnv,
   type SupabaseTestClients,
 } from '../_helpers/client';
+import {
+  cleanupSupabaseScenarioData,
+  createSupabaseScenarioState,
+  trackSupabaseOrder,
+  type SupabaseScenarioState,
+} from '../_helpers/cleanup';
 import { advanceOrderToDropoff, createMatchedOrder, extractBidId } from '../_helpers/factories';
 import { seedSupabaseBaseState, type SeededSupabaseUsers } from '../_helpers/seed';
 
@@ -15,10 +21,20 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
 
   let clients: SupabaseTestClients;
   let seeded: SeededSupabaseUsers;
+  let scenario: SupabaseScenarioState;
 
   beforeAll(async () => {
     seeded = await seedSupabaseBaseState(createSupabaseServiceClient());
     clients = await createSupabaseTestClients();
+  });
+
+  beforeEach(async () => {
+    scenario = createSupabaseScenarioState('full-delivery-loop');
+    await cleanupSupabaseScenarioData(clients.service, undefined, seeded);
+  });
+
+  afterEach(async () => {
+    await cleanupSupabaseScenarioData(clients.service, scenario, seeded);
   });
 
   it('customer funds wallet, creates order, rider bids, accepts, verifies code, and completes delivery', async () => {
@@ -27,6 +43,7 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
     const matched = await createMatchedOrder(clients.customer, clients.rider, seeded.customerId, seeded.riderId, {
       paymentMethod: 'wallet',
     });
+    trackSupabaseOrder(scenario, matched.orderId);
     const order = await clients.service.from('orders').select('*').eq('id', matched.orderId).single();
 
     await advanceOrderToDropoff(clients.rider, matched.orderId, seeded.riderProfileId);
@@ -38,6 +55,7 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
     const completion = await clients.rider.rpc('complete_delivery', {
       p_order_id: matched.orderId,
       p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-wallet-loop.jpg',
     } as any);
 
     expect(completion.error).toBeNull();
@@ -53,6 +71,7 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
     const matched = await createMatchedOrder(clients.customer, clients.rider, seeded.customerId, seeded.riderId, {
       paymentMethod: 'cash',
     });
+    trackSupabaseOrder(scenario, matched.orderId);
     const order = await clients.service.from('orders').select('*').eq('id', matched.orderId).single();
 
     await advanceOrderToDropoff(clients.rider, matched.orderId, seeded.riderProfileId);
@@ -64,11 +83,12 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
     const completion = await clients.rider.rpc('complete_delivery', {
       p_order_id: matched.orderId,
       p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-cash-loop.jpg',
     } as any);
     expect(completion.error).toBeNull();
 
     const outstanding = await clients.service
-      .from('outstanding_balances' as any)
+      .from('outstanding_balances')
       .select('*')
       .eq('order_id', matched.orderId)
       .maybeSingle();
@@ -88,6 +108,7 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
       p_payment_method: 'cash',
     } as any);
     const orderId2 = (order2.data as any)?.order_id;
+    trackSupabaseOrder(scenario, orderId2);
 
     const initialBid = await clients.rider.rpc('place_bid', {
       p_order_id: orderId2,
@@ -108,6 +129,7 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
     const matched = await createMatchedOrder(clients.customer, clients.rider, seeded.customerId, seeded.riderId, {
       paymentMethod: 'wallet',
     });
+    trackSupabaseOrder(scenario, matched.orderId);
 
     const chat = await clients.customer
       .from('chat_messages')
@@ -154,5 +176,104 @@ describeSupabase('Supabase Scenarios - Full Delivery Loop', () => {
 
     const refunds = await clients.service.from('transactions').select('*').eq('order_id', matched.orderId).eq('type', 'refund');
     expect((refunds.data ?? []).length).toBe(1);
+  });
+
+  it('expired unmatched wallet order is cancelled, refunded, and its pending bids are rejected', async () => {
+    const created = await clients.customer.rpc('create_order', {
+      p_customer_id: seeded.customerId,
+      p_pickup_address: 'Expiry pickup',
+      p_pickup_lat: 6.5,
+      p_pickup_lng: 3.3,
+      p_dropoff_address: 'Expiry dropoff',
+      p_dropoff_lat: 6.51,
+      p_dropoff_lng: 3.31,
+      p_package_size: 'small',
+      p_package_description: 'expiry scenario',
+      p_payment_method: 'wallet',
+    } as any);
+    const orderId = (created.data as any)?.order_id;
+    trackSupabaseOrder(scenario, orderId);
+
+    const bid = await clients.rider.rpc('place_bid', {
+      p_order_id: orderId,
+      p_rider_id: seeded.riderId,
+      p_amount: 2100,
+    } as any);
+    const bidId = extractBidId(bid.data);
+
+    await clients.service
+      .from('orders')
+      .update({ expires_at: new Date(Date.now() - 60_000).toISOString() } as any)
+      .eq('id', orderId);
+
+    const cancelled = await clients.service.rpc('cancel_expired_orders');
+    expect(cancelled.error).toBeNull();
+
+    const order = await clients.service.from('orders').select('status').eq('id', orderId).single();
+    const refreshedBid = await clients.service.from('bids').select('status').eq('id', bidId).single();
+    const refund = await clients.service
+      .from('transactions')
+      .select('type')
+      .eq('order_id', orderId)
+      .eq('type', 'refund');
+
+    expect(order.data?.status).toBe('cancelled');
+    expect(refreshedBid.data?.status).toBe('rejected');
+    expect((refund.data ?? []).length).toBe(1);
+  });
+
+  it('delivered order supports participant dispute and cash settlement lifecycle', async () => {
+    const matched = await createMatchedOrder(clients.customer, clients.rider, seeded.customerId, seeded.riderId, {
+      paymentMethod: 'cash',
+    });
+    trackSupabaseOrder(scenario, matched.orderId);
+
+    const order = await clients.service.from('orders').select('*').eq('id', matched.orderId).single();
+    await advanceOrderToDropoff(clients.rider, matched.orderId, seeded.riderProfileId);
+    await clients.rider.rpc('verify_delivery_code', {
+      p_order_id: matched.orderId,
+      p_rider_id: seeded.riderId,
+      p_code: order.data?.delivery_code,
+    } as any);
+
+    const completion = await clients.rider.rpc('complete_delivery', {
+      p_order_id: matched.orderId,
+      p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-scenario.jpg',
+    } as any);
+    expect(completion.error).toBeNull();
+
+    const dispute = await clients.customer.rpc('raise_dispute', {
+      p_order_id: matched.orderId,
+      p_subject: 'Damaged item',
+      p_description: 'Scenario dispute after delivery',
+    } as any);
+    expect(dispute.error).toBeNull();
+
+    const outstandingBefore = await clients.service
+      .from('outstanding_balances')
+      .select('paid_at')
+      .eq('order_id', matched.orderId)
+      .single();
+    expect(outstandingBefore.data?.paid_at).toBeNull();
+
+    const settle = await clients.rider.rpc('mark_cash_paid', {
+      p_order_id: matched.orderId,
+      p_rider_id: seeded.riderId,
+    } as any);
+    expect(settle.error).toBeNull();
+
+    const outstandingAfter = await clients.service
+      .from('outstanding_balances')
+      .select('paid_at')
+      .eq('order_id', matched.orderId)
+      .single();
+    const disputes = await clients.service
+      .from('disputes')
+      .select('order_id, raised_by, subject')
+      .eq('order_id', matched.orderId);
+
+    expect(outstandingAfter.data?.paid_at).not.toBeNull();
+    expect((disputes.data ?? []).some((row) => row.raised_by === seeded.customerId && row.subject === 'Damaged item')).toBe(true);
   });
 });

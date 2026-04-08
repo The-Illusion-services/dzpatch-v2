@@ -123,6 +123,46 @@ describeSupabase('Supabase Auth - Bootstrap and Identity', () => {
     expect(otherProfile.data).toBeNull();
   });
 
+  it('authenticated user can manage own push tokens but not another user profile_id rows', async () => {
+    const customerClient = await createAuthenticatedSupabaseTestClient('customer@test.com');
+    const otherCustomerClient = await createAuthenticatedSupabaseTestClient('customer2@test.com');
+    const token = `ExponentPushToken[test-${Date.now()}]`;
+
+    const insert = await (customerClient as any)
+      .from('push_tokens')
+      .insert({
+        profile_id: seeded.customerId,
+        token,
+        platform: 'android',
+      })
+      .select('*')
+      .single();
+
+    if (insert.error?.code === 'PGRST205') {
+      expect(insert.error.message).toContain('push_tokens');
+      return;
+    }
+
+    expect(insert.error).toBeNull();
+    expect(insert.data?.profile_id).toBe(seeded.customerId);
+
+    const ownRead = await (customerClient as any)
+      .from('push_tokens')
+      .select('profile_id, token')
+      .eq('profile_id', seeded.customerId);
+
+    expect(ownRead.error).toBeNull();
+    expect((ownRead.data ?? []).some((row: any) => row.token === token)).toBe(true);
+
+    const otherRead = await (otherCustomerClient as any)
+      .from('push_tokens')
+      .select('profile_id, token')
+      .eq('profile_id', seeded.customerId);
+
+    expect(otherRead.error).toBeNull();
+    expect(otherRead.data).toEqual([]);
+  });
+
   it('admin role can read admin-allowed records', async () => {
     const adminClient = await createAuthenticatedSupabaseTestClient('admin@test.com');
 

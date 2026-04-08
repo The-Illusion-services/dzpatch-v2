@@ -141,5 +141,11 @@ describeSupabase('Supabase RLS - Chat and Contact Authorization', () => {
     expect(row).toBeTruthy();
     expect('pickup_contact_phone' in row).toBe(false);
     expect('dropoff_contact_phone' in row).toBe(false);
+    if ('pickup_lat' in row && row.pickup_lat != null) {
+      expect(typeof row.pickup_lat).toBe('number');
+    }
+    if ('pickup_lng' in row && row.pickup_lng != null) {
+      expect(typeof row.pickup_lng).toBe('number');
+    }
   });
 });

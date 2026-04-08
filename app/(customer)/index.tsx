@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar, Card, SkeletonCard, StatusBadge } from '@/components/ui';
 import { Colors, Spacing, Typography } from '@/constants/theme';
-import type { Order } from '@/types/database';
+import type { OrderStatus } from '@/types/database';
 
 // Dummy rider positions — shown when no active order, scaled for latitudeDelta 0.018
 const DUMMY_RIDERS = [
@@ -30,7 +30,17 @@ const DUMMY_RIDERS = [
   { id: 'r5', latOffset: 0.001,  lngOffset: -0.008 },
 ];
 
-const ACTIVE_ORDER_STATUSES = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
+const ACTIVE_ORDER_STATUSES: OrderStatus[] = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
+
+type ActiveOrderSummary = {
+  id: string;
+  status: OrderStatus;
+  created_at: string;
+  pickup_address: string;
+  dropoff_address: string;
+  final_price: number | null;
+  rider_id: string | null;
+};
 
 // Default center — Calabar (fallback if no location permission)
 const DEFAULT_REGION = {
@@ -43,7 +53,7 @@ const DEFAULT_REGION = {
 export default function HomeScreen() {
   const { profile } = useAuthStore();
   const insets = useSafeAreaInsets();
-  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [activeOrders, setActiveOrders] = useState<ActiveOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [region, setRegion] = useState(DEFAULT_REGION);
@@ -70,8 +80,7 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Get location — animate map to user's actual position
-  // Last known position first (instant), then refine
+  // Get location — last-known first (instant), then refine with current
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -80,12 +89,14 @@ export default function HomeScreen() {
       if (last) {
         const r = { latitude: last.coords.latitude, longitude: last.coords.longitude, latitudeDelta: 0.018, longitudeDelta: 0.018 };
         setRegion(r);
-        mapRef.current?.animateToRegion(r, 400);
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const userRegion = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.018, longitudeDelta: 0.018 };
-      setRegion(userRegion);
-      mapRef.current?.animateToRegion(userRegion, 600);
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const userRegion = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.018, longitudeDelta: 0.018 };
+        setRegion(userRegion);
+      } catch {
+        // GPS unavailable — stay on last-known/default
+      }
     })();
   }, []);
 
@@ -94,15 +105,15 @@ export default function HomeScreen() {
   useEffect(() => {
     // Find the first active order that has a rider assigned
     const activeOrder = activeOrders.find(
-      (o) => ACTIVE_ORDER_STATUSES.includes(o.status) && (o as any).rider_id
+      (o) => ACTIVE_ORDER_STATUSES.includes(o.status) && o.rider_id
     );
 
-    if (!activeOrder || !(activeOrder as any).rider_id) {
+    if (!activeOrder?.rider_id) {
       setRiderLocation(null);
       return;
     }
 
-    const riderId = (activeOrder as any).rider_id as string;
+    const riderId = activeOrder.rider_id;
 
     // Fetch initial position
     supabase
@@ -137,10 +148,10 @@ export default function HomeScreen() {
       .from('orders')
       .select('id, status, created_at, pickup_address, dropoff_address, final_price, rider_id')
       .eq('customer_id', userId)
-      .not('status', 'in', '("completed","cancelled")')
+      .in('status', ACTIVE_ORDER_STATUSES)
       .order('created_at', { ascending: false })
       .limit(5);
-    setActiveOrders(data ?? []);
+    setActiveOrders((data ?? []) as ActiveOrderSummary[]);
   };
 
   // Re-fetch on focus and whenever profile loads
@@ -213,6 +224,7 @@ export default function HomeScreen() {
           style={StyleSheet.absoluteFill}
           provider={PROVIDER_GOOGLE}
           region={region}
+          showsUserLocation
           scrollEnabled={false}
           zoomEnabled={false}
           rotateEnabled={false}
@@ -326,7 +338,7 @@ export default function HomeScreen() {
 
 // ─── Active Order Card ────────────────────────────────────────────────────────
 
-function ActiveOrderCard({ order }: { order: Order }) {
+function ActiveOrderCard({ order }: { order: ActiveOrderSummary }) {
   const progressMap: Record<string, number> = {
     pending: 0.1,
     matched: 0.25,

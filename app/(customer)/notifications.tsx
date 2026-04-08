@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,7 @@ type Notification = {
   type: NotificationType;
   title: string;
   body: string;
+  data: Record<string, unknown> | null;
   is_read: boolean;
   created_at: string;
   order_id: string | null;
@@ -70,16 +73,26 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!profile?.id) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('notifications')
-      .select('id, type, title, body, is_read, created_at, order_id')
+      .select('id, type, title, body, data, is_read, created_at')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(60);
-    if (data) setNotifications(data as Notification[]);
+    if (error) {
+      console.warn('notifications load failed:', error.message);
+      return;
+    }
+    if (data) {
+      setNotifications((data as (Omit<Notification, 'order_id'> & { data: Record<string, unknown> | null })[]).map((item) => ({
+        ...item,
+        order_id: typeof item.data?.order_id === 'string' ? item.data.order_id : null,
+      })));
+    }
   }, [profile?.id]);
 
   useEffect(() => {
@@ -98,9 +111,14 @@ export default function NotificationsScreen() {
         setNotifications((prev) => [payload.new as Notification, ...prev]);
       })
       .subscribe();
+    channelRef.current = channel;
 
     return () => { supabase.removeChannel(channel); };
   }, [profile?.id, fetchNotifications]);
+
+  useAppStateChannels([channelRef.current], {
+    onForeground: fetchNotifications,
+  });
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -110,15 +128,23 @@ export default function NotificationsScreen() {
 
   const markAllRead = async () => {
     if (!profile?.id) return;
-    await (supabase.from('notifications') as any)
+    const { error } = await (supabase.from('notifications') as any)
       .update({ is_read: true })
       .eq('user_id', profile.id)
       .eq('is_read', false);
+    if (error) {
+      console.warn('notifications mark-all-read failed:', error.message);
+      return;
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
   const markRead = async (id: string) => {
-    await (supabase.from('notifications') as any).update({ is_read: true }).eq('id', id);
+    const { error } = await (supabase.from('notifications') as any).update({ is_read: true }).eq('id', id);
+    if (error) {
+      console.warn('notifications mark-read failed:', error.message);
+      return;
+    }
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
   };
 

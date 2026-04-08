@@ -14,10 +14,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import type { DocumentType } from '@/types/database';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DocStatus = 'verified' | 'pending' | 'rejected' | 'expired' | 'missing';
+type DocStatus = 'approved' | 'verified' | 'pending' | 'rejected' | 'expired' | 'missing';
 
 interface RiderDocument {
   id: string;
@@ -27,13 +28,16 @@ interface RiderDocument {
   created_at: string;
 }
 
-const DOC_CONFIG: Record<string, { label: string; category: string; categoryColor: string }> = {
+const DOC_CONFIG: Record<DocumentType, { label: string; category: string; categoryColor: string }> = {
   drivers_license: { label: "Driver's License", category: 'IDENTIFICATION', categoryColor: '#0040e0' },
   vehicle_insurance: { label: 'Vehicle Insurance', category: 'LEGAL & SAFETY', categoryColor: '#D97706' },
   plate_photo: { label: 'Plate Photo', category: 'VEHICLE DETAIL', categoryColor: '#ba1a1a' },
+  national_id: { label: 'National ID', category: 'IDENTIFICATION', categoryColor: '#0040e0' },
+  other: { label: 'Other Document', category: 'SUPPORTING', categoryColor: '#74777e' },
 };
 
 const STATUS_CONFIG: Record<DocStatus, { icon: string; color: string; bg: string; label: string }> = {
+  approved: { icon: 'checkmark-circle', color: '#16A34A', bg: '#DCFCE7', label: 'Approved' },
   verified: { icon: 'checkmark-circle', color: '#16A34A', bg: '#DCFCE7', label: 'Verified' },
   pending: { icon: 'time-outline', color: '#D97706', bg: '#FEF3C7', label: 'Pending Review' },
   rejected: { icon: 'close-circle', color: '#ba1a1a', bg: '#ffdad6', label: 'Rejected' },
@@ -66,7 +70,7 @@ export default function DocumentsManagementScreen() {
 
   // ── Upload document ────────────────────────────────────────────────────────
 
-  const handleUpload = async (documentType: string) => {
+  const handleUpload = async (documentType: DocumentType) => {
     if (!profile?.id || !riderId) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -141,7 +145,7 @@ export default function DocumentsManagementScreen() {
 
   // ── Build display list ─────────────────────────────────────────────────────
 
-  const allDocTypes = Object.keys(DOC_CONFIG);
+  const allDocTypes = Object.keys(DOC_CONFIG) as DocumentType[];
   const docMap = new Map(documents.map((d) => [d.document_type, d]));
 
   const displayDocs = allDocTypes.map((type) => ({
@@ -170,7 +174,7 @@ export default function DocumentsManagementScreen() {
 
       {/* Document cards */}
       {displayDocs.map(({ type, doc, config, statusKey }) => {
-        const sc = STATUS_CONFIG[statusKey];
+        const sc = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.missing;
         const isUploading = uploading === type;
 
         return (
@@ -192,6 +196,11 @@ export default function DocumentsManagementScreen() {
             {doc?.created_at && statusKey === 'pending' && (
               <Text style={styles.docMeta}>
                 Submitted {new Date(doc.created_at).toLocaleDateString('en-NG')}
+              </Text>
+            )}
+            {doc?.created_at && statusKey === 'approved' && (
+              <Text style={styles.docMeta}>
+                Approved {new Date(doc.created_at).toLocaleDateString('en-NG')}
               </Text>
             )}
             {statusKey === 'rejected' && (

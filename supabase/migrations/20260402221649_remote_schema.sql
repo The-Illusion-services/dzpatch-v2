@@ -9965,11 +9965,39 @@ drop function if exists "public"."debit_wallet"(p_wallet_id uuid, p_amount numer
 
 drop function if exists "public"."update_order_status"(p_order_id uuid, p_new_status order_status, p_changed_by uuid, p_reason text, p_metadata jsonb);
 
-drop type "public"."geometry_dump";
+do $$
+begin
+  if exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    left join pg_depend d on d.objid = t.oid and d.deptype = 'e'
+    where n.nspname = 'public'
+      and t.typname = 'geometry_dump'
+      and d.objid is null
+  ) then
+    drop type "public"."geometry_dump";
+  end if;
+end
+$$;
 
 drop function if exists "public"."get_nearby_orders"(p_rider_id uuid, p_radius_meters double precision);
 
-drop type "public"."valid_detail";
+do $$
+begin
+  if exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    left join pg_depend d on d.objid = t.oid and d.deptype = 'e'
+    where n.nspname = 'public'
+      and t.typname = 'valid_detail'
+      and d.objid is null
+  ) then
+    drop type "public"."valid_detail";
+  end if;
+end
+$$;
 
 drop index if exists "public"."idx_bids_one_pending_per_rider";
 
@@ -10784,7 +10812,19 @@ END;
 $function$
 ;
 
-create type "public"."geometry_dump" as ("path" integer[], "geom" public.geometry);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'geometry_dump'
+  ) then
+    create type "public"."geometry_dump" as ("path" integer[], "geom" public.geometry);
+  end if;
+end
+$$;
 
 CREATE OR REPLACE FUNCTION public.get_nearby_orders(p_rider_id uuid, p_radius_meters double precision DEFAULT 10000)
  RETURNS TABLE(order_id uuid, customer_name text, pickup_address text, dropoff_address text, distance_to_pickup double precision, dynamic_price numeric, suggested_price numeric, package_size public.package_size, package_description text, category_name text, created_at timestamp with time zone, expires_at timestamp with time zone)
@@ -10880,7 +10920,19 @@ END;
 $function$
 ;
 
-create type "public"."valid_detail" as ("valid" boolean, "reason" character varying, "location" public.geometry);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'valid_detail'
+  ) then
+    create type "public"."valid_detail" as ("valid" boolean, "reason" character varying, "location" public.geometry);
+  end if;
+end
+$$;
 
 
   create policy "bids_select_customer"
@@ -11400,6 +11452,3 @@ using (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'ri
   for insert
   to authenticated
 with check (((bucket_id = 'documents'::text) AND ((storage.foldername(name))[1] = 'rider-docs'::text) AND ((storage.foldername(name))[2] = (auth.uid())::text)));
-
-
-

@@ -1,11 +1,15 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   areQuickControlsUsable,
+  buildPushTokenUpsert,
+  buildRaiseDisputePayload,
   buildDeliverySuccessSummary,
   buildTripCompleteTotals,
   classifyWalletTransaction,
   getCancellationReasonLabel,
   getWaitingForCustomerOutcome,
+  resolveSplashRoute,
+  shouldWarnCancelPenalty,
   shouldShowCallButton,
 } from '@/lib/integration-phase-helpers';
 
@@ -62,10 +66,41 @@ describe('Phase 6 - Customer and Rider UX Regression Pack', () => {
 
   it('rider waiting-for-customer timeout withdraws safely', () => {
     expect(getWaitingForCustomerOutcome({
-      elapsedSeconds: 301,
+      elapsedSeconds: 901,
       accepted: false,
       cancelled: false,
     })).toBe('withdraw_bid');
+  });
+
+  it('cancel-fee warning only appears for real backend penalty statuses', () => {
+    expect(shouldWarnCancelPenalty('in_transit')).toBe(true);
+    expect(shouldWarnCancelPenalty('arrived_dropoff')).toBe(true);
+    expect(shouldWarnCancelPenalty('matched')).toBe(false);
+    expect(shouldWarnCancelPenalty('pickup_en_route')).toBe(false);
+  });
+
+  it('report issue screens build raise_dispute RPC payloads', () => {
+    expect(buildRaiseDisputePayload('order-1', 'Damaged item', 'order-details')).toEqual({
+      p_order_id: 'order-1',
+      p_subject: 'Damaged item',
+      p_description: 'Issue reported from order-details screen. Order: order-1',
+    });
+  });
+
+  it('push registration stores per-device token rows instead of mutating profiles', () => {
+    expect(buildPushTokenUpsert('profile-1', 'ExponentPushToken[abc]', 'android')).toMatchObject({
+      profile_id: 'profile-1',
+      token: 'ExponentPushToken[abc]',
+      platform: 'android',
+    });
+  });
+
+  it('unknown roles route back to onboarding instead of customer home', () => {
+    expect(resolveSplashRoute({
+      session: true,
+      role: 'fleet_manager',
+      fullName: 'Mystery User',
+    })).toBe('/(auth)/onboarding');
   });
 
   it('trip-complete totals match payout math', () => {

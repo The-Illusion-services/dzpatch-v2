@@ -45,19 +45,35 @@ export default function FundWalletScreen() {
   // ── Load balance on mount ──────────────────────────────────────────────────
   useEffect(() => {
     if (!profile?.id) return;
-    supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('owner_id', profile.id)
-      .eq('owner_type', 'customer')
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const w = data as { id: string; balance: number };
-          setBalance(w.balance);
-          setWalletId(w.id);
-        }
-      });
+    let isActive = true;
+
+    const loadWallet = async () => {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('owner_id', profile.id)
+        .eq('owner_type', 'customer')
+        .single();
+
+      if (!isActive) return;
+
+      if (error) {
+        console.warn('fund-wallet load wallet failed:', error.message);
+        return;
+      }
+
+      if (data) {
+        const w = data as { id: string; balance: number };
+        setBalance(w.balance);
+        setWalletId(w.id);
+      }
+    };
+
+    void loadWallet();
+
+    return () => {
+      isActive = false;
+    };
   }, [profile?.id]);
 
   const parsedAmount = parseFloat(amount.replace(/,/g, '')) || 0;
@@ -78,28 +94,33 @@ export default function FundWalletScreen() {
       return;
     }
 
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ amount: parsedAmount, wallet_id: walletId }),
+    try {
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ amount: parsedAmount, wallet_id: walletId, method }),
+        }
+      );
+
+      const result = await res.json();
+      setLoading(false);
+
+      if (!res.ok || !result.authorization_url || !result.reference) {
+        Alert.alert('Payment Error', result.error ?? 'Could not initiate payment. Please try again.');
+        return;
       }
-    );
 
-    const result = await res.json();
-    setLoading(false);
-
-    if (!res.ok || !result.authorization_url || !result.reference) {
-      Alert.alert('Payment Error', result.error ?? 'Could not initiate payment. Please try again.');
-      return;
+      setPaymentReference(result.reference);
+      setPaystackUrl(result.authorization_url);
+    } catch {
+      setLoading(false);
+      Alert.alert('Network Error', 'Could not connect to payment server. Please check your connection and try again.');
     }
-
-    setPaymentReference(result.reference);
-    setPaystackUrl(result.authorization_url);
   };
 
   // ── Handle WebView navigation ──────────────────────────────────────────────
@@ -146,7 +167,10 @@ export default function FundWalletScreen() {
 
   const handleWebViewNav = (url: string) => {
     if (isWalletFundingCallback(url)) {
-      void confirmWalletFunding();
+      const confirmFunding = async () => {
+        await confirmWalletFunding();
+      };
+      void confirmFunding();
       return false;
     }
     return true;

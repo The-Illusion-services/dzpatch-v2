@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -43,6 +44,14 @@ interface DailyEntry {
   status: 'Settled' | 'Processing';
 }
 
+interface OutstandingBalance {
+  id: string;
+  order_id: string;
+  amount: number;
+  due_date: string;
+  paid_at: string | null;
+}
+
 // Commission is already deducted by complete_delivery before crediting the rider wallet.
 // Do not re-deduct here — grossRevenue IS net earnings.
 
@@ -73,6 +82,9 @@ export default function RiderEarningsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [period, setPeriod] = useState<Period>('weekly');
   const [refreshing, setRefreshing] = useState(false);
+  const [outstandingBalances, setOutstandingBalances] = useState<OutstandingBalance[]>([]);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [ridersTableId, setRidersTableId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // ── Fetch data ─────────────────────────────────────────────────────────────
@@ -101,7 +113,30 @@ export default function RiderEarningsScreen() {
       .order('created_at', { ascending: false })
       .limit(50);
     if (txs) setTransactions(txs as Transaction[]);
-  }, [profile?.id, period]);
+
+    // Outstanding cash commissions — use cached ridersTableId if available
+    const rId = ridersTableId;
+    if (rId) {
+      const { data: balances } = await supabase
+        .from('outstanding_balances')
+        .select('id, order_id, amount, due_date, paid_at')
+        .eq('rider_id', rId)
+        .is('paid_at', null)
+        .order('due_date', { ascending: true });
+      setOutstandingBalances((balances as OutstandingBalance[]) ?? []);
+    }
+  }, [profile?.id, period, ridersTableId]);
+
+  // Fetch riders.id once — stable across period toggles
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase
+      .from('riders')
+      .select('id')
+      .eq('profile_id', profile.id)
+      .single()
+      .then(({ data }) => { if (data) setRidersTableId((data as { id: string }).id); });
+  }, [profile?.id]);
 
   useEffect(() => { fetchData(); }, [profile?.id, period, fetchData]);
 
@@ -128,6 +163,32 @@ export default function RiderEarningsScreen() {
     setRefreshing(false);
   };
 
+  const handlePayCommission = async (orderId: string, amount: number) => {
+    const walletBalance = wallet?.balance ?? 0;
+    if (walletBalance < amount) {
+      Alert.alert(
+        'Insufficient Balance',
+        `You need ₦${amount.toLocaleString()} to pay this commission but your wallet has ₦${walletBalance.toLocaleString()}. Fund your wallet first.`,
+        [
+          { text: 'Fund Wallet', onPress: () => router.push({ pathname: '/(rider)/rider-wallet' as any }) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+    setPayingOrderId(orderId);
+    try {
+      const { error } = await (supabase as any).rpc('pay_commission', { p_order_id: orderId });
+      if (error) throw error;
+      await fetchData(); // refresh balance + outstanding list
+      Alert.alert('Commission Paid', `₦${amount.toLocaleString()} commission paid successfully.`);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Could not pay commission. Please try again.');
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   // ── Derived metrics ────────────────────────────────────────────────────────
 
   const incomeTransactions = useMemo(
@@ -139,11 +200,6 @@ export default function RiderEarningsScreen() {
     () => incomeTransactions.reduce((sum, t) => sum + t.amount, 0),
     [incomeTransactions]
   );
-
-  // Commission was already deducted by the backend before crediting the wallet.
-  // grossRevenue is already the rider's net pay — show it as-is.
-  const commissionPaid = 0; // not calculable from net earnings alone; omit from display
-  const netPay = useMemo(() => Math.round(grossRevenue), [grossRevenue]);
 
   const totalTrips = useMemo(
     () => incomeTransactions.filter((t) =>
@@ -251,6 +307,58 @@ export default function RiderEarningsScreen() {
           <Text style={styles.bentoStatText}>Before commission</Text>
         </View>
       </View>
+
+      {/* Outstanding commission alert */}
+      {outstandingBalances.length > 0 && (
+        <View style={styles.outstandingCard}>
+          <View style={styles.outstandingHeader}>
+            <Ionicons name="alert-circle" size={20} color="#ba1a1a" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.outstandingTitle}>
+                {outstandingBalances.length >= 3
+                  ? '🔒 Account Locked — Unpaid Commission'
+                  : `Unpaid Commission (${outstandingBalances.length}/3)`}
+              </Text>
+              <Text style={styles.outstandingSubtitle}>
+                {outstandingBalances.length >= 3
+                  ? 'Pay all outstanding commissions to unlock bidding on new orders.'
+                  : `You will be locked from new orders after 3 unpaid commissions.`}
+              </Text>
+            </View>
+          </View>
+
+          {outstandingBalances.map((ob) => (
+            <View key={ob.id} style={styles.outstandingRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.outstandingOrderId} numberOfLines={1}>
+                  Order #{ob.order_id.slice(-8).toUpperCase()}
+                </Text>
+                <Text style={styles.outstandingDue}>
+                  Due {new Date(ob.due_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
+                </Text>
+              </View>
+              <Text style={styles.outstandingAmount}>₦{Number(ob.amount).toLocaleString()}</Text>
+              <Pressable
+                style={[styles.payBtn, payingOrderId === ob.order_id && styles.payBtnDisabled]}
+                onPress={() => handlePayCommission(ob.order_id, ob.amount)}
+                disabled={payingOrderId === ob.order_id}
+              >
+                <Text style={styles.payBtnText}>
+                  {payingOrderId === ob.order_id ? '...' : 'Pay'}
+                </Text>
+              </Pressable>
+            </View>
+          ))}
+
+          <Pressable
+            style={styles.fundToPayBtn}
+            onPress={() => router.push({ pathname: '/(rider)/rider-wallet' as any })}
+          >
+            <Ionicons name="add-circle-outline" size={15} color="#0040e0" />
+            <Text style={styles.fundToPayText}>Fund wallet to pay commission</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Commission info */}
       <View style={styles.commissionCard}>
@@ -381,6 +489,44 @@ const styles = StyleSheet.create({
   bentoValue: { fontSize: Typography.xl, fontWeight: '900', color: '#000D22' },
   bentoStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   bentoStatText: { fontSize: Typography.xs, color: '#74777e' },
+
+  // Outstanding commission
+  outstandingCard: {
+    backgroundColor: '#FFF0EE',
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: '#FFDAD6',
+  },
+  outstandingHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  outstandingTitle: { fontSize: Typography.sm, fontWeight: '800', color: '#ba1a1a' },
+  outstandingSubtitle: { fontSize: Typography.xs, color: '#93000a', marginTop: 2, lineHeight: 16 },
+  outstandingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  outstandingOrderId: { fontSize: Typography.xs, fontWeight: '700', color: '#000D22' },
+  outstandingDue: { fontSize: 10, color: '#74777e', marginTop: 2 },
+  outstandingAmount: { fontSize: Typography.sm, fontWeight: '800', color: '#ba1a1a' },
+  payBtn: {
+    backgroundColor: '#ba1a1a',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  payBtnDisabled: { opacity: 0.5 },
+  payBtnText: { fontSize: Typography.xs, fontWeight: '800', color: '#FFFFFF' },
+  fundToPayBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 8,
+  },
+  fundToPayText: { fontSize: Typography.xs, fontWeight: '700', color: '#0040e0' },
 
   // Commission
   commissionCard: {

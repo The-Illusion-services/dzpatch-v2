@@ -1,4 +1,4 @@
-﻿import { router } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -48,23 +48,45 @@ export default function RiderWithdrawScreen() {
   // â”€â”€ Fetch wallet + bank account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !riderId) return;
+    let isActive = true;
 
-    supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('owner_id', profile.id)
-      .eq('owner_type', 'rider')
-      .single()
-      .then(({ data }) => { if (data) setWallet(data as WalletData); });
+    const loadWalletAndBank = async () => {
+      const [{ data: walletData, error: walletError }, { data: bankData, error: bankError }] = await Promise.all([
+        supabase
+          .from('wallets')
+          .select('id, balance')
+          .eq('owner_id', profile.id)
+          .eq('owner_type', 'rider')
+          .single(),
+        supabase
+          .from('rider_bank_accounts')
+          .select('bank_name, bank_code, account_number, account_name')
+          .eq('rider_id', riderId)
+          .eq('is_default', true)
+          .single(),
+      ]);
 
-    supabase
-      .from('rider_bank_accounts')
-      .select('bank_name, bank_code, account_number, account_name')
-      .eq('rider_id', riderId)
-      .eq('is_default', true)
-      .single()
-      .then(({ data }) => { if (data) setBankAccount(data as BankAccount); });
+      if (!isActive) return;
+
+      if (walletError) {
+        console.warn('rider-withdraw load wallet failed:', walletError.message);
+      } else if (walletData) {
+        setWallet(walletData as WalletData);
+      }
+
+      if (bankError) {
+        console.warn('rider-withdraw load bank account failed:', bankError.message);
+      } else if (bankData) {
+        setBankAccount(bankData as BankAccount);
+      }
+    };
+
+    void loadWalletAndBank();
+
+    return () => {
+      isActive = false;
+    };
   }, [profile?.id, riderId]);
 
   // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -96,8 +118,8 @@ export default function RiderWithdrawScreen() {
         `Your ₦${payout.toLocaleString()} payout has been submitted for processing. We will notify you once it is confirmed.`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
-    } catch {
-      Alert.alert('Error', 'Withdrawal request failed. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message ?? 'Withdrawal request failed. Please try again.');
     } finally {
       setSubmitting(false);
     }

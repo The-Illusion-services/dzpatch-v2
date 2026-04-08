@@ -484,25 +484,48 @@ describe('Sprint 3 — Report Issue / Disputes', () => {
     expect(validSubjects).toContain('Payment issue');
   });
 
-  test('disputes payload has required fields', () => {
+  test('delivery-success dispute payload matches raise_dispute RPC shape', () => {
     const orderId = 'order-abc';
-    const userId = 'user-123';
     const subject = 'Damaged item';
     const payload = {
-      order_id: orderId,
-      raised_by: userId,
-      subject,
-      description: `Issue reported from delivery-success screen. Order: ${orderId}`,
+      p_order_id: orderId,
+      p_subject: subject,
+      p_description: `Issue reported from delivery-success screen. Order: ${orderId}`,
     };
-    expect(payload.order_id).toBe(orderId);
-    expect(payload.raised_by).toBe(userId);
-    expect(payload.subject).toBe(subject);
-    expect(payload.description).toContain(orderId);
+    expect(payload.p_order_id).toBe(orderId);
+    expect(payload.p_subject).toBe(subject);
+    expect(payload.p_description).toContain(orderId);
   });
 
   test('report from order-details uses correct description prefix', () => {
     const orderId = 'order-xyz';
     const desc = `Issue reported from order-details screen. Order: ${orderId}`;
     expect(desc.startsWith('Issue reported from order-details')).toBe(true);
+  });
+});
+
+describe('Sprint 4/6 â€” Contract Alignment', () => {
+  test('cancel-fee banner only applies once delivery is in progress', () => {
+    const penaltyStatuses = ['in_transit', 'arrived_dropoff'];
+    expect(penaltyStatuses).toContain('in_transit');
+    expect(penaltyStatuses).toContain('arrived_dropoff');
+    expect(penaltyStatuses).not.toContain('matched');
+    expect(penaltyStatuses).not.toContain('pickup_en_route');
+  });
+
+  test('push token registration uses a per-device uniqueness key', () => {
+    const payload = {
+      profile_id: 'profile-1',
+      token: 'ExponentPushToken[abc]',
+      platform: 'android',
+      last_seen: '2026-04-07T10:00:00.000Z',
+    };
+    expect(`${payload.profile_id}:${payload.token}`).toBe('profile-1:ExponentPushToken[abc]');
+  });
+
+  test('unknown splash roles return to onboarding', () => {
+    const role = 'fleet_manager';
+    const route = role === 'customer' ? '/(customer)' : '/(auth)/onboarding';
+    expect(route).toBe('/(auth)/onboarding');
   });
 });

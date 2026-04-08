@@ -47,22 +47,55 @@ export default function ConfirmArrivalScreen() {
 
   useEffect(() => {
     if (!orderId) return;
-    supabase
-      .from('orders')
-      .select('pickup_address, customer_id')
-      .eq('id', orderId)
-      .single()
-      .then(async ({ data }) => {
-        if (!data) return;
-        const o = data as { customer_id: string; pickup_address: string };
-        setOrder(o as OrderInfo);
-        const { data: cust } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('id', o.customer_id)
-          .single();
-        if (cust) setCustomer(cust as CustomerInfo);
-      });
+    let isActive = true;
+
+    const loadOrderAndCustomer = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('pickup_address, customer_id, status')
+        .eq('id', orderId)
+        .single();
+      if (!isActive) return;
+      if (error || !data) {
+        if (error) {
+          console.warn('confirm-arrival load order failed:', error.message);
+        }
+        return;
+      }
+
+      const orderData = data as { customer_id: string; pickup_address: string; status: string };
+
+      // Resume guard: if already past arrived_pickup, go straight to dropoff screen
+      if (
+        orderData.status === 'in_transit' ||
+        orderData.status === 'arrived_dropoff' ||
+        orderData.status === 'delivered' ||
+        orderData.status === 'completed'
+      ) {
+        router.replace({ pathname: '/(rider)/navigate-to-dropoff' as any, params: { orderId } });
+        return;
+      }
+
+      setOrder(orderData as OrderInfo);
+
+      const { data: customerData, error: customerError } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', orderData.customer_id)
+        .single();
+      if (!isActive) return;
+      if (customerError) {
+        console.warn('confirm-arrival load customer failed:', customerError.message);
+        return;
+      }
+      if (customerData) setCustomer(customerData as CustomerInfo);
+    };
+
+    void loadOrderAndCustomer();
+
+    return () => {
+      isActive = false;
+    };
   }, [orderId]);
 
   // ── Proceed to dropoff ─────────────────────────────────────────────────────
@@ -81,8 +114,8 @@ export default function ConfirmArrivalScreen() {
         pathname: '/(rider)/navigate-to-dropoff' as any,
         params: { orderId },
       });
-    } catch {
-      Alert.alert('Error', 'Could not update status. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message ?? 'Could not update status. Please try again.');
     } finally {
       setDeparting(false);
     }
