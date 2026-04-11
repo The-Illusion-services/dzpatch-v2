@@ -34,7 +34,10 @@ enabled = true
 policy = "oneshot"
 
 [functions.payment-initialize]
-verify_jwt = true
+verify_jwt = false
 
 [functions.payment-webhook]
+verify_jwt = false
+
+[functions.partner-deliveries]
 verify_jwt = false

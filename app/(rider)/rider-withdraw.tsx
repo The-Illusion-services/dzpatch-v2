@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
+import { fetchLatestOwnedWallet } from '@/lib/wallets';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -52,13 +53,8 @@ export default function RiderWithdrawScreen() {
     let isActive = true;
 
     const loadWalletAndBank = async () => {
-      const [{ data: walletData, error: walletError }, { data: bankData, error: bankError }] = await Promise.all([
-        supabase
-          .from('wallets')
-          .select('id, balance')
-          .eq('owner_id', profile.id)
-          .eq('owner_type', 'rider')
-          .single(),
+      const [{ wallet: walletData, error: walletError }, { data: bankData, error: bankError }] = await Promise.all([
+        fetchLatestOwnedWallet(profile.id, 'rider'),
         supabase
           .from('rider_bank_accounts')
           .select('bank_name, bank_code, account_number, account_name')
@@ -73,6 +69,8 @@ export default function RiderWithdrawScreen() {
         console.warn('rider-withdraw load wallet failed:', walletError.message);
       } else if (walletData) {
         setWallet(walletData as WalletData);
+      } else {
+        setWallet(null);
       }
 
       if (bankError) {

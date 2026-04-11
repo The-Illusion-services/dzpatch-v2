@@ -127,6 +127,22 @@ export default function NavigateToDropoffScreen() {
 
   useEffect(() => {
     if (!riderId || !orderId) return;
+    const syncCurrentLocation = async () => {
+      try {
+        const { default: ExpoLocation } = await import('expo-location');
+        const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        await (supabase as any).rpc('update_rider_location', {
+          p_rider_id: riderId,
+          p_lat: loc.coords.latitude,
+          p_lng: loc.coords.longitude,
+          p_order_id: orderId,
+        });
+      } catch {
+        // GPS temporarily unavailable â€” skip this sync attempt
+      }
+    };
+
+    void syncCurrentLocation();
     locationTimer.current = setInterval(async () => {
       try {
         const { default: ExpoLocation } = await import('expo-location');

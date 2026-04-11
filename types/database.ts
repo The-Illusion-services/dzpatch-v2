@@ -42,6 +42,23 @@ export type DisputeStatus = 'open' | 'investigating' | 'resolved' | 'dismissed';
 export type CancellationActor = 'customer' | 'rider' | 'system' | 'admin';
 export type FleetPayStructure = 'percentage' | 'flat_rate';
 export type PromoDiscountType = 'percentage' | 'flat';
+export type PartnerAccountStatus = 'active' | 'inactive' | 'suspended';
+export type PartnerPricingMode = 'partner_submitted' | 'fixed';
+export type PartnerDeliveryStatus =
+  | 'accepted'
+  | 'rider_assigned'
+  | 'arrived_pickup'
+  | 'picked_up'
+  | 'in_transit'
+  | 'arrived_dropoff'
+  | 'delivered'
+  | 'cancelled'
+  | 'failed'
+  | 'failed_no_rider';
+export type PartnerPricingSource = 'partner_submitted' | 'partner_contract';
+export type PartnerWebhookDeliveryStatus = 'pending' | 'delivered' | 'failed';
+export type PartnerAuditActorType = 'partner' | 'admin' | 'service' | 'system';
+export type PartnerDeliveryCodeStatus = 'active' | 'used' | 'expired';
 
 // ============================================================
 // TABLE ROW TYPES
@@ -495,6 +512,189 @@ export interface Database {
           is_active?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      partner_accounts: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          status: PartnerAccountStatus;
+          api_key_hash: string;
+          webhook_secret: string;
+          webhook_url: string;
+          pricing_mode: PartnerPricingMode;
+          fixed_price_amount: number | null;
+          dispatch_ttl_minutes: number;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          status?: PartnerAccountStatus;
+          api_key_hash: string;
+          webhook_secret: string;
+          webhook_url: string;
+          pricing_mode?: PartnerPricingMode;
+          fixed_price_amount?: number | null;
+          dispatch_ttl_minutes?: number;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          slug?: string;
+          status?: PartnerAccountStatus;
+          api_key_hash?: string;
+          webhook_secret?: string;
+          webhook_url?: string;
+          pricing_mode?: PartnerPricingMode;
+          fixed_price_amount?: number | null;
+          dispatch_ttl_minutes?: number;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      partner_deliveries: {
+        Row: {
+          id: string;
+          partner_account_id: string;
+          external_order_id: string;
+          external_reference: string | null;
+          idempotency_key: string;
+          request_fingerprint: string;
+          dzpatch_order_id: string | null;
+          status: PartnerDeliveryStatus;
+          request_payload: Json;
+          response_payload: Json | null;
+          submitted_fee: number;
+          applied_fee: number;
+          pricing_source: PartnerPricingSource;
+          delivery_code: string | null;
+          delivery_code_status: PartnerDeliveryCodeStatus;
+          delivery_code_generated_at: string | null;
+          attempt_count: number;
+          last_error: Json | null;
+          accepted_at: string;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_account_id: string;
+          external_order_id: string;
+          external_reference?: string | null;
+          idempotency_key: string;
+          request_fingerprint: string;
+          dzpatch_order_id?: string | null;
+          status?: PartnerDeliveryStatus;
+          request_payload: Json;
+          response_payload?: Json | null;
+          submitted_fee: number;
+          applied_fee: number;
+          pricing_source: PartnerPricingSource;
+          delivery_code?: string | null;
+          delivery_code_status?: PartnerDeliveryCodeStatus;
+          delivery_code_generated_at?: string | null;
+          attempt_count?: number;
+          last_error?: Json | null;
+          accepted_at?: string;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          external_reference?: string | null;
+          idempotency_key?: string;
+          request_fingerprint?: string;
+          dzpatch_order_id?: string | null;
+          status?: PartnerDeliveryStatus;
+          request_payload?: Json;
+          response_payload?: Json | null;
+          submitted_fee?: number;
+          applied_fee?: number;
+          pricing_source?: PartnerPricingSource;
+          delivery_code?: string | null;
+          delivery_code_status?: PartnerDeliveryCodeStatus;
+          delivery_code_generated_at?: string | null;
+          attempt_count?: number;
+          last_error?: Json | null;
+          accepted_at?: string;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      partner_webhook_events: {
+        Row: {
+          id: string;
+          partner_account_id: string;
+          partner_delivery_id: string;
+          event_id: string;
+          event_type: string;
+          sequence_version: number;
+          payload: Json;
+          delivery_attempts: number;
+          next_retry_at: string | null;
+          last_delivery_at: string | null;
+          last_delivery_error: Json | null;
+          status: PartnerWebhookDeliveryStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_account_id: string;
+          partner_delivery_id: string;
+          event_id: string;
+          event_type: string;
+          sequence_version: number;
+          payload: Json;
+          delivery_attempts?: number;
+          next_retry_at?: string | null;
+          last_delivery_at?: string | null;
+          last_delivery_error?: Json | null;
+          status?: PartnerWebhookDeliveryStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          delivery_attempts?: number;
+          next_retry_at?: string | null;
+          last_delivery_at?: string | null;
+          last_delivery_error?: Json | null;
+          status?: PartnerWebhookDeliveryStatus;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      partner_audit_logs: {
+        Row: {
+          id: string;
+          partner_account_id: string | null;
+          action: string;
+          actor_type: PartnerAuditActorType;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_account_id?: string | null;
+          action: string;
+          actor_type: PartnerAuditActorType;
+          payload?: Json;
+          created_at?: string;
+        };
+        Update: never;
         Relationships: [];
       };
       sos_alerts: {
@@ -951,3 +1151,7 @@ export type Dispute = Database['public']['Tables']['disputes']['Row'];
 export type OrderStatusHistory = Database['public']['Tables']['order_status_history']['Row'];
 export type OutstandingBalance = Database['public']['Tables']['outstanding_balances']['Row'];
 export type RiderLocation = Database['public']['Tables']['rider_locations']['Row'];
+export type PartnerAccount = Database['public']['Tables']['partner_accounts']['Row'];
+export type PartnerDelivery = Database['public']['Tables']['partner_deliveries']['Row'];
+export type PartnerWebhookEvent = Database['public']['Tables']['partner_webhook_events']['Row'];
+export type PartnerAuditLog = Database['public']['Tables']['partner_audit_logs']['Row'];

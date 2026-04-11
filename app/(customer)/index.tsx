@@ -323,7 +323,7 @@ export default function HomeScreen() {
           activeOrders.map((order) => (
             <Pressable
               key={order.id}
-              onPress={() => router.push({ pathname: '/(customer)/order-tracking', params: { orderId: order.id } } as any)}
+              onPress={() => router.push({ pathname: '/(customer)/active-order-tracking', params: { orderId: order.id } } as any)}
               style={{ marginBottom: 12 }}
             >
               <ActiveOrderCard order={order} />

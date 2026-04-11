@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { resolveAuthRoute } from '@/lib/auth-routing';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function SplashScreen() {
@@ -33,61 +34,42 @@ export default function SplashScreen() {
   useEffect(() => {
     if (!isInitialized) return;
 
-    // Dev bypass: EXPO_PUBLIC_DEV_ROLE skips auth and jumps to role directly
+    const { profile } = useAuthStore.getState();
+
+    // Only apply the dev role hint when a real session already exists.
+    // This prevents null-profile customer shells and sign-out loops.
     const devRole = process.env.EXPO_PUBLIC_DEV_ROLE;
-    if (__DEV__ && devRole) {
+    if (__DEV__ && devRole && session?.user) {
       const timer = setTimeout(() => {
         switch (devRole) {
-          case 'rider': router.replace('/(rider)' as any); break;
-          case 'fleet': router.replace('/(fleet)' as any); break;
-          case 'admin': router.replace('/(admin)' as any); break;
-          default: router.replace('/(customer)'); break;
+          case 'rider': {
+            const route = resolveAuthRoute({
+              hasSession: true,
+              role: 'rider',
+              fullName: profile?.full_name,
+              kycStatus: profile?.kyc_status,
+            });
+            router.replace((route ?? '/(auth)/onboarding') as any);
+            break;
+          }
+          default:
+            router.replace('/(auth)/onboarding' as any);
+            break;
         }
       }, 2000);
       return () => clearTimeout(timer);
     }
 
-    // No session — go to onboarding (don't wait for role)
-    if (!session) {
-      const timer = setTimeout(() => {
-        router.replace('/(auth)/onboarding');
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    const route = resolveAuthRoute({
+      hasSession: !!session,
+      role,
+      fullName: profile?.full_name,
+      kycStatus: profile?.kyc_status,
+    });
+    if (!route) return;
 
-    // Session exists but profile/role not loaded yet — wait
-    if (!role) return;
-
-    // Role is ready — navigate
     const timer = setTimeout(() => {
-      const { profile } = useAuthStore.getState();
-      switch (role) {
-        case 'rider': {
-          const kyc = (profile as any)?.kyc_status ?? 'not_submitted';
-          if (kyc === 'approved') {
-            router.replace('/(rider)' as any);
-          } else if (kyc === 'pending') {
-            router.replace('/(rider-auth)/pending-approval' as any);
-          } else {
-            // rejected / not_submitted — restart signup flow
-            router.replace('/(rider-auth)/signup-personal' as any);
-          }
-          break;
-        }
-        case 'customer': {
-          // Guard: if profile has no name the signup was never completed — send to onboarding
-          if (!profile?.full_name) {
-            router.replace('/(auth)/onboarding');
-          } else {
-            router.replace('/(customer)');
-          }
-          break;
-        }
-        default: {
-          router.replace('/(auth)/onboarding');
-          break;
-        }
-      }
+      router.replace(route as any);
     }, 2000);
     return () => clearTimeout(timer);
   }, [isInitialized, session, role]);
@@ -105,7 +87,7 @@ export default function SplashScreen() {
       <Animated.View style={[styles.logoCluster, { transform: [{ scale: pulseScale }] }]}>
         <View style={styles.logoOuter}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>⚡</Text>
+            <Text style={styles.logoIcon}>{'\u26A1'}</Text>
           </View>
           {/* Speed lines */}
           <View style={styles.speedLines}>
@@ -140,7 +122,7 @@ export default function SplashScreen() {
           />
         </View>
         <View style={styles.trustRow}>
-          <Text style={styles.trustLabel}>✓ Secure Node</Text>
+          <Text style={styles.trustLabel}>{'\u2713'} Secure Node</Text>
           <View style={styles.dot} />
           <Text style={styles.trustLabel}>Real-time</Text>
         </View>

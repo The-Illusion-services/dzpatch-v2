@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   Pressable,
@@ -15,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
+import { fetchLatestOwnedWallet } from '@/lib/wallets';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,14 +38,6 @@ interface Transaction {
   } | null;
 }
 
-interface DailyEntry {
-  label: string;
-  date: string;
-  trips: number;
-  amount: number;
-  status: 'Settled' | 'Processing';
-}
-
 interface OutstandingBalance {
   id: string;
   order_id: string;
@@ -61,6 +55,7 @@ function formatAmount(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function dayLabel(dateStr: string) {
   const d = new Date(dateStr);
   const today = new Date();
@@ -93,14 +88,17 @@ export default function RiderEarningsScreen() {
     if (!profile?.id) return;
 
     // Wallet
-    const { data: walletRaw } = await supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('owner_id', profile.id)
-      .eq('owner_type', 'rider')
-      .single();
-    const w = walletRaw as { id: string; balance: number } | null;
-    if (w) setWallet(w);
+    const { wallet: w, error: walletError } = await fetchLatestOwnedWallet(profile.id, 'rider');
+    if (walletError) {
+      console.warn('earnings load wallet failed:', walletError.message);
+      return;
+    }
+    if (w) {
+      setWallet(w);
+    } else {
+      setWallet(null);
+      setTransactions([]);
+    }
 
     // Transactions
     const since = new Date();
@@ -139,6 +137,12 @@ export default function RiderEarningsScreen() {
   }, [profile?.id]);
 
   useEffect(() => { fetchData(); }, [profile?.id, period, fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData])
+  );
 
   // ── Realtime wallet update ─────────────────────────────────────────────────
 
@@ -210,29 +214,8 @@ export default function RiderEarningsScreen() {
 
   // ── Build daily summary ────────────────────────────────────────────────────
 
-  const dailyEntries = useMemo(() => {
-    const dailyMap = new Map<string, DailyEntry>();
-    for (const tx of incomeTransactions) {
-      const date = tx.created_at.slice(0, 10);
-      const existing = dailyMap.get(date);
-      if (existing) {
-        existing.trips += 1;
-        existing.amount += tx.amount;
-      } else {
-        dailyMap.set(date, {
-          label: dayLabel(tx.created_at),
-          date,
-          trips: 1,
-          amount: tx.amount,
-          // Transactions older than 1 day are considered settled
-          status: new Date(tx.created_at) < new Date(Date.now() - 86400000) ? 'Settled' : 'Processing',
-        });
-      }
-    }
-    return Array.from(dailyMap.values()).slice(0, 7);
-  }, [incomeTransactions]);
-
   const balance = wallet?.balance ?? 0;
+  const canPayAnyOutstanding = outstandingBalances.some((item) => balance >= item.amount);
 
   return (
     <ScrollView
@@ -294,7 +277,7 @@ export default function RiderEarningsScreen() {
       {/* Stats bento */}
       <View style={styles.bentoGrid}>
         <View style={styles.bentoCard}>
-          <Text style={styles.bentoLabel}>Total Trips</Text>
+          <Text style={styles.bentoLabel}>Rides</Text>
           <Text style={styles.bentoValue}>{totalTrips}</Text>
           <View style={styles.bentoStat}>
             <Ionicons name="trending-up-outline" size={12} color="#16A34A" />
@@ -302,9 +285,9 @@ export default function RiderEarningsScreen() {
           </View>
         </View>
         <View style={styles.bentoCard}>
-          <Text style={styles.bentoLabel}>Gross Revenue</Text>
+          <Text style={styles.bentoLabel}>Total Made</Text>
           <Text style={styles.bentoValue}>{formatAmount(grossRevenue)}</Text>
-          <Text style={styles.bentoStatText}>Before commission</Text>
+          <Text style={styles.bentoStatText}>Wallet credits in this period</Text>
         </View>
       </View>
 
@@ -350,13 +333,15 @@ export default function RiderEarningsScreen() {
             </View>
           ))}
 
-          <Pressable
-            style={styles.fundToPayBtn}
-            onPress={() => router.push({ pathname: '/(rider)/rider-wallet' as any })}
-          >
-            <Ionicons name="add-circle-outline" size={15} color="#0040e0" />
-            <Text style={styles.fundToPayText}>Fund wallet to pay commission</Text>
-          </Pressable>
+          {!canPayAnyOutstanding ? (
+            <Pressable
+              style={styles.fundToPayBtn}
+              onPress={() => router.push({ pathname: '/(rider)/rider-wallet' as any })}
+            >
+              <Ionicons name="add-circle-outline" size={15} color="#0040e0" />
+              <Text style={styles.fundToPayText}>Fund wallet to pay commission</Text>
+            </Pressable>
+          ) : null}
         </View>
       )}
 
@@ -367,47 +352,13 @@ export default function RiderEarningsScreen() {
             <Ionicons name="information-circle-outline" size={18} color="#0040e0" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.commissionTitle}>Dzpatch Commission</Text>
-            <Text style={styles.commissionText}>
-              Platform commission is deducted before your earnings are credited. Your balance shows net pay only.
-            </Text>
+              <Text style={styles.commissionTitle}>Dzpatch Commission</Text>
+              <Text style={styles.commissionText}>
+                Wallet-funded earnings show net pay. For cash deliveries, outstanding commission auto-settles from your rider wallet once your balance can cover it.
+              </Text>
+            </View>
           </View>
-        </View>
       </View>
-
-      {/* Daily breakdown */}
-      {dailyEntries.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily Breakdown</Text>
-          <View style={styles.dailyList}>
-            {dailyEntries.map((entry) => (
-              <View key={entry.date} style={styles.dailyRow}>
-                <View style={styles.dayCircle}>
-                  <Text style={styles.dayCircleText}>{entry.label.slice(0, 3)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dayLabel}>{entry.label}</Text>
-                  <Text style={styles.dayTrips}>{entry.trips} trip{entry.trips !== 1 ? 's' : ''}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.dayAmount}>{formatAmount(entry.amount)}</Text>
-                  <View style={[
-                    styles.statusBadge,
-                    entry.status === 'Settled' ? styles.statusSettled : styles.statusProcessing,
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      entry.status === 'Settled' ? styles.statusTextSettled : styles.statusTextProcessing,
-                    ]}>
-                      {entry.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Cash out CTA */}
       <Pressable

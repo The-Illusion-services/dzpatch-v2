@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,16 +14,29 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '@/lib/supabase';
+import { buildSupabaseEdgeHeaders, getSupabaseAccessToken } from '@/lib/supabase-auth';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { isWalletFundingCallback, waitForWalletFundingConfirmation } from '@/lib/wallet-funding';
+import { fetchLatestOwnedWallet } from '@/lib/wallets';
 
 const QUICK_AMOUNTS = [1000, 2500, 5000, 10000];
+const FUNDING_REQUEST_TIMEOUT_MS = 12000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
 
 export default function RiderWalletScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
+  const { profile, signOut } = useAuthStore();
 
   const [walletId, setWalletId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -33,61 +46,116 @@ export default function RiderWalletScreen() {
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
-  useEffect(() => {
+  const loadWallet = useCallback(async () => {
     if (!profile?.id) return;
-    let isActive = true;
 
-    const loadWallet = async () => {
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('id, balance')
-        .eq('owner_id', profile.id)
-        .eq('owner_type', 'rider')
-        .single();
-      if (!isActive) return;
-      if (error) {
-        console.warn('rider-wallet load wallet failed:', error.message);
-        return;
-      }
-      if (data) {
-        const wallet = data as { id: string; balance: number };
-        setWalletId(wallet.id);
-        setBalance(wallet.balance);
-      }
-    };
+    const { wallet, error } = await fetchLatestOwnedWallet(profile.id, 'rider');
+    if (error) {
+      console.warn('rider-wallet load wallet failed:', error.message);
+      return;
+    }
 
-    void loadWallet();
-
-    return () => {
-      isActive = false;
-    };
+    if (wallet) {
+      setWalletId(wallet.id);
+      setBalance(wallet.balance);
+    } else {
+      setWalletId(null);
+      setBalance(0);
+    }
   }, [profile?.id]);
+
+  useEffect(() => {
+    void loadWallet();
+  }, [loadWallet]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadWallet();
+    }, [loadWallet])
+  );
+
+  const showSessionExpired = () => {
+    Alert.alert('Session Expired', 'Please log in again to continue funding your wallet.', [
+      {
+        text: 'OK',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/login' as any);
+        },
+      },
+    ]);
+  };
 
   const handleFund = async () => {
     const amt = parseInt(amount || '0', 10);
-    if (!walletId || !profile?.id) return;
+    if (!profile?.id) {
+      Alert.alert('Session Required', 'Please log in again before funding your rider wallet.');
+      return;
+    }
+    if (!walletId) {
+      Alert.alert(
+        'Wallet Unavailable',
+        'We could not find your rider wallet yet. Please create or repair the rider wallet record first.',
+      );
+      return;
+    }
     if (amt < 100) { Alert.alert('Minimum', 'Minimum top-up is ₦100'); return; }
     setLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount: amt, wallet_id: walletId }),
+      const token = await getSupabaseAccessToken();
+
+      if (!token) {
+        showSessionExpired();
+        return;
+      }
+
+      const requestPaymentInitialize = async (accessToken: string) => {
+        const res = await withTimeout(
+          fetch(
+            `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
+            {
+              method: 'POST',
+              headers: buildSupabaseEdgeHeaders(accessToken),
+              body: JSON.stringify({ amount: amt, wallet_id: walletId }),
+            }
+          ),
+          FUNDING_REQUEST_TIMEOUT_MS,
+          'The payment server took too long to respond. Please try again.',
+        );
+        const json = await res.json() as {
+          authorization_url?: string;
+          reference?: string;
+          error?: string;
+          message?: string;
+        };
+        return { res, json };
+      };
+
+      let { res, json } = await requestPaymentInitialize(token);
+      if (res.status === 401 && (json?.error === 'Unauthorized' || json?.message === 'Invalid JWT')) {
+        const latestToken = await getSupabaseAccessToken(true);
+        if (latestToken) {
+          ({ res, json } = await requestPaymentInitialize(latestToken));
         }
-      );
-      const json = await res.json() as { authorization_url?: string; reference?: string };
-      if (!json.authorization_url || !json.reference) throw new Error('No auth URL');
+      }
+
+      if (!res.ok || !json.authorization_url || !json.reference) {
+        console.warn('rider-wallet payment initialize failed:', {
+          status: res.status,
+          json,
+          walletId,
+          amount: amt,
+        });
+        if (res.status === 401 && (json?.error === 'Unauthorized' || json?.message === 'Invalid JWT')) {
+          showSessionExpired();
+          return;
+        }
+        throw new Error(json.error ?? json.message ?? 'Could not initialize payment.');
+      }
       setPaymentReference(json.reference);
       setAuthUrl(json.authorization_url);
-    } catch {
-      Alert.alert('Error', 'Could not initialize payment. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error?.message ?? 'Could not initialize payment. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -110,6 +178,7 @@ export default function RiderWalletScreen() {
       }
 
       if (result.confirmed) {
+        await loadWallet();
         Alert.alert('Wallet Funded', 'Your rider wallet has been credited successfully.', [
           { text: 'OK', onPress: () => router.replace({ pathname: '/(rider)/earnings' as any }) },
         ]);
@@ -222,10 +291,19 @@ export default function RiderWalletScreen() {
           ))}
         </View>
 
+        {!walletId ? (
+          <View style={styles.walletNotice}>
+            <Ionicons name="alert-circle-outline" size={16} color="#B42318" />
+            <Text style={styles.walletNoticeText}>
+              Your rider wallet record is missing, so funding cannot start yet.
+            </Text>
+          </View>
+        ) : null}
+
         <Pressable
-          style={[styles.fundBtn, (!amount || loading) && styles.fundBtnDisabled]}
+          style={[styles.fundBtn, (!amount || loading || !walletId) && styles.fundBtnDisabled]}
           onPress={handleFund}
-          disabled={!amount || loading}
+          disabled={!amount || loading || !walletId}
         >
           <Ionicons name="card-outline" size={18} color="#FFFFFF" />
           <Text style={styles.fundBtnText}>{loading ? 'Processing...' : 'Proceed to Payment'}</Text>
@@ -263,6 +341,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
   },
   quickChipText: { fontSize: Typography.sm, fontWeight: '700', color: '#0040e0' },
+  walletNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#FEF3F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  walletNoticeText: {
+    flex: 1,
+    fontSize: Typography.xs,
+    color: '#912018',
+    lineHeight: 18,
+  },
   fundBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, height: 58, borderRadius: 18, backgroundColor: '#0040e0',
@@ -286,3 +381,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+

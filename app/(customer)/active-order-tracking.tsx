@@ -16,7 +16,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useTheme } from '@/hooks/use-theme';
-import { ACTIVE_TRACKING_ETA_TICK_MS, ACTIVE_TRACKING_STALE_LOCATION_TICK_MS } from '@/constants/timing';
+import { ACTIVE_TRACKING_ETA_TICK_MS } from '@/constants/timing';
 import { parsePostgisPoint } from '@/lib/location';
 
 // ─── Status timeline ──────────────────────────────────────────────────────────
@@ -77,16 +77,38 @@ export default function ActiveOrderTrackingScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<ActiveTrackingOrder | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
-  const [riderLocation, setRiderLocation] = useState<LatLng>(LAGOS_DEFAULT);
+  const [riderLocation, setRiderLocation] = useState<LatLng | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
-  const [staleSeconds, setStaleSeconds] = useState<number>(0);
   const [locationPending, setLocationPending] = useState(false);
   const mapRef = useRef<MapView>(null);
   const orderChannelRef = useRef<RealtimeChannel | null>(null);
   const locationChannelRef = useRef<RealtimeChannel | null>(null);
+
+  const fitTrackingRoute = useCallback((nextRiderLocation: LatLng | null, nextDropoffLocation: LatLng | null) => {
+    if (!mapRef.current) return;
+
+    if (nextRiderLocation && nextDropoffLocation) {
+      mapRef.current.fitToCoordinates([nextRiderLocation, nextDropoffLocation], {
+        edgePadding: { top: 96, right: 56, bottom: 220, left: 56 },
+        animated: true,
+      });
+      return;
+    }
+
+    const focusPoint = nextRiderLocation ?? nextDropoffLocation;
+    if (!focusPoint) return;
+
+    mapRef.current.animateToRegion(
+      {
+        ...focusPoint,
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      },
+      600
+    );
+  }, []);
 
   // ── Rider pin bounce ──────────────────────────────────────────────────────
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -158,7 +180,6 @@ export default function ActiveOrderTrackingScreen() {
     if (data) {
       const loc = data as { latitude: number; longitude: number };
       setRiderLocation({ latitude: loc.latitude, longitude: loc.longitude });
-      setLastLocationUpdate(new Date());
     }
   }
 
@@ -221,7 +242,7 @@ export default function ActiveOrderTrackingScreen() {
     orderChannelRef.current = channel;
 
     return () => { supabase.removeChannel(channel); };
-  }, [orderId, fetchOrder]);
+  }, [orderId, fetchOrder, riderProfile?.full_name]);
 
   // ── Realtime — rider location ──────────────────────────────────────────────
 
@@ -241,10 +262,7 @@ export default function ActiveOrderTrackingScreen() {
         (payload) => {
           const newLoc: LatLng = { latitude: (payload.new as any).latitude, longitude: (payload.new as any).longitude };
           setRiderLocation(newLoc);
-          setLastLocationUpdate(new Date());
           setLocationPending(false);
-          setStaleSeconds(0);
-          mapRef.current?.animateCamera({ center: newLoc }, { duration: 800 });
         }
       )
       .subscribe();
@@ -264,6 +282,10 @@ export default function ActiveOrderTrackingScreen() {
     },
   });
 
+  useEffect(() => {
+    fitTrackingRoute(riderLocation, dropoffLocation);
+  }, [dropoffLocation, fitTrackingRoute, riderLocation]);
+
   // ── ETA countdown — decrement 1 min every 60s while in active statuses ────
   useEffect(() => {
     const activeStatuses = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit'];
@@ -276,14 +298,6 @@ export default function ActiveOrderTrackingScreen() {
   }, [order?.status]);
 
   // ── Stale location ticker — increments every second after last update ────
-  useEffect(() => {
-    if (!lastLocationUpdate) return;
-    const tick = setInterval(() => {
-      setStaleSeconds(Math.floor((Date.now() - lastLocationUpdate.getTime()) / 1000));
-    }, ACTIVE_TRACKING_STALE_LOCATION_TICK_MS);
-    return () => clearInterval(tick);
-  }, [lastLocationUpdate]);
-
   useEffect(() => {
     if (!order?.rider_id || !locationPending) return;
     const retry = setTimeout(() => {
@@ -305,7 +319,8 @@ export default function ActiveOrderTrackingScreen() {
 
   const currentStep = STATUS_STEP[order.status] ?? 0;
   const isDelivered = order.status === 'delivered' || order.status === 'completed';
-  const routeCoords: LatLng[] = dropoffLocation ? [riderLocation, dropoffLocation] : [];
+  const routeCoords: LatLng[] = riderLocation && dropoffLocation ? [riderLocation, dropoffLocation] : [];
+  const mapCenter = riderLocation ?? dropoffLocation ?? LAGOS_DEFAULT;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -327,14 +342,14 @@ export default function ActiveOrderTrackingScreen() {
           ref={mapRef}
           provider={PROVIDER_GOOGLE}
           style={StyleSheet.absoluteFillObject}
-          initialRegion={{ ...riderLocation, latitudeDelta: 0.04, longitudeDelta: 0.04 }}
+          initialRegion={{ ...mapCenter, latitudeDelta: 0.04, longitudeDelta: 0.04 }}
           showsUserLocation={false}
           showsMyLocationButton={false}
           showsCompass={false}
           customMapStyle={mapStyle}
         >
           {/* Rider marker */}
-          <Marker coordinate={riderLocation} anchor={{ x: 0.5, y: 1 }}>
+          {riderLocation && <Marker coordinate={riderLocation} anchor={{ x: 0.5, y: 1 }}>
             <Animated.View style={[styles.riderMarker, { transform: [{ translateY: bounceAnim }] }]}>
               <View style={styles.riderMarkerBubble}>
                 <Text style={styles.riderMarkerIcon}>🏍️</Text>
@@ -346,7 +361,7 @@ export default function ActiveOrderTrackingScreen() {
                 </View>
               )}
             </Animated.View>
-          </Marker>
+          </Marker>}
 
           {/* Drop-off marker */}
           {dropoffLocation && (
@@ -381,10 +396,7 @@ export default function ActiveOrderTrackingScreen() {
             <Text style={styles.etaMinText}>Rider arrives in ~{etaMinutes} min</Text>
           )}
           {locationPending && (
-            <Text style={styles.staleText}>Waiting for rider location...</Text>
-          )}
-          {staleSeconds > 15 && (
-            <Text style={styles.staleText}>📡 Last update {staleSeconds}s ago</Text>
+            <Text style={styles.staleText}>Live location will appear once the rider starts moving.</Text>
           )}
         </View>
       </View>
@@ -444,7 +456,7 @@ export default function ActiveOrderTrackingScreen() {
           </View>
         ) : (
           <View style={styles.waitingCard}>
-            <Text style={styles.waitingText}>Connecting with rider...</Text>
+            <Text style={styles.waitingText}>Rider assigned. Contact details will appear here shortly.</Text>
           </View>
         )}
 
@@ -700,18 +712,18 @@ function makeStyles(colors: ReturnType<typeof import('@/hooks/use-theme').useThe
   },
   riderName: { fontSize: Typography.md, fontWeight: Typography.bold, color: colors.textPrimary },
   riderSub: { fontSize: Typography.xs, color: colors.textSecondary, marginTop: 2 },
-  riderActions: { flexDirection: 'row', gap: 8 },
+  riderActions: { flexDirection: 'row', gap: 12 },
   callBtn: {
-    width: 42,
-    height: 42,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chatBtn: {
-    width: 42,
-    height: 42,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     backgroundColor: '#0040e0',
     alignItems: 'center',

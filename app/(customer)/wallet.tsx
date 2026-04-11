@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Animated,
   FlatList,
@@ -122,6 +123,12 @@ export default function WalletScreen() {
   useEffect(() => {
     fetchData().finally(() => setLoading(false));
   }, [profile?.id, fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData])
+  );
 
   // ── Realtime balance updates ───────────────────────────────────────────────
   useEffect(() => {

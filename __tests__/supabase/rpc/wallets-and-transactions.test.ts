@@ -33,6 +33,18 @@ describeSupabase('Supabase RPC - Wallets and Transactions', () => {
     expect(credit.error).toBeNull();
   }
 
+  async function topUpRiderWallet(amount: number) {
+    const credit = await clients.service.rpc('credit_wallet', {
+      p_wallet_id: seeded.riderWalletId,
+      p_amount: amount,
+      p_type: 'credit',
+      p_reference: buildTestReference('rider-topup'),
+      p_description: 'Rider wallet setup',
+    } as any);
+
+    expect(credit.error).toBeNull();
+  }
+
   it('wallet owner can read own wallet and transactions while unrelated user cannot', async () => {
     const reference = buildTestReference('wallet-credit');
     const credit = await clients.service.rpc('credit_wallet', {
@@ -189,6 +201,108 @@ describeSupabase('Supabase RPC - Wallets and Transactions', () => {
       p_rider_id: seeded.riderId,
     } as any);
     expect(settleAgain.error).not.toBeNull();
+  });
+
+  it('pay_commission debits rider wallet and marks the outstanding balance as paid', async () => {
+    await topUpRiderWallet(5000);
+    const created = await createOrderAsCustomer(clients.customer, seeded.customerId, { paymentMethod: 'cash' });
+
+    const bid = await clients.rider.rpc('place_bid', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_amount: 2200,
+    } as any);
+    expect(bid.error).toBeNull();
+
+    const accept = await clients.customer.rpc('accept_bid', {
+      p_bid_id: extractBidId(bid.data),
+      p_customer_id: seeded.customerId,
+    } as any);
+    expect(accept.error).toBeNull();
+
+    await advanceOrderToDropoff(clients.rider, created.orderId, seeded.riderProfileId);
+
+    const order = await clients.service
+      .from('orders')
+      .select('delivery_code')
+      .eq('id', created.orderId)
+      .single();
+
+    await clients.rider.rpc('verify_delivery_code', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_code: order.data?.delivery_code,
+    } as any);
+
+    const completion = await clients.rider.rpc('complete_delivery', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-pay-commission.jpg',
+    } as any);
+    expect(completion.error).toBeNull();
+
+    const pay = await clients.rider.rpc('pay_commission', {
+      p_order_id: created.orderId,
+    } as any);
+    expect(pay.error).toBeNull();
+
+    const outstanding = await clients.service
+      .from('outstanding_balances')
+      .select('paid_at')
+      .eq('order_id', created.orderId)
+      .single();
+
+    expect(outstanding.error).toBeNull();
+    expect(outstanding.data?.paid_at).not.toBeNull();
+  });
+
+  it('crediting a rider wallet auto-settles payable outstanding commissions', async () => {
+    const created = await createOrderAsCustomer(clients.customer, seeded.customerId, { paymentMethod: 'cash' });
+
+    const bid = await clients.rider.rpc('place_bid', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_amount: 2200,
+    } as any);
+    expect(bid.error).toBeNull();
+
+    const accept = await clients.customer.rpc('accept_bid', {
+      p_bid_id: extractBidId(bid.data),
+      p_customer_id: seeded.customerId,
+    } as any);
+    expect(accept.error).toBeNull();
+
+    await advanceOrderToDropoff(clients.rider, created.orderId, seeded.riderProfileId);
+
+    const order = await clients.service
+      .from('orders')
+      .select('delivery_code, platform_commission_amount')
+      .eq('id', created.orderId)
+      .single();
+
+    await clients.rider.rpc('verify_delivery_code', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_code: order.data?.delivery_code,
+    } as any);
+
+    const completion = await clients.rider.rpc('complete_delivery', {
+      p_order_id: created.orderId,
+      p_rider_id: seeded.riderId,
+      p_pod_photo_url: 'https://example.test/pod-auto-commission.jpg',
+    } as any);
+    expect(completion.error).toBeNull();
+
+    await topUpRiderWallet(Number(order.data?.platform_commission_amount ?? 0) + 100);
+
+    const outstanding = await clients.service
+      .from('outstanding_balances')
+      .select('paid_at')
+      .eq('order_id', created.orderId)
+      .single();
+
+    expect(outstanding.error).toBeNull();
+    expect(outstanding.data?.paid_at).not.toBeNull();
   });
 
   it('cancel_expired_orders refunds wallet-paid unmatched orders and rejects open bids', async () => {

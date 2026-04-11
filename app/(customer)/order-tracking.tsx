@@ -15,6 +15,14 @@ import { Spacing, Typography } from '@/constants/theme';
 import type { Order } from '@/types/database';
 import { useAppStateChannels } from '@/hooks/use-app-state-channels';
 
+const ACTIVE_TRACKING_STATUSES = new Set([
+  'matched',
+  'pickup_en_route',
+  'arrived_pickup',
+  'in_transit',
+  'arrived_dropoff',
+]);
+
 // ─── Progress timeline ────────────────────────────────────────────────────────
 
 const STEPS = [
@@ -58,6 +66,10 @@ export default function OrderTrackingScreen() {
       .single();
     if (data) {
       const o = data as { rider_id: string | null; status: string; [key: string]: any };
+      if (ACTIVE_TRACKING_STATUSES.has(o.status)) {
+        router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId: id } } as any);
+        return;
+      }
       setOrder(o as unknown as Order);
       if (o.rider_id) fetchRider(o.rider_id);
     }
@@ -67,7 +79,7 @@ export default function OrderTrackingScreen() {
     const { data } = await supabase
       .from('riders')
       .select('average_rating, profiles(full_name, phone, avatar_url)')
-      .eq('profile_id', riderId)
+      .eq('id', riderId)
       .single();
     if (data && (data as any).profiles) {
       setRiderProfile({
@@ -90,9 +102,14 @@ export default function OrderTrackingScreen() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         (payload) => {
-          setOrder(payload.new as Order);
-          if ((payload.new as Order).rider_id && !(payload.old as any).rider_id) {
-            fetchRider((payload.new as Order).rider_id!);
+          const nextOrder = payload.new as Order;
+          if (ACTIVE_TRACKING_STATUSES.has(nextOrder.status)) {
+            router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
+            return;
+          }
+          setOrder(nextOrder);
+          if (nextOrder.rider_id && nextOrder.rider_id !== (payload.old as any)?.rider_id) {
+            fetchRider(nextOrder.rider_id);
           }
         }
       )

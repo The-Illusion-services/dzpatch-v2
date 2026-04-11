@@ -28,6 +28,14 @@ const SORT_OPTIONS = [
 ] as const;
 type SortKey = typeof SORT_OPTIONS[number]['key'];
 
+const ACTIVE_TRACKING_STATUSES = new Set([
+  'matched',
+  'pickup_en_route',
+  'arrived_pickup',
+  'in_transit',
+  'arrived_dropoff',
+]);
+
 export default function DeliveriesScreen() {
   const { profile } = useAuthStore();
   const insets = useSafeAreaInsets();
@@ -212,7 +220,9 @@ export default function DeliveriesScreen() {
               style={styles.orderRow}
               onPress={() =>
                 router.push({
-                  pathname: '/(customer)/order-tracking',
+                  pathname: ACTIVE_TRACKING_STATUSES.has(item.status)
+                    ? '/(customer)/active-order-tracking'
+                    : '/(customer)/order-tracking',
                   params: { orderId: item.id },
                 } as any)
               }

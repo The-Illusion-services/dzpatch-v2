@@ -15,23 +15,38 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { supabase } from '@/lib/supabase';
+import { buildSupabaseEdgeHeaders, getSupabaseAccessToken } from '@/lib/supabase-auth';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { isWalletFundingCallback, waitForWalletFundingConfirmation } from '@/lib/wallet-funding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PayMethod = 'card' | 'bank_transfer' | 'ussd';
+type PayMethod = 'card';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const QUICK_AMOUNTS = [1000, 2500, 5000, 10000];
+const FUNDING_REQUEST_TIMEOUT_MS = 12000;
+const COMING_SOON_METHODS = [
+  { key: 'bank_transfer', icon: '🏦', title: 'Bank Transfer', subtitle: 'Transfer from any Nigerian bank' },
+  { key: 'ussd', icon: '📱', title: 'USSD Code', subtitle: 'Pay using your bank\'s code' },
+] as const;
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
 export default function FundWalletScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuthStore();
+  const { profile, signOut } = useAuthStore();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PayMethod>('card');
   const [loading, setLoading] = useState(false);
@@ -79,50 +94,88 @@ export default function FundWalletScreen() {
   const parsedAmount = parseFloat(amount.replace(/,/g, '')) || 0;
   const isValid = parsedAmount >= 100;
 
-  // ── Initiate payment via Edge Function ────────────────────────────────────
+  const showSessionExpired = () => {
+    Alert.alert('Session Expired', 'Please log in again to continue funding your wallet.', [
+      {
+        text: 'OK',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/login' as any);
+        },
+      },
+    ]);
+  };
 
+  // Initiate payment via Edge Function
   const initiatePayment = async () => {
     if (!isValid || !profile || !walletId) return;
     setLoading(true);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    if (!token) {
-      setLoading(false);
-      Alert.alert('Error', 'Not authenticated. Please log in again.');
-      return;
-    }
-
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount: parsedAmount, wallet_id: walletId, method }),
-        }
-      );
+      const token = await getSupabaseAccessToken();
 
-      const result = await res.json();
-      setLoading(false);
+      if (!token) {
+        showSessionExpired();
+        return;
+      }
+
+      const requestPaymentInitialize = async (accessToken: string) => {
+        const res = await withTimeout(
+          fetch(
+            `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/payment-initialize`,
+            {
+              method: 'POST',
+              headers: buildSupabaseEdgeHeaders(accessToken),
+              body: JSON.stringify({ amount: parsedAmount, wallet_id: walletId, method }),
+            }
+          ),
+          FUNDING_REQUEST_TIMEOUT_MS,
+          'The payment server took too long to respond. Please try again.',
+        );
+
+        const result = await res.json();
+        return { res, result };
+      };
+
+      let { res, result } = await requestPaymentInitialize(token);
+
+      if (res.status === 401 && (result?.message === 'Invalid JWT' || result?.error === 'Unauthorized')) {
+        const latestToken = await getSupabaseAccessToken(true);
+        if (latestToken) {
+          ({ res, result } = await requestPaymentInitialize(latestToken));
+        }
+      }
 
       if (!res.ok || !result.authorization_url || !result.reference) {
-        Alert.alert('Payment Error', result.error ?? 'Could not initiate payment. Please try again.');
+        console.warn('fund-wallet payment initialize failed:', {
+          status: res.status,
+          result,
+          walletId,
+          method,
+          amount: parsedAmount,
+        });
+        if (res.status === 401 && (result?.message === 'Invalid JWT' || result?.error === 'Unauthorized')) {
+          showSessionExpired();
+          return;
+        }
+        Alert.alert('Payment Error', result.error ?? result.message ?? 'Could not initiate payment. Please try again.');
         return;
       }
 
       setPaymentReference(result.reference);
       setPaystackUrl(result.authorization_url);
-    } catch {
+    } catch (error) {
+      console.warn('fund-wallet payment initialize request failed:', error);
+      Alert.alert(
+        'Payment Error',
+        error instanceof Error
+          ? error.message
+          : 'Could not connect to payment server. Please check your connection and try again.',
+      );
+    } finally {
       setLoading(false);
-      Alert.alert('Network Error', 'Could not connect to payment server. Please check your connection and try again.');
     }
   };
-
   // ── Handle WebView navigation ──────────────────────────────────────────────
 
   const confirmWalletFunding = async () => {
@@ -305,41 +358,23 @@ export default function FundWalletScreen() {
             </View>
           </Pressable>
 
-          <Pressable
-            style={[styles.methodCard, method === 'bank_transfer' && styles.methodCardActive]}
-            onPress={() => setMethod('bank_transfer')}
-          >
-            <View style={[styles.methodIconWrap, method === 'bank_transfer' && styles.methodIconWrapActive]}>
-              <Text style={styles.methodIconEmoji}>🏦</Text>
+          {COMING_SOON_METHODS.map((option) => (
+            <View key={option.key} style={[styles.methodCard, styles.methodCardDisabled]}>
+              <View style={styles.methodIconWrap}>
+                <Text style={styles.methodIconEmoji}>{option.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.methodTitleRow}>
+                  <Text style={styles.methodTitle}>{option.title}</Text>
+                  <View style={styles.comingSoonPill}>
+                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                  </View>
+                </View>
+                <Text style={styles.methodSub}>{option.subtitle}</Text>
+              </View>
+              <View style={styles.radioOuterDisabled} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.methodTitle, method === 'bank_transfer' && styles.methodTitleActive]}>
-                Bank Transfer
-              </Text>
-              <Text style={styles.methodSub}>Transfer from any Nigerian bank</Text>
-            </View>
-            <View style={[styles.radioOuter, method === 'bank_transfer' && styles.radioOuterActive]}>
-              {method === 'bank_transfer' && <View style={styles.radioInner} />}
-            </View>
-          </Pressable>
-
-          <Pressable
-            style={[styles.methodCard, method === 'ussd' && styles.methodCardActive]}
-            onPress={() => setMethod('ussd')}
-          >
-            <View style={[styles.methodIconWrap, method === 'ussd' && styles.methodIconWrapActive]}>
-              <Text style={styles.methodIconEmoji}>📱</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.methodTitle, method === 'ussd' && styles.methodTitleActive]}>
-                USSD Code
-              </Text>
-              <Text style={styles.methodSub}>Pay using your bank&apos;s code</Text>
-            </View>
-            <View style={[styles.radioOuter, method === 'ussd' && styles.radioOuterActive]}>
-              {method === 'ussd' && <View style={styles.radioInner} />}
-            </View>
-          </Pressable>
+          ))}
         </View>
 
         {/* Security notice */}
@@ -508,6 +543,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   methodCardActive: { borderColor: '#0040e0' },
+  methodCardDisabled: { opacity: 0.72 },
   methodIconWrap: {
     width: 48,
     height: 48,
@@ -520,8 +556,29 @@ const styles = StyleSheet.create({
   methodIconWrapActive: { backgroundColor: '#dde1ff' },
   methodIconEmoji: { fontSize: 22 },
   methodTitle: { fontSize: Typography.sm, fontWeight: Typography.bold, color: '#000D22' },
+  methodTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
   methodTitleActive: { color: '#0040e0' },
   methodSub: { fontSize: Typography.xs, color: '#74777e', marginTop: 2 },
+  comingSoonPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: '#F1F4F6',
+    borderWidth: 1,
+    borderColor: '#DDE3EA',
+  },
+  comingSoonText: {
+    fontSize: 10,
+    fontWeight: Typography.bold,
+    color: '#6A7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
   radioOuter: {
     width: 22,
     height: 22,
@@ -533,6 +590,14 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   radioOuterActive: { borderColor: '#0040e0' },
+  radioOuterDisabled: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#D5D9E2',
+    backgroundColor: '#F8FAFC',
+  },
   radioInner: {
     width: 10,
     height: 10,

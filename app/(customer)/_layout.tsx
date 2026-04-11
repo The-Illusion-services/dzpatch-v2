@@ -1,8 +1,9 @@
 import { Tabs, router, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { resolveAuthRoute } from '@/lib/auth-routing';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { useTheme } from '@/hooks/use-theme';
@@ -374,8 +375,47 @@ function NegotiationBanner({
 export default function CustomerLayout() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { isInitialized, isLoading, session, profile, role } = useAuthStore();
   useBidAlerts();
   const { activeNegotiation, showBanner } = useNegotiationBanner();
+  const hasCustomerAccess = !!session?.user && role === 'customer' && !!profile?.id && !!profile.full_name?.trim();
+
+  useEffect(() => {
+    if (!isInitialized || isLoading || hasCustomerAccess) return;
+
+    const fallbackRoute = resolveAuthRoute({
+      hasSession: !!session,
+      role,
+      fullName: profile?.full_name,
+      kycStatus: profile?.kyc_status,
+    }) ?? '/(auth)/onboarding';
+
+    const isBrokenAuthenticatedState = !!session || !!role || !!profile?.id || !!profile?.full_name;
+    if (isBrokenAuthenticatedState) {
+      console.warn('Blocking customer route without a usable customer profile:', {
+        hasSession: !!session,
+        userId: session?.user?.id ?? null,
+        role,
+        profileId: profile?.id ?? null,
+        fullName: profile?.full_name ?? null,
+        target: fallbackRoute,
+      });
+    }
+
+    router.replace(fallbackRoute as any);
+  }, [hasCustomerAccess, isInitialized, isLoading, profile?.full_name, profile?.id, role, session]);
+
+  if (!isInitialized || !hasCustomerAccess) {
+    return (
+      <View style={[styles.guardScreen, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.tabActive} />
+        <Text style={[styles.guardTitle, { color: colors.textPrimary }]}>Checking your account</Text>
+        <Text style={[styles.guardText, { color: colors.textSecondary }]}>
+          We are making sure your customer profile is ready before opening the app.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -452,6 +492,22 @@ export default function CustomerLayout() {
 }
 
 const styles = StyleSheet.create({
+  guardScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  guardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  guardText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   tabBar: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const PAYSTACK_SECRET = Deno.env.get('PAYSTACK_SECRET_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const PAYSTACK_CALLBACK_URL = 'https://dzpatch.co/paystack-callback';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -21,6 +22,16 @@ Deno.serve(async (req: Request) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return json({ error: 'Unauthorized' }, 401);
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error('payment-initialize missing Supabase env configuration');
+    return json({ error: 'Payment service is not configured correctly.' }, 500);
+  }
+
+  if (!PAYSTACK_SECRET) {
+    console.error('payment-initialize missing PAYSTACK_SECRET_KEY');
+    return json({ error: 'Payment service is temporarily unavailable.' }, 500);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -72,7 +83,7 @@ Deno.serve(async (req: Request) => {
     .eq('id', user.id)
     .single();
 
-  const email = profile?.email ?? user.email ?? '';
+  const email = resolvePaymentEmail(profile?.email, user.email, user.id);
 
   // ── Generate unique reference ────────────────────────────────────────────
   const reference = `FUND-${user.id.slice(0, 8)}-${Date.now()}`;
@@ -94,7 +105,7 @@ Deno.serve(async (req: Request) => {
       amount: amount * 100, // kobo
       reference,
       channels,
-      callback_url: 'https://dzpatch.co/paystack-callback',
+      callback_url: PAYSTACK_CALLBACK_URL,
       metadata: {
         wallet_id,
         user_id: user.id,
@@ -114,11 +125,19 @@ Deno.serve(async (req: Request) => {
     }),
   });
 
-  const paystackData = await paystackRes.json();
+  const paystackData = await paystackRes.json().catch(() => null);
 
-  if (!paystackData.status) {
-    console.error('Paystack error:', paystackData);
-    return json({ error: paystackData.message ?? 'Payment initialization failed' }, 502);
+  if (!paystackRes.ok || !paystackData?.status || !paystackData?.data?.authorization_url) {
+    console.error('Paystack initialize failed:', {
+      status: paystackRes.status,
+      body: paystackData,
+      email,
+      reference,
+      method,
+    });
+    return json({
+      error: paystackData?.message ?? `Payment initialization failed (${paystackRes.status}).`,
+    }, 502);
   }
 
   // ── Record pending transaction ───────────────────────────────────────────
@@ -138,4 +157,17 @@ function json(data: unknown, status = 200) {
       'Access-Control-Allow-Origin': '*',
     },
   });
+}
+
+function resolvePaymentEmail(
+  profileEmail: string | null | undefined,
+  authEmail: string | null | undefined,
+  userId: string,
+) {
+  const email = profileEmail?.trim() || authEmail?.trim();
+  if (email) {
+    return email;
+  }
+
+  return `${userId}@wallet.dzpatch.local`;
 }

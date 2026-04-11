@@ -5,6 +5,7 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      refreshSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
       onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
       signInWithOtp: jest.fn().mockResolvedValue({ error: null }),
       verifyOtp: jest.fn().mockResolvedValue({ data: { session: { user: { id: 'user-123' } } }, error: null }),

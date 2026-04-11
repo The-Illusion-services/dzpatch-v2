@@ -9,22 +9,47 @@ import {
   Text,
   View,
 } from 'react-native';
+import { resolveAuthRoute } from '@/lib/auth-routing';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Button, Input } from '@/components/ui';
 
-function navigateByRole(role: string | null) {
-  switch (role) {
-    case 'rider':         router.replace('/(rider)' as any); break;
-    default:              router.replace('/(customer)' as any); break;
+const AUTH_SCREEN_TIMEOUT_MS = 15000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
+function formatAuthErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? 'Something went wrong. Try again.');
+  if (message.includes('Profile not found')) {
+    return 'Your account signed in, but your profile could not be loaded. Please try again.';
   }
+  return message;
+}
+
+function navigateByAuthState() {
+  const state = useAuthStore.getState();
+  const route = resolveAuthRoute({
+    hasSession: !!state.session,
+    role: state.role,
+    fullName: state.profile?.full_name,
+    kycStatus: state.profile?.kyc_status,
+  });
+
+  router.replace((route ?? '/(auth)/onboarding') as any);
 }
 
 type Mode = 'phone' | 'email';
 type EmailAction = 'signin' | 'signup';
 
 export default function LoginScreen() {
-  const { initialize } = useAuthStore();
+  const { initialize, loadProfile, setSession } = useAuthStore();
   const [mode, setMode] = useState<Mode>('phone');
   const [emailAction, setEmailAction] = useState<EmailAction>('signin');
 
@@ -61,11 +86,15 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.signInWithOtp({ phone: formatted });
+      const { error: err } = await withTimeout(
+        supabase.auth.signInWithOtp({ phone: formatted }),
+        AUTH_SCREEN_TIMEOUT_MS,
+        'Sending the verification code took too long. Please try again.',
+      );
       if (err) throw err;
       router.push({ pathname: '/(auth)/otp', params: { phone: formatted } });
     } catch (err: any) {
-      setError(err.message ?? 'Something went wrong. Try again.');
+      setError(formatAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -85,22 +114,48 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       if (emailAction === 'signin') {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error: err } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          AUTH_SCREEN_TIMEOUT_MS,
+          'Signing in took too long. Please try again.',
+        );
         if (err) throw err;
-        await initialize();
-        navigateByRole(useAuthStore.getState().role);
+
+        if (data.session && data.user) {
+          setSession(data.session);
+          await withTimeout(
+            loadProfile(data.user.id),
+            AUTH_SCREEN_TIMEOUT_MS,
+            'Loading your account took too long. Please try again.',
+          );
+        } else {
+          await withTimeout(
+            initialize(),
+            AUTH_SCREEN_TIMEOUT_MS,
+            'Restoring your session took too long. Please try again.',
+          );
+        }
+
+        navigateByAuthState();
       } else {
-        const { data, error: err } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: fullName.trim(), role: 'customer' } },
-        });
+        const { data, error: err } = await withTimeout(
+          supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName.trim(), role: 'customer' } },
+          }),
+          AUTH_SCREEN_TIMEOUT_MS,
+          'Creating your account took too long. Please try again.',
+        );
         if (err) throw err;
         if (data.session) {
-          await initialize();
-          navigateByRole(useAuthStore.getState().role);
+          await withTimeout(
+            initialize(),
+            AUTH_SCREEN_TIMEOUT_MS,
+            'Loading your new account took too long. Please try again.',
+          );
+          navigateByAuthState();
         } else {
-          // Email confirmation required
           router.push({
             pathname: '/(auth)/otp',
             params: { email, isEmailSignup: 'true' },
@@ -108,7 +163,7 @@ export default function LoginScreen() {
         }
       }
     } catch (err: any) {
-      setError(err.message ?? 'Something went wrong. Try again.');
+      setError(formatAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }

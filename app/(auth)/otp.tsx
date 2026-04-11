@@ -9,12 +9,23 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { resolveAuthRoute } from '@/lib/auth-routing';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui';
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
+const AUTH_SCREEN_TIMEOUT_MS = 15000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
 
 export default function OtpScreen() {
   const { phone, email, isEmailSignup } = useLocalSearchParams<{ phone?: string; email?: string; isEmailSignup?: string }>();
@@ -79,23 +90,36 @@ export default function OtpScreen() {
     try {
       let result;
       if (phone) {
-        result = await supabase.auth.verifyOtp({ phone, token: code, type: 'sms' });
+        result = await withTimeout(
+          supabase.auth.verifyOtp({ phone, token: code, type: 'sms' }),
+          AUTH_SCREEN_TIMEOUT_MS,
+          'Verifying your code took too long. Please try again.',
+        );
       } else if (email) {
-        result = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
+        result = await withTimeout(
+          supabase.auth.verifyOtp({ email, token: code, type: 'email' }),
+          AUTH_SCREEN_TIMEOUT_MS,
+          'Verifying your code took too long. Please try again.',
+        );
       } else {
         throw new Error('No phone or email provided');
       }
       if (result.error) throw result.error;
 
-      // Initialize auth store (loads profile, sets role)
-      await initialize();
+      await withTimeout(
+        initialize(),
+        AUTH_SCREEN_TIMEOUT_MS,
+        'Loading your account took too long. Please try again.',
+      );
 
-      // Navigate by role
-      const role = useAuthStore.getState().role;
-      switch (role) {
-        case 'rider':         router.replace('/(rider)' as any); break;
-        default:              router.replace('/(customer)' as any); break;
-      }
+      const state = useAuthStore.getState();
+      const route = resolveAuthRoute({
+        hasSession: !!state.session,
+        role: state.role,
+        fullName: state.profile?.full_name,
+        kycStatus: state.profile?.kyc_status,
+      });
+      router.replace((route ?? '/(auth)/onboarding') as any);
     } catch (err: any) {
       setError(err.message ?? 'Invalid code. Please try again.');
       setOtp(Array(OTP_LENGTH).fill(''));

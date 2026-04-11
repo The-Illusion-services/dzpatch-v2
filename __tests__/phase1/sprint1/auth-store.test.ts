@@ -3,6 +3,10 @@ import { useAuthStore } from '@/store/auth.store';
 
 describe('Auth Store', () => {
   beforeEach(() => {
+    const { supabase } = require('@/lib/supabase');
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+    supabase.auth.signOut.mockResolvedValue({ error: null });
+
     // Reset store state between tests
     useAuthStore.setState({
       session: null,
@@ -67,6 +71,20 @@ describe('Auth Store', () => {
     expect(useAuthStore.getState().isInitialized).toBe(true);
   });
 
+  it('initialize clears stale refresh-token sessions locally', async () => {
+    const { supabase } = require('@/lib/supabase');
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: new Error('Invalid Refresh Token: Refresh Token Not Found'),
+    });
+
+    await useAuthStore.getState().initialize();
+
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(useAuthStore.getState().session).toBeNull();
+    expect(useAuthStore.getState().isInitialized).toBe(true);
+  });
+
   it('loadProfile sets profile and role', async () => {
     const { supabase } = require('@/lib/supabase');
     supabase.from.mockReturnValue({
@@ -83,5 +101,25 @@ describe('Auth Store', () => {
 
     expect(profile).not.toBeNull();
     expect(role).toBe('customer');
+  });
+
+  it('signOut falls back to local cleanup when refresh token is already invalid', async () => {
+    const { supabase } = require('@/lib/supabase');
+    supabase.auth.signOut
+      .mockResolvedValueOnce({ error: new Error('Invalid Refresh Token: Refresh Token Not Found') })
+      .mockResolvedValueOnce({ error: null });
+
+    useAuthStore.setState({
+      session: {} as any,
+      user: {} as any,
+      profile: {} as any,
+      role: 'customer',
+    });
+
+    await useAuthStore.getState().signOut();
+
+    expect(supabase.auth.signOut).toHaveBeenNthCalledWith(1);
+    expect(supabase.auth.signOut).toHaveBeenNthCalledWith(2, { scope: 'local' });
+    expect(useAuthStore.getState().session).toBeNull();
   });
 });

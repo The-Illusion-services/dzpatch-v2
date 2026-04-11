@@ -52,6 +52,10 @@
 |---|---|---|
 | `service_areas` | Cities/regions with boundaries | Standalone |
 | `pricing_rules` | Per-city pricing config | service_area_id → service_areas |
+| `partner_accounts` | Partner API credentials, pricing rules, webhook destination | Standalone |
+| `partner_deliveries` | External partner delivery requests and lifecycle state | partner_account_id → partner_accounts, dzpatch_order_id → orders |
+| `partner_webhook_events` | Outbound webhook delivery ledger and retry state | partner_delivery_id → partner_deliveries |
+| `partner_audit_logs` | Audit trail for partner API activity | partner_account_id → partner_accounts |
 
 ### Safety & Admin
 | Table | Purpose | Key Relations |
