@@ -973,6 +973,10 @@ export interface Database {
         Args: { p_order_id: string; p_rider_id: string; p_code: string };
         Returns: boolean;
       };
+      get_order_delivery_code: {
+        Args: { p_order_id: string };
+        Returns: string | null;
+      };
       complete_delivery: {
         Args: { p_order_id: string; p_rider_id: string; p_pod_photo_url?: string | null };
         Returns: Json;

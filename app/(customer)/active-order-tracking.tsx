@@ -76,6 +76,7 @@ export default function ActiveOrderTrackingScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<ActiveTrackingOrder | null>(null);
+  const [deliveryCode, setDeliveryCode] = useState<string | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
   const [riderLocation, setRiderLocation] = useState<LatLng | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
@@ -127,7 +128,7 @@ export default function ActiveOrderTrackingScreen() {
   const fetchOrder = useCallback(async (id: string) => {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, delivery_code, distance_km')
+      .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, distance_km')
       .eq('id', id)
       .maybeSingle();
     if (error) {
@@ -137,6 +138,8 @@ export default function ActiveOrderTrackingScreen() {
     if (data) {
       const o = data as ActiveTrackingOrder;
       setOrder(o);
+      const { data: code } = await supabase.rpc('get_order_delivery_code', { p_order_id: id });
+      setDeliveryCode(typeof code === 'string' ? code : null);
       setDropoffLocation(parsePostgisPoint(o.dropoff_location));
       if (o.distance_km) {
         setEtaMinutes(Math.round((o.distance_km / 20) * 60));
@@ -198,7 +201,7 @@ export default function ActiveOrderTrackingScreen() {
           // Re-fetch full row — payload.new is partial and may omit unchanged columns
           const { data: fresh, error } = await supabase
             .from('orders')
-            .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, delivery_code, distance_km')
+            .select('id, status, rider_id, final_price, dropoff_address, dropoff_location, created_at, distance_km')
             .eq('id', orderId)
             .maybeSingle();
           if (error) {
@@ -208,6 +211,8 @@ export default function ActiveOrderTrackingScreen() {
           if (!fresh) return;
           const updated = fresh as ActiveTrackingOrder;
           setOrder(updated);
+          const { data: code } = await supabase.rpc('get_order_delivery_code', { p_order_id: orderId });
+          setDeliveryCode(typeof code === 'string' ? code : null);
           setDropoffLocation(parsePostgisPoint(updated.dropoff_location));
           if (updated.rider_id) fetchRider(updated.rider_id);
           if (updated.status === 'delivered' || updated.status === 'completed') {
@@ -461,13 +466,13 @@ export default function ActiveOrderTrackingScreen() {
         )}
 
         {/* Delivery code — visible once rider is assigned, urgent at dropoff */}
-        {order.delivery_code && ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'].includes(order.status) && (
+        {deliveryCode && ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'].includes(order.status) && (
           <View style={[
             styles.deliveryCodeCard,
             order.status === 'arrived_dropoff' && styles.deliveryCodeCardUrgent,
           ]}>
             <Text style={styles.deliveryCodeLabel}>DELIVERY CODE</Text>
-            <Text style={styles.deliveryCodeValue}>{order.delivery_code}</Text>
+            <Text style={styles.deliveryCodeValue}>{deliveryCode}</Text>
             <Text style={styles.deliveryCodeHint}>
               {order.status === 'arrived_dropoff'
                 ? '⚠️ Rider is here — share this code now'

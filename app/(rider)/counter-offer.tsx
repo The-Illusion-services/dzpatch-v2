@@ -183,7 +183,7 @@ export default function CounterOfferScreen() {
     setBidAmount(String(adjustCurrencyAmount(current, delta, 0)));
   };
 
-  const handleAcceptExact = async (exactAmount: number) => {
+  const handleAcceptExact = async () => {
     if (!orderId || !riderId) return;
     Keyboard.dismiss();
     setSubmitting(true);
@@ -201,16 +201,15 @@ export default function CounterOfferScreen() {
         });
         return;
       } else {
-        const { error } = await (supabase as any).rpc('place_bid', {
+        const { error } = await (supabase as any).rpc('accept_order_direct', {
           p_order_id: orderId,
           p_rider_id: riderId,
-          p_amount: exactAmount,
         });
         if (error) throw error;
       }
       router.replace({
-        pathname: '/(rider)/waiting-for-customer' as any,
-        params: { orderId, bidAmount: String(exactAmount) },
+        pathname: '/(rider)/navigate-to-pickup' as any,
+        params: { orderId },
       });
     } catch (error: any) {
       Alert.alert('Error', error.message ?? 'Please try again.');
@@ -316,7 +315,7 @@ export default function CounterOfferScreen() {
             </View>
             <Pressable 
               style={{ backgroundColor: '#0040e0', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, justifyContent: 'center' }}
-              onPress={() => handleAcceptExact(incomingCounter ?? customerOffer!)}
+              onPress={handleAcceptExact}
               disabled={submitting}
             >
                <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 }}>Accept</Text>

@@ -77,6 +77,17 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
     return order as any;
   }
 
+  async function getCustomerDeliveryCode(orderId: string) {
+    const { data, error } = await clients.customer.rpc('get_order_delivery_code', {
+      p_order_id: orderId,
+    } as any);
+
+    expect(error).toBeNull();
+    expect(typeof data).toBe('string');
+    expect(String(data)).toHaveLength(6);
+    return String(data);
+  }
+
   it('authorized rider can move matched to pickup_en_route and arrived_pickup to in_transit', async () => {
     const order = await createAcceptedOrder('cash');
 
@@ -138,11 +149,12 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
   it('complete_delivery succeeds when code is verified and writes delivered status history', async () => {
     const order = await createAcceptedOrder('cash');
     await advanceOrderToDropoff(clients.rider, order.id, seeded.riderProfileId);
+    const deliveryCode = await getCustomerDeliveryCode(order.id);
 
     const verify = await clients.rider.rpc('verify_delivery_code', {
       p_order_id: order.id,
       p_rider_id: seeded.riderId,
-      p_code: order.delivery_code,
+      p_code: deliveryCode,
     } as any);
     expect(verify.error).toBeNull();
     expect(verify.data).toBe(true);
@@ -176,6 +188,7 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
   it('wallet-paid complete_delivery credits rider and platform exactly once via rider profile wallet', async () => {
     const order = await createAcceptedOrder('wallet');
     await advanceOrderToDropoff(clients.rider, order.id, seeded.riderProfileId);
+    const deliveryCode = await getCustomerDeliveryCode(order.id);
 
     const riderWalletBefore = await clients.service
       .from('wallets')
@@ -191,7 +204,7 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
     await clients.rider.rpc('verify_delivery_code', {
       p_order_id: order.id,
       p_rider_id: seeded.riderId,
-      p_code: order.delivery_code,
+      p_code: deliveryCode,
     } as any);
 
     const completion = await clients.rider.rpc('complete_delivery', {
@@ -236,11 +249,12 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
   it('cash-paid complete_delivery creates outstanding_balances row', async () => {
     const order = await createAcceptedOrder('cash');
     await advanceOrderToDropoff(clients.rider, order.id, seeded.riderProfileId);
+    const deliveryCode = await getCustomerDeliveryCode(order.id);
 
     const verify = await clients.rider.rpc('verify_delivery_code', {
       p_order_id: order.id,
       p_rider_id: seeded.riderId,
-      p_code: order.delivery_code,
+      p_code: deliveryCode,
     } as any);
     expect(verify.error).toBeNull();
 
@@ -261,5 +275,19 @@ describeSupabase('Supabase RPC - Complete Delivery', () => {
     expect(outstandingRow?.order_id).toBe(order.id);
     expect(outstandingRow?.customer_id).toBe(seeded.customerId);
     expect(outstandingRow?.rider_id).toBe(seeded.riderId);
+  });
+
+  it('rider cannot bypass complete_delivery by calling update_order_status with delivered', async () => {
+    const order = await createAcceptedOrder('cash');
+    await advanceOrderToDropoff(clients.rider, order.id, seeded.riderProfileId);
+
+    const updateStatus = await clients.rider.rpc('update_order_status', {
+      p_order_id: order.id,
+      p_new_status: 'delivered',
+      p_changed_by: seeded.riderProfileId,
+    } as any);
+
+    expect(updateStatus.error).not.toBeNull();
+    expect(updateStatus.error?.message).toMatch(/complete_delivery.*delivered/i);
   });
 });

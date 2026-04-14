@@ -23,12 +23,12 @@ import type { OrderStatus } from '@/types/database';
 
 const LOCATION_UPDATE_INTERVAL = 10_000; // 10s
 const NEARBY_REFRESH_INTERVAL = 20_000;  // 20s
-const ACTIVE_TRIP_STATUS_SET = new Set<string>(ACTIVE_TRIP_STATUSES);
 // L4: Only send a DB write if the rider moved more than this threshold (meters)
 // distanceInterval:20 in watchPositionAsync is OS-level, this is an app-level guard
 const LOCATION_WRITE_THRESHOLD_M = 30;
 
 const ACTIVE_TRIP_STATUSES: OrderStatus[] = ['matched', 'pickup_en_route', 'arrived_pickup', 'in_transit', 'arrived_dropoff'];
+const ACTIVE_TRIP_STATUS_SET = new Set<string>(ACTIVE_TRIP_STATUSES);
 
 type ActiveTrip = {
   id: string;
@@ -67,6 +67,10 @@ type NearbyOrder = {
   expires_at: string | null;
   pickup_lat: number | null;
   pickup_lng: number | null;
+  source_type: 'customer' | 'partner' | null;
+  partner_name: string | null;
+  pickup_brand_name: string | null;
+  is_negotiable: boolean | null;
 };
 
 const CALABAR_REGION: Region = {
@@ -108,6 +112,7 @@ export default function RiderHomeScreen() {
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [mapMounted, setMapMounted] = useState(true);
+  const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
 
   const cardAnim = useRef(new Animated.Value(0)).current;
   const locationWatcher = useRef<Location.LocationSubscription | null>(null);
@@ -480,6 +485,39 @@ export default function RiderHomeScreen() {
     }
   };
 
+  const handleAcceptOrder = useCallback(async (order: NearbyOrder) => {
+    if (!riderId) {
+      Alert.alert('Not Ready', 'Your rider profile is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    setAcceptingOrderId(order.order_id);
+    try {
+      const { error } = await (supabase as any).rpc('accept_order_direct', {
+        p_order_id: order.order_id,
+        p_rider_id: riderId,
+      });
+      if (error) throw error;
+
+      setSelectedOrder(null);
+      setNearbyOrders((prev) => prev.filter((item) => item.order_id !== order.order_id));
+      setActiveTrip({
+        id: order.order_id,
+        status: 'matched',
+        pickup_address: order.pickup_address,
+        dropoff_address: order.dropoff_address,
+      });
+      router.replace({
+        pathname: '/(rider)/navigate-to-pickup' as any,
+        params: { orderId: order.order_id },
+      });
+    } catch (error: any) {
+      Alert.alert('Could not accept order', error.message ?? 'Please try again.');
+    } finally {
+      setAcceptingOrderId(null);
+    }
+  }, [riderId]);
+
   const formatDistance = useCallback((meters: number) => {
     if (meters < 1000) return `${Math.round(meters)}m`;
     return `${(meters / 1000).toFixed(1)}km`;
@@ -740,6 +778,16 @@ export default function RiderHomeScreen() {
                 </Text>
               </View>
 
+              {selectedOrder.source_type === 'partner' && (
+                <View style={styles.partnerChip}>
+                  <Ionicons name="business-outline" size={14} color="#0040e0" />
+                  <Text style={styles.partnerChipText}>
+                    {selectedOrder.partner_name ?? 'Partner'} fixed delivery
+                    {selectedOrder.pickup_brand_name ? ` - ${selectedOrder.pickup_brand_name}` : ''}
+                  </Text>
+                </View>
+              )}
+
               {/* Route */}
               <View style={styles.routeContainer}>
                 <View style={styles.routeLine} />
@@ -767,15 +815,31 @@ export default function RiderHomeScreen() {
               <View style={styles.previewActions}>
                 <Pressable
                   style={styles.viewDetailsBtn}
-                  onPress={() => router.push({ pathname: '/(rider)/job-details', params: { orderId: selectedOrder.order_id } } as any)}
+                  onPress={() => router.push({
+                    pathname: '/(rider)/job-details',
+                    params: {
+                      orderId: selectedOrder.order_id,
+                      sourceType: selectedOrder.source_type ?? 'customer',
+                      partnerName: selectedOrder.partner_name ?? '',
+                      pickupBrandName: selectedOrder.pickup_brand_name ?? '',
+                      isNegotiable: String(selectedOrder.is_negotiable ?? true),
+                    },
+                  } as any)}
                 >
                   <Text style={styles.viewDetailsBtnText}>View Details</Text>
                 </Pressable>
                 <Pressable
-                  style={styles.acceptBtn}
-                  onPress={() => router.push({ pathname: '/(rider)/job-details', params: { orderId: selectedOrder.order_id } } as any)}
+                  style={[styles.acceptBtn, acceptingOrderId === selectedOrder.order_id && styles.acceptBtnDisabled]}
+                  onPress={() => handleAcceptOrder(selectedOrder)}
+                  disabled={acceptingOrderId === selectedOrder.order_id}
                 >
-                  <Text style={styles.acceptBtnText}>Accept Order</Text>
+                  {acceptingOrderId === selectedOrder.order_id ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.acceptBtnText}>
+                      {selectedOrder.source_type === 'partner' ? 'Accept Delivery' : 'Accept Order'}
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </Animated.View>
@@ -979,6 +1043,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
   },
   packageChipText: { fontSize: Typography.xs, fontWeight: '600', color: '#324768' },
+  partnerChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF', borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  partnerChipText: { fontSize: Typography.xs, fontWeight: '700', color: '#0040e0' },
 
   // Route
   routeContainer: { gap: 16, paddingLeft: 8 },
@@ -1007,5 +1078,6 @@ const styles = StyleSheet.create({
     shadowColor: '#0040e0', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
+  acceptBtnDisabled: { opacity: 0.6 },
   acceptBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
 });

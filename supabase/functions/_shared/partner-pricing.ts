@@ -20,10 +20,10 @@ export function resolveAppliedPartnerPricing(
   config: PartnerPricingConfig,
   submittedFee: number,
 ): { ok: true; value: AppliedPartnerPricing } | { ok: false; error: PartnerValidationError } {
-  const normalizedSubmittedFee = roundMoney(submittedFee);
+  const normalizedSubmittedFee = roundFareUp(submittedFee);
 
   if (config.pricing_mode === 'fixed' && config.fixed_price_amount != null) {
-    const normalizedFixedFee = roundMoney(config.fixed_price_amount);
+    const normalizedFixedFee = roundFareUp(config.fixed_price_amount);
 
     if (normalizedSubmittedFee !== normalizedFixedFee) {
       return {
@@ -61,6 +61,7 @@ export function resolveAppliedPartnerPricing(
   };
 }
 
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
+function roundFareUp(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.ceil(value / 100) * 100;
 }

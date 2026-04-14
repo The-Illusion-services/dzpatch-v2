@@ -20,6 +20,11 @@ Deno.serve(async (req: Request) => {
 
   const rawBody = await req.text();
 
+  if (!PAYSTACK_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error('Payment webhook is not fully configured');
+    return new Response('Server configuration error', { status: 500 });
+  }
+
   // ── Verify Paystack signature ────────────────────────────────────────────
   const signature = req.headers.get('x-paystack-signature') ?? '';
   const expectedSig = await hmacSha512(PAYSTACK_SECRET, rawBody);

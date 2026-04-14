@@ -49,6 +49,7 @@ export type PartnerCustomer = {
 export type PartnerDeliveryRequest = {
   external_order_id: string;
   external_reference?: string | null;
+  quote_id?: string | null;
   pickup: PartnerParty;
   dropoff: PartnerParty;
   items: PartnerDeliveryItem[];
@@ -84,6 +85,62 @@ const MAX_REFERENCE_LENGTH = 191;
 const MAX_ITEMS = 100;
 const E164_REGEX = /^\+[1-9]\d{7,14}$/;
 
+export type PartnerQuoteRequest = {
+  external_checkout_reference?: string | null;
+  pickup?: PartnerParty | null;
+  dropoff?: PartnerParty | null;
+  pricing?: {
+    currency: string;
+    partner_calculated_fee: number;
+  } | null;
+  meta: Record<string, unknown>;
+};
+
+export function validateCreateQuoteRequest(payload: unknown): PartnerValidationResult<PartnerQuoteRequest> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return invalid('Payload must be a JSON object.');
+  }
+
+  const input = payload as Record<string, unknown>;
+  const externalCheckoutReference = optionalString(input.external_checkout_reference, 'external_checkout_reference');
+  if (!externalCheckoutReference.ok) return externalCheckoutReference;
+
+  let pickupResult: PartnerParty | null = null;
+  if (input.pickup) {
+    const pickup = validateParty(input.pickup, 'pickup', { requirePhone: false });
+    if (!pickup.ok) return pickup;
+    pickupResult = pickup.value;
+  }
+
+  let dropoffResult: PartnerParty | null = null;
+  if (input.dropoff) {
+    const dropoff = validateParty(input.dropoff, 'dropoff', { requirePhone: false });
+    if (!dropoff.ok) return dropoff;
+    dropoffResult = dropoff.value;
+  }
+
+  let pricingResult = null;
+  if (input.pricing) {
+    const pricing = validatePricing(input.pricing);
+    if (!pricing.ok) return pricing;
+    pricingResult = pricing.value;
+  }
+
+  const meta = normalizeMeta(input.meta);
+  if (!meta.ok) return meta;
+
+  return {
+    ok: true,
+    value: {
+      external_checkout_reference: externalCheckoutReference.value,
+      pickup: pickupResult,
+      dropoff: dropoffResult,
+      pricing: pricingResult,
+      meta: meta.value,
+    },
+  };
+}
+
 export function validateCreateDeliveryRequest(payload: unknown): PartnerValidationResult<PartnerDeliveryRequest> {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return invalid('Payload must be a JSON object.');
@@ -98,6 +155,9 @@ export function validateCreateDeliveryRequest(payload: unknown): PartnerValidati
   if (externalReference.value && externalReference.value.length > MAX_REFERENCE_LENGTH) {
     return invalid('external_reference is too long.', { field: 'external_reference' });
   }
+
+  const quoteId = optionalString(input.quote_id, 'quote_id');
+  if (!quoteId.ok) return quoteId;
 
   const pickup = validateParty(input.pickup, 'pickup', { requirePhone: false });
   if (!pickup.ok) return pickup;
@@ -125,6 +185,7 @@ export function validateCreateDeliveryRequest(payload: unknown): PartnerValidati
     value: {
       external_order_id: externalOrderId.value,
       external_reference: externalReference.value,
+      quote_id: quoteId.value,
       pickup: pickup.value,
       dropoff: dropoff.value,
       items: items.value,

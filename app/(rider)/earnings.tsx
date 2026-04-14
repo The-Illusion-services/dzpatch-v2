@@ -31,6 +31,8 @@ interface Transaction {
   amount: number;
   type: string;
   description: string | null;
+  order_id: string | null;
+  reference: string;
   created_at: string;
   order: {
     final_price: number | null;
@@ -55,7 +57,6 @@ function formatAmount(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function dayLabel(dateStr: string) {
   const d = new Date(dateStr);
   const today = new Date();
@@ -105,7 +106,7 @@ export default function RiderEarningsScreen() {
     since.setDate(since.getDate() - (period === 'weekly' ? 7 : 30));
     const { data: txs } = await supabase
       .from('transactions')
-      .select('id, amount, type, description, created_at')
+      .select('id, amount, type, description, reference, order_id, created_at')
       .eq('wallet_id', w?.id ?? '')
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
@@ -288,6 +289,34 @@ export default function RiderEarningsScreen() {
           <Text style={styles.bentoLabel}>Total Made</Text>
           <Text style={styles.bentoValue}>{formatAmount(grossRevenue)}</Text>
           <Text style={styles.bentoStatText}>Wallet credits in this period</Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Trips</Text>
+        <View style={styles.dailyList}>
+          {incomeTransactions.length > 0 ? (
+            incomeTransactions.slice(0, 5).map((tx) => (
+              <View key={tx.id} style={styles.dailyRow}>
+                <View style={styles.dayCircle}>
+                  <Ionicons name="bicycle-outline" size={18} color="#0040e0" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dayLabel} numberOfLines={1}>
+                    {tx.order_id ? `Order #${tx.order_id.slice(-8).toUpperCase()}` : tx.reference}
+                  </Text>
+                  <Text style={styles.dayTrips}>
+                    {dayLabel(tx.created_at)} • {tx.description ?? 'Delivery earnings'}
+                  </Text>
+                </View>
+                <Text style={styles.dayAmount}>+{formatAmount(tx.amount)}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyTrips}>
+              <Text style={styles.dayTrips}>No completed trips in this period yet.</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -504,6 +533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#F1F4F6',
   },
+  emptyTrips: { paddingHorizontal: 16, paddingVertical: 16 },
   dayCircle: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',

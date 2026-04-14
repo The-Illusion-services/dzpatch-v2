@@ -52,6 +52,7 @@ export default function OrderTrackingScreen() {
   const insets = useSafeAreaInsets();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
+  const [deliveryCode, setDeliveryCode] = useState<string | null>(null);
   const [riderProfile, setRiderProfile] = useState<{ full_name: string; phone: string; avatar_url: string | null; average_rating: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -61,7 +62,7 @@ export default function OrderTrackingScreen() {
   const fetchOrder = useCallback(async (id: string) => {
     const { data } = await supabase
       .from('orders')
-      .select('id, status, rider_id, final_price, pickup_address, dropoff_address, dropoff_contact_name, dropoff_contact_phone, package_size, delivery_code')
+      .select('id, status, rider_id, final_price, pickup_address, dropoff_address, dropoff_contact_name, dropoff_contact_phone, package_size')
       .eq('id', id)
       .single();
     if (data) {
@@ -70,6 +71,8 @@ export default function OrderTrackingScreen() {
         router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId: id } } as any);
         return;
       }
+      const { data: code } = await supabase.rpc('get_order_delivery_code', { p_order_id: id });
+      setDeliveryCode(typeof code === 'string' ? code : null);
       setOrder(o as unknown as Order);
       if (o.rider_id) fetchRider(o.rider_id);
     }
@@ -101,12 +104,14 @@ export default function OrderTrackingScreen() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
+        async (payload) => {
           const nextOrder = payload.new as Order;
           if (ACTIVE_TRACKING_STATUSES.has(nextOrder.status)) {
             router.replace({ pathname: '/(customer)/active-order-tracking', params: { orderId } } as any);
             return;
           }
+          const { data: code } = await supabase.rpc('get_order_delivery_code', { p_order_id: orderId });
+          setDeliveryCode(typeof code === 'string' ? code : null);
           setOrder(nextOrder);
           if (nextOrder.rider_id && nextOrder.rider_id !== (payload.old as any)?.rider_id) {
             fetchRider(nextOrder.rider_id);
@@ -264,13 +269,13 @@ export default function OrderTrackingScreen() {
               <Text style={styles.packageValue}>{order.package_size.replace('_', ' ')}</Text>
             </View>
           </View>
-          {order.delivery_code && (
+          {deliveryCode && (
             <View style={[styles.packageRow, { borderTopWidth: 1, borderTopColor: '#F1F4F6', paddingTop: 12, marginTop: 4 }]}>
               <Text style={styles.packageIcon}>🔐</Text>
               <View>
                 <Text style={styles.packageLabel}>Delivery Code</Text>
                 <Text style={[styles.packageValue, { letterSpacing: 4, fontSize: Typography.xl }]}>
-                  {order.delivery_code}
+                  {deliveryCode}
                 </Text>
                 <Text style={styles.packageHint}>Share with rider at delivery</Text>
               </View>

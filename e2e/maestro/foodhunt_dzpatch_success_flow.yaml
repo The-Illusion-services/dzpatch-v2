@@ -1,0 +1,55 @@
+# MANUAL-GATED SCAFFOLD: These flows require stable test IDs and seeded data to be fully runnable in CI.
+appId: com.foodhunt.mobile
+---
+- launchApp:
+    appId: com.foodhunt.mobile
+    clearState: true
+# Foodhunt Customer Flow
+- assertVisible: "Login"
+- tapOn: "Email Input"
+- inputText: "customer@test.com"
+- tapOn: "Password Input"
+- inputText: "password123"
+- tapOn: "Login Button"
+
+- assertVisible: "Home"
+- tapOn: "Test Restaurant" # Assuming a seeded test restaurant
+- tapOn: "Integration Jollof"
+- tapOn: "Add to Cart"
+- tapOn: "View Cart"
+- tapOn: "Checkout"
+
+# Confirm quote fee visible
+- assertVisible: "Delivery Fee"
+- tapOn: "Pay with Wallet"
+- assertVisible: "Order placed successfully"
+
+# Switch to Foodhunt Store (Requires a separate maestro flow or app switch if bundled, 
+# for true E2E we assume store app handles acceptance separately. Maestro can switch apps)
+- launchApp:
+    appId: com.foodhunt.store
+- assertVisible: "Login"
+- tapOn: "Email Input"
+- inputText: "store@test.com"
+- tapOn: "Password Input"
+- inputText: "password123"
+- tapOn: "Login Button"
+
+- tapOn: "New Orders"
+- tapOn: "Accept Order"
+- tapOn: "Start Preparing"
+- tapOn: "Ready for Pickup"
+
+# Switch back to Customer App to assert tracking
+- launchApp:
+    appId: com.foodhunt.mobile
+- tapOn: "Orders"
+- tapOn: "Active Order"
+- assertVisible: "Rider Assigned" # Wait for dispatch
+
+# In a real environment, we'd need to mock the dzpatch rider picking it up or use a helper script to advance the state.
+- runScript: "scripts/mock_dzpatch_delivered.js"
+
+# Assert final delivery state
+- assertVisible: "Delivery Code"
+- assertVisible: "Delivered"

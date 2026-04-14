@@ -52,3 +52,4 @@ supabase/migrations/archive_local_2026-04-02/
 .claude/
 /_external_/
 /docs
+.env.test.local

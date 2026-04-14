@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.partner-deliveries]
 verify_jwt = false
+
+[functions.partner-quotes]
+verify_jwt = false
+
+[functions.partner-webhook-dispatcher]
+verify_jwt = false

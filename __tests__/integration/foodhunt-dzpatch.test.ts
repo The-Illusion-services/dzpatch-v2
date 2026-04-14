@@ -9,8 +9,16 @@ import {
 
 const env = getSupabaseTestEnv();
 const mobileFunctionsUrl = env ? `${env.url}/functions/v1` : null;
-const adminApiUrl = process.env.ADMIN_API_URL || 'http://localhost:3000/api/admin'; 
-const describeSupabase = hasSupabaseTestEnv() && mobileFunctionsUrl ? describe : describe.skip;
+const adminApiUrl = process.env.ADMIN_API_URL || 'http://localhost:1925/api/admin';
+const integrationEnabled = process.env.FOODHUNT_DZPATCH_INTEGRATION === '1';
+const missingIntegrationEnv = !hasSupabaseTestEnv() || !mobileFunctionsUrl;
+const describeSupabase = !missingIntegrationEnv ? describe : describe.skip;
+
+if (integrationEnabled && missingIntegrationEnv) {
+  throw new Error(
+    'FOODHUNT_DZPATCH_INTEGRATION=1 requires Supabase test env so Foodhunt x Dzpatch tests do not silently skip.',
+  );
+}
 
 type FoodhuntTestClients = {
   customer: any;

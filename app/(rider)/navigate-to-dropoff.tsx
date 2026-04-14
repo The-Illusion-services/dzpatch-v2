@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
+import { nudgePartnerWebhookDispatcher } from '@/lib/partner-webhook-dispatcher';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,6 +19,8 @@ interface OrderInfo {
   dropoff_location: unknown;
   distance_km: number | null;
   customer_id: string;
+  dropoff_contact_name: string | null;
+  dropoff_contact_phone: string | null;
 }
 
 interface CustomerInfo {
@@ -29,6 +32,18 @@ interface LatLng { latitude: number; longitude: number; }
 
 const DELTA_SM = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
 const CALABAR_FALLBACK: LatLng = { latitude: 5.9631, longitude: 8.3271 };
+
+function getDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const earthMeters = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return earthMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 async function geocodeAddress(address: string): Promise<LatLng | null> {
   try {
@@ -60,6 +75,7 @@ export default function NavigateToDropoffScreen() {
   const [dropoffCoord, setDropoffCoord] = useState<LatLng>(CALABAR_FALLBACK);
   const mapRef = useRef<MapView>(null);
   const locationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSyncedLocation = useRef<{ lat: number; lng: number; at: number } | null>(null);
 
   // ── Keep-screen-on warning (fires once on mount) ───────────────────────────
   useEffect(() => {
@@ -76,7 +92,7 @@ export default function NavigateToDropoffScreen() {
     if (!orderId) return;
     supabase
       .from('orders')
-      .select('dropoff_address, dropoff_location, distance_km, customer_id, status')
+      .select('dropoff_address, dropoff_location, distance_km, customer_id, dropoff_contact_name, dropoff_contact_phone, status')
       .eq('id', orderId)
       .maybeSingle()
       .then(async ({ data, error }) => {
@@ -114,12 +130,19 @@ export default function NavigateToDropoffScreen() {
             }
           });
         }
-        const { data: cust } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('id', o.customer_id)
-          .single();
-        if (cust) setCustomer(cust as CustomerInfo);
+        if (o.dropoff_contact_name || o.dropoff_contact_phone) {
+          setCustomer({
+            full_name: o.dropoff_contact_name || 'Customer',
+            phone: o.dropoff_contact_phone || '',
+          });
+        } else {
+          const { data: cust } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', o.customer_id)
+            .single();
+          if (cust) setCustomer(cust as CustomerInfo);
+        }
       });
   }, [orderId]);
 
@@ -127,36 +150,54 @@ export default function NavigateToDropoffScreen() {
 
   useEffect(() => {
     if (!riderId || !orderId) return;
-    const syncCurrentLocation = async () => {
+    const syncCurrentLocation = async (force = false) => {
       try {
         const { default: ExpoLocation } = await import('expo-location');
         const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        const now = Date.now();
+        const last = lastSyncedLocation.current;
+        const movedMeters = last
+          ? getDistanceMeters(last.lat, last.lng, loc.coords.latitude, loc.coords.longitude)
+          : Infinity;
+        if (!force && last && movedMeters < 35 && now - last.at < 30000) {
+          return;
+        }
         await (supabase as any).rpc('update_rider_location', {
           p_rider_id: riderId,
           p_lat: loc.coords.latitude,
           p_lng: loc.coords.longitude,
           p_order_id: orderId,
         });
+        lastSyncedLocation.current = { lat: loc.coords.latitude, lng: loc.coords.longitude, at: now };
       } catch {
         // GPS temporarily unavailable â€” skip this sync attempt
       }
     };
 
-    void syncCurrentLocation();
+    void syncCurrentLocation(true);
     locationTimer.current = setInterval(async () => {
       try {
         const { default: ExpoLocation } = await import('expo-location');
         const loc = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        const now = Date.now();
+        const last = lastSyncedLocation.current;
+        const movedMeters = last
+          ? getDistanceMeters(last.lat, last.lng, loc.coords.latitude, loc.coords.longitude)
+          : Infinity;
+        if (last && movedMeters < 35 && now - last.at < 60000) {
+          return;
+        }
         await (supabase as any).rpc('update_rider_location', {
           p_rider_id: riderId,
           p_lat: loc.coords.latitude,
           p_lng: loc.coords.longitude,
           p_order_id: orderId,
         });
+        lastSyncedLocation.current = { lat: loc.coords.latitude, lng: loc.coords.longitude, at: now };
       } catch {
         // GPS temporarily unavailable — skip this interval tick
       }
-    }, 10000);
+    }, 30000);
     return () => { if (locationTimer.current) clearInterval(locationTimer.current); };
   }, [riderId, orderId]);
 
@@ -184,6 +225,7 @@ export default function NavigateToDropoffScreen() {
         p_new_status: 'arrived_dropoff',
       });
       if (error) throw error;
+      await nudgePartnerWebhookDispatcher();
       router.replace({
         pathname: '/(rider)/delivery-completion' as any,
         params: { orderId },
@@ -261,9 +303,11 @@ export default function NavigateToDropoffScreen() {
               <Text style={styles.recipientLabel}>RECIPIENT</Text>
               <Text style={styles.recipientName}>{customer.full_name}</Text>
             </View>
-            <Pressable style={styles.callBtn} onPress={callCustomer}>
-              <Ionicons name="call" size={14} color="#FFFFFF" />
-            </Pressable>
+            {customer.phone ? (
+              <Pressable style={styles.callBtn} onPress={callCustomer}>
+                <Ionicons name="call" size={14} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
           </View>
         )}
 

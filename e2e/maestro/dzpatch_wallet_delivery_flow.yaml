@@ -1,0 +1,70 @@
+# MANUAL-GATED SCAFFOLD: These flows require stable test IDs and seeded data to be fully runnable in CI.
+appId: com.dzpatch.customer
+---
+# Dzpatch Wallet Delivery Flow
+- launchApp:
+    appId: com.dzpatch.customer
+    clearState: true
+
+- tapOn: "Login"
+- tapOn: "Email"
+- inputText: "customer@dzpatch.local"
+- tapOn: "Password"
+- inputText: "password123"
+- tapOn: "Sign In"
+
+- tapOn: "Create Order"
+- tapOn: "Pickup Address"
+- inputText: "123 Seed Street"
+- tapOn: "Dropoff Address"
+- inputText: "456 Drop Avenue"
+- tapOn: "Package Size"
+- tapOn: "Small"
+- tapOn: "Payment Method"
+- tapOn: "Wallet" # Assumes wallet is seeded with funds
+- tapOn: "Confirm Order"
+
+# Switch to Rider app
+- launchApp:
+    appId: com.dzpatch.rider
+    clearState: true
+- tapOn: "Login"
+- tapOn: "Email"
+- inputText: "rider@dzpatch.local"
+- tapOn: "Password"
+- inputText: "password123"
+- tapOn: "Sign In"
+
+- tapOn: "Available Orders"
+- tapOn: "Order Request"
+- tapOn: "Place Bid"
+- inputText: "1500"
+- tapOn: "Submit Bid"
+
+# Customer accepts
+- launchApp:
+    appId: com.dzpatch.customer
+- tapOn: "Active Orders"
+- tapOn: "Bids"
+- tapOn: "Accept Bid"
+
+# Rider completes
+- launchApp:
+    appId: com.dzpatch.rider
+- tapOn: "My Deliveries"
+- tapOn: "Arrived at Pickup"
+- tapOn: "Picked Up"
+- tapOn: "Arrived at Dropoff"
+- tapOn: "Complete Delivery"
+- tapOn: "Enter Delivery Code"
+# Helper script to fetch delivery code and simulate input
+- runScript: "scripts/fetch_delivery_code_and_input.js" 
+- tapOn: "Verify Code"
+- tapOn: "Upload POD"
+# Simulate POD upload
+- tapOn: "Confirm Delivery"
+
+# Verify Delivery Success
+- launchApp:
+    appId: com.dzpatch.customer
+- assertVisible: "Delivered"

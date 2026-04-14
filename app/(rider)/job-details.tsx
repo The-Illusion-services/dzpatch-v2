@@ -35,12 +35,31 @@ type OrderDetail = {
   category: { name: string } | null;
 };
 
+type PartnerContext = {
+  source_type: 'customer' | 'partner';
+  partner_name: string | null;
+  pickup_brand_name: string | null;
+  is_negotiable: boolean;
+};
+
 export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, sourceType, partnerName, pickupBrandName, isNegotiable } = useLocalSearchParams<{
+    orderId: string;
+    sourceType?: string;
+    partnerName?: string;
+    pickupBrandName?: string;
+    isNegotiable?: string;
+  }>();
   const { riderId } = useAuthStore();
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [partnerContext, setPartnerContext] = useState<PartnerContext>({
+    source_type: sourceType === 'partner' ? 'partner' : 'customer',
+    partner_name: partnerName ?? null,
+    pickup_brand_name: pickupBrandName ?? null,
+    is_negotiable: isNegotiable === 'false' ? false : true,
+  });
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
 
@@ -74,6 +93,16 @@ export default function JobDetailsScreen() {
         return;
       }
       setOrder(data as any);
+
+      const { data: contextData, error: contextError } = await (supabase as any).rpc('get_order_partner_context', {
+        p_order_id: orderId,
+      });
+      if (!isActive) return;
+      if (contextError) {
+        console.warn('job-details partner context load failed:', contextError.message);
+      } else if (Array.isArray(contextData) && contextData[0]) {
+        setPartnerContext(contextData[0] as PartnerContext);
+      }
     };
 
     void loadOrder();
@@ -109,19 +138,17 @@ export default function JobDetailsScreen() {
     }
     setAccepting(true);
     try {
-      // Accepting = placing a bid at the listed price
-      const { error } = await (supabase as any).rpc('place_bid', {
+      const { error } = await (supabase as any).rpc('accept_order_direct', {
         p_order_id: orderId,
         p_rider_id: riderId,
-        p_amount: price,
       });
       if (error) throw error;
       router.replace({
-        pathname: '/(rider)/waiting-for-customer' as any,
-        params: { orderId, bidAmount: String(price) },
+        pathname: '/(rider)/navigate-to-pickup' as any,
+        params: { orderId },
       });
     } catch (error: any) {
-      Alert.alert('Could not place bid', error.message ?? 'Please try again.');
+      Alert.alert('Could not accept order', error.message ?? 'Please try again.');
     } finally {
       setAccepting(false);
     }
@@ -144,6 +171,10 @@ export default function JobDetailsScreen() {
   const isExpired = order.expires_at ? new Date(order.expires_at) < new Date() : false;
   const isAvailable = order.status === 'pending' && !isExpired;
   const orderPrice = order.suggested_price ?? order.dynamic_price ?? 0;
+  const isPartnerOrder = partnerContext.source_type === 'partner';
+  const isNegotiableOrder = partnerContext.is_negotiable !== false;
+  const partnerLabel = partnerContext.partner_name ?? 'Partner';
+  const pickupBrand = partnerContext.pickup_brand_name ?? order.pickup_address;
   const earningsBreakdown = buildRiderEarningsBreakdown({
     gross: orderPrice,
     commissionAmount: order.platform_commission_amount,
@@ -176,15 +207,28 @@ export default function JobDetailsScreen() {
         {/* Price + time */}
         <View style={styles.heroCard}>
           <View>
-            <Text style={styles.heroLabel}>Est. Take-Home</Text>
+            <Text style={styles.heroLabel}>{isPartnerOrder ? 'Fixed Payout' : 'Est. Take-Home'}</Text>
             <Text style={styles.heroPrice}>₦{estimatedNet.toLocaleString()}</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroRight}>
-            <Text style={styles.heroLabel}>Gross / Request</Text>
+            <Text style={styles.heroLabel}>{isPartnerOrder ? partnerLabel : 'Gross / Request'}</Text>
             <Text style={styles.heroTime}>₦{orderPrice.toLocaleString()} · {timeSince(order.created_at)}</Text>
           </View>
         </View>
+
+        {isPartnerOrder && (
+          <View style={styles.partnerCard}>
+            <View style={styles.partnerBadge}>
+              <Ionicons name="business-outline" size={14} color="#0040e0" />
+              <Text style={styles.partnerBadgeText}>{partnerLabel}</Text>
+            </View>
+            <Text style={styles.partnerTitle}>{pickupBrand}</Text>
+            <Text style={styles.partnerText}>
+              Fixed partner delivery. Accepting starts the trip immediately and counter-offers are not available for this job.
+            </Text>
+          </View>
+        )}
 
         {/* Feasibility chip */}
         {order.distance_km && (
@@ -279,18 +323,22 @@ export default function JobDetailsScreen() {
       {/* Footer actions */}
       {isAvailable && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <Pressable style={styles.counterBtn} onPress={handleCounterOffer}>
-            <Text style={styles.counterBtnText}>Counter-Offer</Text>
-          </Pressable>
+          {isNegotiableOrder && (
+            <Pressable style={styles.counterBtn} onPress={handleCounterOffer}>
+              <Text style={styles.counterBtnText}>Counter Offer</Text>
+            </Pressable>
+          )}
           <Pressable
-            style={[styles.acceptBtn, accepting && styles.acceptBtnDisabled]}
+            style={[styles.acceptBtn, !isNegotiableOrder && styles.acceptBtnFull, accepting && styles.acceptBtnDisabled]}
             onPress={handleAccept}
             disabled={accepting}
           >
             {accepting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.acceptBtnText}>Accept for {formatPrice(order.suggested_price, order.dynamic_price)}</Text>
+              <Text style={styles.acceptBtnText}>
+                {isPartnerOrder ? 'Accept Delivery' : `Accept for ${formatPrice(order.suggested_price, order.dynamic_price)}`}
+              </Text>
             )}
           </Pressable>
         </View>
@@ -357,6 +405,27 @@ const styles = StyleSheet.create({
   heroDivider: { width: 1, height: 40, backgroundColor: 'rgba(168,196,255,0.2)', marginHorizontal: 20 },
   heroRight: {},
   heroTime: { fontSize: Typography.sm, fontWeight: '600', color: 'rgba(168,196,255,0.9)' },
+  partnerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#DDE5FF',
+  },
+  partnerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  partnerBadgeText: { fontSize: 11, fontWeight: '800', color: '#0040e0', textTransform: 'uppercase', letterSpacing: 0.8 },
+  partnerTitle: { fontSize: Typography.sm, fontWeight: '800', color: '#000D22' },
+  partnerText: { fontSize: Typography.xs, color: '#44474e', lineHeight: 18 },
 
   // Cards
   card: {
@@ -419,6 +488,7 @@ const styles = StyleSheet.create({
     shadowColor: '#0040e0', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
+  acceptBtnFull: { flex: 1 },
   acceptBtnDisabled: { opacity: 0.6 },
   acceptBtnText: { fontSize: Typography.sm, fontWeight: '700', color: '#FFFFFF' },
 });

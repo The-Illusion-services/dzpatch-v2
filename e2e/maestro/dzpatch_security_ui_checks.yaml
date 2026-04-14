@@ -1,0 +1,56 @@
+# MANUAL-GATED SCAFFOLD: These flows require stable test IDs and seeded data to be fully runnable in CI.
+appId: com.dzpatch.rider
+---
+# Security UI Checks
+- launchApp:
+    appId: com.dzpatch.rider
+    clearState: true
+
+- tapOn: "Login"
+- tapOn: "Email"
+- inputText: "rider@dzpatch.local"
+- tapOn: "Password"
+- inputText: "password123"
+- tapOn: "Sign In"
+
+- tapOn: "Available Orders"
+- tapOn: "Order Request"
+
+# PII check before match
+- assertNotVisible: "080" # Assuming Nigerian phone format or use specific test phone
+- assertNotVisible: "+234"
+- assertNotVisible: "Call Customer"
+
+# Assume we simulate a match and arrive at dropoff for the next tests
+- runScript: "scripts/mock_assigned_to_arrived_dropoff.js"
+
+- tapOn: "My Deliveries"
+- tapOn: "Active Delivery"
+- tapOn: "Complete Delivery"
+
+# Lockout check for wrong code
+- tapOn: "Enter Delivery Code"
+- inputText: "000000"
+- tapOn: "Verify Code"
+- assertVisible: "Invalid code" # 1st attempt
+
+- tapOn: "Enter Delivery Code"
+- inputText: "000001"
+- tapOn: "Verify Code"
+- assertVisible: "Invalid code" # 2nd attempt
+
+- tapOn: "Enter Delivery Code"
+- inputText: "000002"
+- tapOn: "Verify Code"
+- assertVisible: "Invalid code" # 3rd attempt
+
+- tapOn: "Enter Delivery Code"
+- inputText: "000003"
+- tapOn: "Verify Code"
+- assertVisible: "Too many attempts" # Lockout message
+
+# Ensure Complete without POD is blocked
+- runScript: "scripts/mock_reset_delivery_attempts_and_verify.js" # Script to bypass code step
+- assertVisible: "Upload POD"
+- tapOn: "Confirm Delivery"
+- assertVisible: "Proof of delivery is required" # Or similar validation error

@@ -54,11 +54,25 @@ export default function RiderChatScreen() {
   const fetchCustomerInfo = useCallback(async () => {
     const { data: orderRaw } = await supabase
       .from('orders')
-      .select('customer_id, status')
+      .select('customer_id, status, dropoff_contact_name, dropoff_contact_phone')
       .eq('id', orderId)
       .single();
-    const order = orderRaw as { customer_id: string; status: string } | null;
+    const order = orderRaw as {
+      customer_id: string;
+      dropoff_contact_name: string | null;
+      dropoff_contact_phone: string | null;
+      status: string;
+    } | null;
     if (order?.customer_id) {
+      if (order.dropoff_contact_name || order.dropoff_contact_phone) {
+        setCustomerInfo({
+          full_name: order.dropoff_contact_name || 'Customer',
+          phone: order.dropoff_contact_phone || '',
+          order_status: order.status,
+        });
+        return;
+      }
+
       const { data: cust } = await supabase
         .from('profiles')
         .select('full_name, phone')

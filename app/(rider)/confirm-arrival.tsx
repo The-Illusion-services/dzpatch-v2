@@ -4,6 +4,7 @@ import { Alert, Animated, Easing, Linking, Pressable, StyleSheet, Text, View } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { nudgePartnerWebhookDispatcher } from '@/lib/partner-webhook-dispatcher';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 
@@ -12,6 +13,8 @@ import { Spacing, Typography } from '@/constants/theme';
 interface OrderInfo {
   pickup_address: string;
   customer_id: string;
+  dropoff_contact_name: string | null;
+  dropoff_contact_phone: string | null;
 }
 
 interface CustomerInfo {
@@ -52,7 +55,7 @@ export default function ConfirmArrivalScreen() {
     const loadOrderAndCustomer = async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('pickup_address, customer_id, status')
+        .select('pickup_address, customer_id, dropoff_contact_name, dropoff_contact_phone, status')
         .eq('id', orderId)
         .single();
       if (!isActive) return;
@@ -63,7 +66,7 @@ export default function ConfirmArrivalScreen() {
         return;
       }
 
-      const orderData = data as { customer_id: string; pickup_address: string; status: string };
+      const orderData = data as OrderInfo & { status: string };
 
       // Resume guard: if already past arrived_pickup, go straight to dropoff screen
       if (
@@ -77,6 +80,14 @@ export default function ConfirmArrivalScreen() {
       }
 
       setOrder(orderData as OrderInfo);
+
+      if (orderData.dropoff_contact_name || orderData.dropoff_contact_phone) {
+        setCustomer({
+          full_name: orderData.dropoff_contact_name || 'Customer',
+          phone: orderData.dropoff_contact_phone || '',
+        });
+        return;
+      }
 
       const { data: customerData, error: customerError } = await supabase
         .from('profiles')
@@ -110,6 +121,7 @@ export default function ConfirmArrivalScreen() {
         p_changed_by: profile.id,
       });
       if (error) throw error;
+      await nudgePartnerWebhookDispatcher();
       router.replace({
         pathname: '/(rider)/navigate-to-dropoff' as any,
         params: { orderId },
@@ -173,14 +185,18 @@ export default function ConfirmArrivalScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.customerName}>{customer.full_name}</Text>
-              <Text style={styles.customerPhone}>{customer.phone}</Text>
+              {customer.phone ? <Text style={styles.customerPhone}>{customer.phone}</Text> : null}
             </View>
-            <Pressable style={styles.contactBtn} onPress={messageCustomer} hitSlop={8}>
-              <Ionicons name="chatbubble-outline" size={16} color="#0040e0" />
-            </Pressable>
-            <Pressable style={styles.contactBtn} onPress={callCustomer} hitSlop={8}>
-              <Ionicons name="call-outline" size={16} color="#0040e0" />
-            </Pressable>
+            {customer.phone ? (
+              <>
+                <Pressable style={styles.contactBtn} onPress={messageCustomer} hitSlop={8}>
+                  <Ionicons name="chatbubble-outline" size={16} color="#0040e0" />
+                </Pressable>
+                <Pressable style={styles.contactBtn} onPress={callCustomer} hitSlop={8}>
+                  <Ionicons name="call-outline" size={16} color="#0040e0" />
+                </Pressable>
+              </>
+            ) : null}
           </View>
         )}
 

@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '@/lib/supabase';
 import { uploadProofOfDelivery } from '@/lib/delivery-flow';
+import { nudgePartnerWebhookDispatcher } from '@/lib/partner-webhook-dispatcher';
 import { useAuthStore } from '@/store/auth.store';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -30,6 +31,9 @@ interface OrderInfo {
   status: string;
   payment_method: string | null;
   final_price: number | null;
+  distance_km: number | null;
+  matched_at: string | null;
+  is_partner_delivery?: boolean;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ export default function DeliveryCompletionScreen() {
     if (!orderId || !profile?.id) return;
     supabase
       .from('orders')
-      .select('id, dropoff_address, package_size, package_description, status, payment_method, final_price')
+      .select('id, dropoff_address, package_size, package_description, status, payment_method, final_price, distance_km, matched_at')
       .eq('id', orderId)
       .single()
       .then(async ({ data, error }) => {
@@ -63,7 +67,15 @@ export default function DeliveryCompletionScreen() {
           return;
         }
         if (!data) return;
-        const orderData = data as OrderInfo;
+        const { data: partnerDelivery } = await supabase
+          .from('partner_deliveries')
+          .select('id')
+          .eq('dzpatch_order_id', orderId)
+          .maybeSingle();
+        const orderData = {
+          ...(data as OrderInfo),
+          is_partner_delivery: Boolean(partnerDelivery?.id),
+        };
         setOrder(orderData);
         if (orderData.status === 'in_transit') {
           const { error: statusError } = await (supabase as any).rpc('update_order_status', {
@@ -78,6 +90,7 @@ export default function DeliveryCompletionScreen() {
             );
             return;
           }
+          await nudgePartnerWebhookDispatcher();
           // Reflect updated status in local state
           setOrder({ ...orderData, status: 'arrived_dropoff' });
           return;
@@ -181,12 +194,16 @@ export default function DeliveryCompletionScreen() {
         p_pod_photo_url: podPath ?? null,
       } as any);
       if (completeErr) throw completeErr;
+      await nudgePartnerWebhookDispatcher();
 
       const earnings = result as {
         rider_earnings: number;
         platform_commission?: number;
         commission?: number;
       } | null;
+      const tripMinutes = order?.matched_at
+        ? Math.max(1, Math.round((Date.now() - new Date(order.matched_at).getTime()) / 60000))
+        : null;
 
       router.replace({
         pathname: '/(rider)/trip-complete' as any,
@@ -194,6 +211,8 @@ export default function DeliveryCompletionScreen() {
           orderId,
           riderEarnings: String(earnings?.rider_earnings ?? 0),
           commission: String(earnings?.platform_commission ?? earnings?.commission ?? 0),
+          distanceKm: order?.distance_km != null ? String(order.distance_km) : '',
+          tripMinutes: tripMinutes != null ? String(tripMinutes) : '',
         },
       });
     } catch (error: any) {
@@ -213,8 +232,7 @@ export default function DeliveryCompletionScreen() {
     }
   };
 
-  const isCashOrder = order?.payment_method === 'cash';
-  const isReady = code.every((d) => d !== '') && !!podPhotoUri && !completing && (!isCashOrder || cashConfirmed);
+  const isReady = code.every((d) => d !== '') && !!podPhotoUri && !completing;
 
   return (
     <ScrollView
@@ -293,7 +311,7 @@ export default function DeliveryCompletionScreen() {
       </Pressable>
 
       {/* Cash confirmation (cash orders only) */}
-      {isCashOrder && (
+      {false && (
         <Pressable style={styles.cashConfirmRow} onPress={() => setCashConfirmed((v) => !v)}>
           <View style={[styles.cashCheckbox, cashConfirmed && styles.cashCheckboxChecked]}>
             {cashConfirmed && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}

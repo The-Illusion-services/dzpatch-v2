@@ -22,10 +22,12 @@ export default function TripCompleteScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { riderEarnings, commission } = useLocalSearchParams<{
+  const { riderEarnings, commission, distanceKm, tripMinutes } = useLocalSearchParams<{
+    distanceKm?: string;
     orderId?: string;
     riderEarnings: string;
     commission: string;
+    tripMinutes?: string;
   }>();
 
   const [rating, setRating] = useState(0);
@@ -67,6 +69,8 @@ export default function TripCompleteScreen() {
   const gross = parseInt(riderEarnings || '0', 10) + parseInt(commission || '0', 10);
   const net = parseInt(riderEarnings || '0', 10);
   const comm = parseInt(commission || '0', 10);
+  const distanceLabel = distanceKm ? `${Number(distanceKm).toFixed(1)} km` : '-';
+  const tripTimeLabel = tripMinutes ? `${tripMinutes} min` : '-';
 
   return (
     <ScrollView
@@ -91,14 +95,12 @@ export default function TripCompleteScreen() {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Ionicons name="map-outline" size={20} color="#0040e0" />
-          <Text style={styles.statValue}>
-            {/* Placeholder — distance not in params, show placeholder */}—
-          </Text>
+          <Text style={styles.statValue}>{distanceLabel}</Text>
           <Text style={styles.statLabel}>Distance</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="time-outline" size={20} color="#0040e0" />
-          <Text style={styles.statValue}>—</Text>
+          <Text style={styles.statValue}>{tripTimeLabel}</Text>
           <Text style={styles.statLabel}>Trip Time</Text>
         </View>
       </View>

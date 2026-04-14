@@ -1,0 +1,48 @@
+# MANUAL-GATED SCAFFOLD: These flows require stable test IDs and seeded data to be fully runnable in CI.
+appId: com.foodhunt.mobile
+---
+- launchApp:
+    appId: com.foodhunt.mobile
+    clearState: true
+
+- assertVisible: "Login"
+- tapOn: "Email Input"
+- inputText: "customer@test.com"
+- tapOn: "Password Input"
+- inputText: "password123"
+- tapOn: "Login Button"
+
+- tapOn: "Test Restaurant"
+- tapOn: "Integration Jollof"
+- tapOn: "Add to Cart"
+- tapOn: "View Cart"
+- tapOn: "Checkout"
+- tapOn: "Pay with Wallet"
+
+- launchApp:
+    appId: com.foodhunt.store
+- assertVisible: "Login"
+- tapOn: "Email Input"
+- inputText: "store@test.com"
+- tapOn: "Password Input"
+- inputText: "password123"
+- tapOn: "Login Button"
+
+- tapOn: "New Orders"
+- tapOn: "Accept Order"
+- tapOn: "Start Preparing"
+- tapOn: "Ready for Pickup"
+
+# Trigger a webhook simulating failed no rider
+- runScript: "scripts/trigger_failed_no_rider.js"
+
+# Verify Foodhunt does NOT advance
+- launchApp:
+    appId: com.foodhunt.mobile
+- tapOn: "Orders"
+- tapOn: "Active Order"
+- assertNotVisible: "Out for Delivery"
+- assertVisible: "Ready for Pickup" # Should remain here
+
+# Wait/Assert Admin Exception Queue (Can be checked via script or switching to admin app)
+- runScript: "scripts/verify_admin_exception_queue.js"

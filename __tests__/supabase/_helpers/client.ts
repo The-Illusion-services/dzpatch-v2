@@ -32,9 +32,9 @@ function readRequiredEnv(...keys: string[]) {
 }
 
 export function getSupabaseTestEnv(): SupabaseTestEnv | null {
-  const url = readRequiredEnv('SUPABASE_TEST_URL', 'EXPO_PUBLIC_SUPABASE_URL');
-  const anonKey = readRequiredEnv('SUPABASE_TEST_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
-  const serviceRoleKey = readRequiredEnv('SUPABASE_TEST_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY');
+  const url = readRequiredEnv('DZPATCH_SUPABASE_URL', 'SUPABASE_TEST_URL', 'EXPO_PUBLIC_SUPABASE_URL');
+  const anonKey = readRequiredEnv('DZPATCH_SUPABASE_ANON_KEY', 'SUPABASE_TEST_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  const serviceRoleKey = readRequiredEnv('DZPATCH_SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_TEST_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY');
 
   if (!url || !anonKey || !serviceRoleKey) {
     return null;
